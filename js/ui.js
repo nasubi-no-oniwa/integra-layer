@@ -4,6 +4,7 @@
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const SAVE_S = 'il_state_v1', SAVE_O = 'il_opt_v1';
+const DEV = true; // 開発用（公開するときは false にする：リセットボタンが消える）
 let S = null, pr = null, run = null, opt = { sound: true, name: '' };
 const ui = { scr: null, sel: null, bagSel: null, filt: { sp: 'all', rar: 'all', sort: 'score' }, target: 0, sub: null, synthBase: null, synthMat: null, drops: [], ghosts: [], firsts: {} };
 
@@ -108,6 +109,7 @@ function title() {
       <button class="btn" data-a="points">能力${pr.freePts ? '<span class="badge">' + pr.freePts + '</span>' : ''}</button>
       <button class="btn" data-a="plaza">広場（掲示板）</button>
       <div class="row" style="justify-content:center"><button class="btn sm" data-a="profile">名前と引き継ぎ</button><button class="btn sm" data-a="help">遊び方</button><button class="btn sm" data-a="sound">音 ${opt.sound ? 'あり' : 'なし'}</button><button class="btn sm" data-a="lang">🌐 ${L10N.LANGS[L10N.lang]}</button></div>
+      ${DEV ? '<button class="btn sm warn" data-a="devreset">【開発用】データをリセット</button>' : ''}
       <p class="small mute">${Net.on ? 'オンライン　<span class="nt">' + esc(opt.name || '名無し') + '</span>' : 'オフライン（この端末だけ）'}</p>
     </div></div>`);
 }
@@ -540,6 +542,8 @@ document.addEventListener('click', async e => {
     case 'floors': sfx('click', 0.3); return floors();
     case 'help': return help();
     case 'sound': opt.sound = !opt.sound; saveOpt(); return run ? runMenu() : title();
+    case 'devreset': if (!DEV) return; ui.scr = 'dev'; return show(`<div class="win" style="max-width:420px"><h2>【開発用】リセット</h2><p>この端末のレベル・欠片・お金・地図・クリアした階をすべて消して、最初からにします。</p><p class="small mute">みんなの初撃破で開いた階は、最前線としてそのまま選べます。</p><div class="row"><button class="btn warn" data-a="devreset2">消して最初から</button><button class="btn" data-a="title">やめる</button></div></div>`);
+    case 'devreset2': { if (!DEV) return; const pid = S.uid; S = IL.newState(pid, Date.now()); S.gclear = {}; pr = S.pr; run = null; try { localStorage.removeItem(SAVE_S); localStorage.removeItem('il_salesgot'); } catch (e) {} save(); onFirsts(ui.firsts); if (Net.on) syncProfile(); toast('リセットしました'); return title(); }
     case 'lang': { const ks = Object.keys(L10N.LANGS); L10N.lang = opt.lang = ks[(ks.indexOf(L10N.lang) + 1) % ks.length]; saveOpt(); document.documentElement.lang = L10N.lang; return location.reload(); }
     case 'board': ui.sel = null; ui.bagSel = null; return boardScreen('title');
     case 'board2': ui.sel = null; ui.bagSel = null; return boardScreen('run');
