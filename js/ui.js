@@ -821,8 +821,10 @@ document.querySelectorAll('.dpad button').forEach(b => {
   b.addEventListener('pointerdown', e => { e.preventDefault(); b.classList.add('on'); startHold(dir); });
   ['pointerup', 'pointercancel', 'pointerleave'].forEach(ev => b.addEventListener(ev, stopHold));
 });
-$('#b-act').addEventListener('click', interact);
-$('#b-menu').addEventListener('click', () => { if (run && !ui.scr) runMenu(); });
+/* スマホでは touchstart を止めているので click が来ない → pointerup で受ける */
+function padBtn(b, fn) { b.addEventListener('pointerdown', e => { e.preventDefault(); b.classList.add('on'); }); b.addEventListener('pointerleave', () => b.classList.remove('on')); b.addEventListener('pointerup', e => { e.preventDefault(); const was = b.classList.contains('on'); b.classList.remove('on'); if (was) fn(); }); }
+padBtn($('#b-act'), interact);
+padBtn($('#b-menu'), () => { if (run && !ui.scr) runMenu(); });
 document.addEventListener('dblclick', e => e.preventDefault(), { passive: false });
 let lastTouch = 0; document.addEventListener('touchend', e => { const n = Date.now(); if (n - lastTouch < 300) e.preventDefault(); lastTouch = n; }, { passive: false });
 document.addEventListener('gesturestart', e => e.preventDefault());
