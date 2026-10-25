@@ -4,7 +4,7 @@
 'use strict';
 const IL = {};
 IL.VER = 1;
-IL.ENGINE = '11'; // ルールの版（記録に書く。変えたら engine/ に前の版を残す）
+IL.ENGINE = '12'; // ルールの版（記録に書く。変えたら engine/ に前の版を残す）
 
 /* ---------- 乱数 ---------- */
 function hashStr(s) { let h = 2166136261 >>> 0; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
@@ -181,7 +181,7 @@ function makeEnemy(f, type, kind, rng) { // kind: 0 ふつう 1 中ボス 2 大�
   const e1 = f === 1 && !kind; // 1階のふつうの敵は、少しだけ固く・強く
   const hm = kind === 1 ? B.bossHp : kind >= 2 ? B.bigHp : e1 ? B.f1Hp : 1, am = kind === 1 ? B.bossAt : kind >= 2 ? B.bigAt : e1 ? B.f1Atk : 1;
   const sp = SPECIES.slice(); const h = hashStr(type + ':' + Math.floor((f - 1) / 10));
-  const weak = kind >= 1 ? bi.weak : sp[h % 5], res0 = kind >= 1 ? bi.res : sp[(f >= 10 ? (h >>> 3) : (h >> 3)) % 5]; // 10階から直した（9階までは公開時のまま）
+  const weak = kind >= 1 ? bi.weak : sp[h % 5], res0 = kind >= 1 ? bi.res : sp[(f >= 4 ? (h >>> 3) : (h >> 3)) % 5]; // 4階から直した（3階までは公開時のまま）
   const res = res0 === weak ? sp[(SPECIES.indexOf(weak) + 2) % 5] : res0;
   const hp = Math.round(B.eHp * E * T.hp * hm * d * (rng ? 0.92 + rng.next() * 0.16 : 1));
   const pre = IL.EPREFIX[Math.min(9, Math.floor((f - 1) / 10))];
