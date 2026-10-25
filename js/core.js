@@ -4,7 +4,7 @@
 'use strict';
 const IL = {};
 IL.VER = 1;
-IL.ENGINE = '12'; // ルールの版（記録に書く。変えたら engine/ に前の版を残す）
+IL.ENGINE = '13'; // ルールの版（記録に書く。変えたら engine/ に前の版を残す）
 
 /* ---------- 乱数 ---------- */
 function hashStr(s) { let h = 2166136261 >>> 0; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
@@ -116,7 +116,10 @@ function analyzeBoard(board) {
     let best = null, bn = 0, tie = false; for (const sp in cnt) { if (cnt[sp] > bn) { best = sp; bn = cnt[sp]; tie = false; } else if (cnt[sp] === bn) tie = true; }
     const jokerAs = (best && !tie) ? best : 'none';
     const cnt2 = Object.assign({}, cnt); for (const c of cells) if (board[c].sp === 'joker' && jokerAs !== 'none') cnt2[jokerAs] = (cnt2[jokerAs] || 0) + 1;
-    for (const c of cells) { groupOf[c] = gi; mulOf[c] = m; resolved[c] = board[c].sp === 'joker' ? jokerAs : board[c].sp; }
+    for (const c of cells) { groupOf[c] = gi; resolved[c] = board[c].sp === 'joker' ? jokerAs : board[c].sp; }
+    // 倍率は「同じ種族どうしの数」で決める（別の種族はつなぎ役にはなるが、数には入らない）
+    const same = {}; for (const c of cells) same[resolved[c]] = (same[resolved[c]] || 0) + 1;
+    for (const c of cells) mulOf[c] = groupMul(same[resolved[c]]);
     for (const sp in cnt2) { const t = tierOf(cnt2[sp]); if (t > 0 && (!skills[sp] || skills[sp].tier < t)) skills[sp] = { tier: t, count: cnt2[sp] }; }
     glist.push({ cells, mul: m }); gi++;
   }
