@@ -155,7 +155,6 @@ function title() {
       <p class="small mute">${Net.on ? 'オンライン　<span class="nt">' + esc(opt.name || '名無し') + '</span>' : 'オフライン（この端末だけ）'}</p>
     </div></div>
     ${IOS && !STANDALONE ? '<p class="small mute iosh">📱 Safariの「共有」→「ホーム画面に追加」から開くと、上の帯なしの全画面で遊べます</p>' : ''}
-    <a class="support" href="https://ofuse.me/001a3b99" target="_blank" rel="noopener">🍆 応援する</a>
     <a class="credit" href="https://maou.audio/" target="_blank" rel="noopener">音楽：魔王魂</a>`);
   drawTitleBg();
 }
