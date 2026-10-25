@@ -129,6 +129,8 @@ function shareX(kind, f, name) {
 function infoHTML() {
   let h = ''; const st = ui.stream;
   if (st && st.on) h += `<a class="stream" href="${/^https?:\/\//.test(st.url || '') ? esc(st.url) : '#'}" target="_blank" rel="noopener">🔴 配信中${st.txt ? '　<span class="nt">' + esc(st.txt) + '</span>' : ''}</a>`;
+  const fs = ui.firsts || {}, top = Math.max(0, ...Object.keys(fs).map(Number).filter(f => fs[f] && !fs[f].ng));
+  if (top) { const v = fs[top], co = Object.values(v.co || {}).length; h += `<div class="front">🏆 最前線　<b>${top}階</b>のボスを <span class="nt">${esc(v.n || '無名')}</span>${co ? ' ＋' + co : ''}が初めて倒した <span class="mute small">（${ago(v.t)}）</span></div>`; }
   const nw = ui.news || {}; const ids = Object.keys(nw).sort((a, b) => (nw[b].t || 0) - (nw[a].t || 0)).slice(0, 3);
   if (ids.length) h += '<div class="news"><b>お知らせ</b>' + ids.map(id => `<div><span class="mute">${new Date(nw[id].t || 0).toLocaleDateString()}</span> <span class="nt">${esc(nw[id].s)}</span></div>`).join('') + '</div>';
   return h;
@@ -623,7 +625,10 @@ function showFirst(floor, got, co) { ui.firstFloor = floor; if (run && run.promp
   toast((co ? floor + '階のボスを、最初の人とほぼ同時に倒した！ 同じ初撃破ボーナス：' : floor + '階のボスを、だれよりも先に倒した！ 初撃破ボーナス：') + got.map(p => IL.SP_NAME[p.sp] + 'の欠片（' + IL.RAR_NAME[p.rar] + '）').join('、') + (got.toChest ? '（宝箱に入った）' : ''));
   if (floor >= 100) setTimeout(() => ending(true), 1500); }
 function onFirsts(fs) {
-  ui.firsts = fs || {}; const floors = Object.keys(ui.firsts).map(Number).filter(n => n > 0 && !(ui.firsts[n] && ui.firsts[n].ng)).sort((a, b) => a - b);
+  const prevTop = ui.firstsTop || 0;
+  ui.firsts = fs || {};
+  const top = Math.max(0, ...Object.keys(ui.firsts).map(Number).filter(f => ui.firsts[f] && !ui.firsts[f].ng)); ui.firstsTop = top;
+  if (prevTop && top > prevTop && ui.firsts[top] && ui.firsts[top].pid !== Net.pid) { const v = ui.firsts[top]; toast('🏆 ' + (v.n || '無名') + 'さんが ' + top + '階のボスを初めて倒した！ 最前線が ' + Math.min(100, top + 1) + '階になった'); sfx('levelup', 0.4); } const floors = Object.keys(ui.firsts).map(Number).filter(n => n > 0 && !(ui.firsts[n] && ui.firsts[n].ng)).sort((a, b) => a - b);
   const cur = Object.keys(S.gclear || {}).map(Number).sort((a, b) => a - b).join(',');
   if (floors.join(',') !== cur) { X(['gclr', floors]); save(); if (ui.scr === 'title') title(); }
 }
