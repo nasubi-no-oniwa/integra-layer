@@ -4,7 +4,7 @@
 'use strict';
 const IL = {};
 IL.VER = 1;
-IL.ENGINE = '13'; // ルールの版（記録に書く。変えたら engine/ に前の版を残す）
+IL.ENGINE = '14'; // ルールの版（記録に書く。変えたら engine/ に前の版を残す）
 
 /* ---------- 乱数 ---------- */
 function hashStr(s) { let h = 2166136261 >>> 0; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
@@ -100,11 +100,11 @@ IL.partScore = partScore;
 function analyzeBoard(board) {
   const N = 5, par = []; for (let i = 0; i < 25; i++) par[i] = i;
   const find = i => { while (par[i] !== i) { par[i] = par[par[i]]; i = par[i]; } return i; };
-  const links = [];
+  const links = [], ok = (a, b) => a.sp === b.sp || a.sp === 'joker' || b.sp === 'joker'; // 同じ種族（または万能）どうしだけがつながる
   for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
     const i = y * N + x, a = board[i]; if (!a) continue;
-    if (x < N - 1 && board[i + 1]) { const b = board[i + 1]; if (edgeAt(a, 1) + edgeAt(b, 3) === 3) { par[find(i)] = find(i + 1); links.push([i, i + 1]); } }
-    if (y < N - 1 && board[i + N]) { const b = board[i + N]; if (edgeAt(a, 2) + edgeAt(b, 0) === 3) { par[find(i)] = find(i + N); links.push([i, i + N]); } }
+    if (x < N - 1 && board[i + 1]) { const b = board[i + 1]; if (edgeAt(a, 1) + edgeAt(b, 3) === 3 && ok(a, b)) { par[find(i)] = find(i + 1); links.push([i, i + 1]); } }
+    if (y < N - 1 && board[i + N]) { const b = board[i + N]; if (edgeAt(a, 2) + edgeAt(b, 0) === 3 && ok(a, b)) { par[find(i)] = find(i + N); links.push([i, i + N]); } }
   }
   const groups = {};
   for (let i = 0; i < 25; i++) if (board[i]) { const r = find(i); (groups[r] = groups[r] || []).push(i); }
