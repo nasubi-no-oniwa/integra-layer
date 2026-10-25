@@ -620,7 +620,16 @@ let lastTouch = 0; document.addEventListener('touchend', e => { const n = Date.n
 document.addEventListener('gesturestart', e => e.preventDefault());
 
 /* ---------- はじまり ---------- */
+/* 新しい版が出ていたら、自動で読みなおす（古いキャッシュで動かないように） */
+async function checkUpdate() {
+  try { const v = (await (await fetch('version.txt?t=' + Date.now(), { cache: 'no-store' })).text()).trim();
+    if (v && window.IL_BUILD && v !== window.IL_BUILD && sessionStorage.getItem('il_rl') !== v) { sessionStorage.setItem('il_rl', v); save(); location.replace(location.pathname + '?b=' + v); return true; } } catch (e) {}
+  return false;
+}
+setInterval(() => { if (!run || run.over || ui.scr === 'title') checkUpdate(); }, 5 * 60000);
+addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && (!run || !run.battle)) checkUpdate(); });
 async function boot() {
+  if (await checkUpdate()) return;
   try { opt = Object.assign(opt, JSON.parse(localStorage.getItem(SAVE_O) || '{}')); } catch (e) {}
   L10N.lang = opt.lang || L10N.pick(); document.documentElement.lang = L10N.lang; L10N.observe(); L10N.apply();
   resize(); requestAnimationFrame(render); drawIdle();
