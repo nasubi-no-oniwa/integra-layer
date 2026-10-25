@@ -553,7 +553,7 @@ function battleResult() {
   if (bt.over === 'win') {
     const r = bt.reward; const parts = r.parts.map(p => partHTML(p)).join('');
     let extra = ''; if (bt.bossReward) { if (bt.bossReward.first) extra += `<p class="gold">初撃破ボーナス！</p><div class="lootlist">${bt.bossReward.first.map(p => partHTML(p)).join('')}</div>`; if (bt.bossReward.respec) extra += '<p>振りなおしの札を手に入れた</p>'; if (bt.bossReward.chest) extra += '<p class="gold">ボスの落とし物は、となりの宝箱に入っている。</p>'; }
-    return `<p>勝った！ 経験値 ${r.exp}・${r.gold} G${r.ups ? `<b class="gold">　レベルが ${pr.lv} に上がった！（ポイント+${r.ups * 3}）</b>` : ''}</p>${parts ? '<div class="lootlist">' + parts + '</div>' : ''}${extra}<div class="row"><button class="btn pri" data-a="bclose">続ける</button>${ui.godName ? '<button class="btn sm" data-a="sharegod">𝕏 神技をつぶやく</button>' : ''}</div>`;
+    return `<p>勝った！ 経験値 ${r.exp}・${r.gold} G${r.ups ? `<b class="gold">　レベルが ${pr.lv} に上がった！（ポイント+${r.ups * 3}）</b>` : ''}</p>${parts ? '<div class="lootlist">' + parts + '</div>' : ''}${extra}<div class="row"><button class="btn pri" data-a="bclose">続ける</button>${ui.godName ? '<button class="btn sm" data-a="sharegod">𝕏 神技をつぶやく</button>' : ''}${bt.kind === 'boss' ? '<button class="btn sm" data-a="sharex">𝕏 でつぶやく</button>' : ''}</div>`;
   }
   if (bt.over === 'flee') return '<button class="btn pri" data-a="bclose">続ける</button>';
   if (bt.over === 'lose') {
