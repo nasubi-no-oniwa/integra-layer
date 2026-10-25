@@ -1,0 +1,17 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "pos": {
+      "$f": {
+        "$c": {
+          ".read": "auth != null",
+          "$u": {
+            ".write": "auth != null && auth.uid === $u",
+            ".validate": "!newData.exists() || (newData.child('t').val() === now && newData.child('x').isNumber() && newData.child('y').isNumber() && newData.child('n').isString() && newData.child('n').val().length <= 12)"
+          }
+        }
+      }
+    }
+  }
+}

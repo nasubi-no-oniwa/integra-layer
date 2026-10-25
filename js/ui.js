@@ -3,22 +3,33 @@
 'use strict';
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const SAVE_P = 'il_profile_v1', SAVE_R = 'il_run_v1', SAVE_O = 'il_opt_v1';
-let pr, run = null, opt = { sound: true };
-const ui = { scr: null, sel: null, bagSel: null, filt: { sp: 'all', rar: 'all', sort: 'score' }, target: 0, sub: null, synthBase: null, synthMat: null };
+const SAVE_S = 'il_state_v1', SAVE_O = 'il_opt_v1';
+let S = null, pr = null, run = null, opt = { sound: true, name: '' };
+const ui = { scr: null, sel: null, bagSel: null, filt: { sp: 'all', rar: 'all', sort: 'score' }, target: 0, sub: null, synthBase: null, synthMat: null, drops: [], ghosts: [], firsts: {} };
 
-/* ---------- 保存 ---------- */
-function load() {
-  try { pr = JSON.parse(localStorage.getItem(SAVE_P)); } catch (e) { pr = null; }
-  if (!pr || pr.v !== IL.VER) pr = IL.newProfile(Date.now());
-  try { opt = Object.assign(opt, JSON.parse(localStorage.getItem(SAVE_O) || '{}')); } catch (e) {}
-  try { const r = JSON.parse(localStorage.getItem(SAVE_R)); if (r && !r.over) run = unpackRun(r); } catch (e) { run = null; }
-}
-function save() { try { if (run && !run.over) { IL.saveMap(pr, run); localStorage.setItem(SAVE_R, JSON.stringify(packRun(run))); } else localStorage.removeItem(SAVE_R); localStorage.setItem(SAVE_P, JSON.stringify(pr)); } catch (e) {} }
+/* ---------- 保存（すべての操作は X() を通して記録する） ---------- */
+function X(op) { const r = IL.exec(S, op); pr = S.pr; run = S.run; if (S.journal.length >= 400) flushJournal(); return r; }
+function packState() { const o = { uid: S.uid, pr: S.pr, journal: S.journal, gclear: S.gclear || {} }; if (S.run && !S.run.over) { IL.saveMap(S.pr, S.run); o.run = packRun(S.run); } return o; }
+function save() { if (!S) return; try { localStorage.setItem(SAVE_S, JSON.stringify(packState())); } catch (e) {} }
 function saveOpt() { try { localStorage.setItem(SAVE_O, JSON.stringify(opt)); } catch (e) {} }
 function packRun(r) { const o = Object.assign({}, r); o.rngS = r.rng.s; delete o.rng; delete o._bits; delete o._dirty; o.events = []; return o; }
 function unpackRun(o) { const r = Object.assign({}, o); r.rng = new IL.RNG(o.rngS); delete r.rngS; return r; }
-
+function loadState(pid) {
+  try { opt = Object.assign(opt, JSON.parse(localStorage.getItem(SAVE_O) || '{}')); } catch (e) {}
+  let o = null; try { o = JSON.parse(localStorage.getItem(SAVE_S)); } catch (e) {}
+  if (o && o.uid === pid && o.pr && o.pr.v === IL.VER) { S = { uid: pid, pr: o.pr, run: o.run ? unpackRun(o.run) : null, journal: o.journal || [], gclear: o.gclear || {} }; if (S.run) S.run.gclear = S.gclear; }
+  else { S = IL.newState(pid, Date.now()); S.gclear = {}; }
+  pr = S.pr; run = S.run;
+}
+let flushing = false;
+async function flushJournal() { // 記録をサーバーへ送る（送れなかったら手元に残す）
+  if (!Net.on || flushing || !S.journal.length) return; flushing = true;
+  const part = S.journal.slice(), str = IL.packJournal(part);
+  const ok = await Net.pushJournal(str); if (ok) { S.journal.splice(0, part.length); save(); }
+  flushing = false;
+}
+function pubInfo() { return { n: opt.name || '名無し', lv: pr.lv, mf: pr.maxFloor }; }
+async function syncProfile() { await flushJournal(); if (Net.on) Net.saveProfile(pubInfo(), JSON.stringify({ pr: S.pr, gclear: S.gclear })); }
 /* ---------- 音 ---------- */
 const SND = {}; ['step', 'hit', 'hurt', 'skill', 'god', 'boss', 'chest', 'coin', 'pickup', 'click', 'select', 'ok', 'ng', 'levelup', 'fail', 'win', 'place', 'rotate'].forEach(n => { SND[n] = null; });
 function sfx(n, vol) { if (!opt.sound) return; try { let a = SND[n]; if (!a) a = SND[n] = new Audio('snd/' + n + '.mp3'); const c = a.cloneNode(); c.volume = vol == null ? 0.5 : vol; c.play().catch(() => {}); } catch (e) {} }
@@ -56,7 +67,7 @@ function gachaReady() { return !pr.gacha || pr.gacha.day !== todayKey() || !pr.g
 
 /* ---------- タイトル ---------- */
 function title() {
-  run = null; ui.scr = 'title'; $('#hud').hidden = true; $('#pad').hidden = true; save(); drawIdle();
+  if (S.run && S.run.over) S.run = null; run = S.run; ui.scr = 'title'; $('#hud').hidden = true; $('#pad').hidden = true; save(); drawIdle();
   const st = IL.playerStats(pr);
   show(`<div class="win title">
     <div class="logo">INTEGRA LAYER<small>インテグラ・レイヤー</small></div>
@@ -68,7 +79,9 @@ function title() {
       <button class="btn" data-a="gacha">今日のガチャ${gachaReady() ? '<span class="badge">!</span>' : ''}</button>
       <button class="btn" data-a="synth">合成</button>
       <button class="btn" data-a="points">能力${pr.freePts ? '<span class="badge">' + pr.freePts + '</span>' : ''}</button>
-      <div class="row" style="justify-content:center"><button class="btn sm" data-a="help">遊び方</button><button class="btn sm" data-a="sound">音 ${opt.sound ? 'あり' : 'なし'}</button></div>
+      <button class="btn" data-a="plaza">広場（掲示板）</button>
+      <div class="row" style="justify-content:center"><button class="btn sm" data-a="profile">名前と引き継ぎ</button><button class="btn sm" data-a="help">遊び方</button><button class="btn sm" data-a="sound">音 ${opt.sound ? 'あり' : 'なし'}</button></div>
+      <p class="small mute">${Net.on ? 'オンライン　' + esc(opt.name || '名無し') : 'オフライン（この端末だけ）'}</p>
     </div></div>`);
 }
 function floors() {
@@ -76,7 +89,7 @@ function floors() {
   let b = ''; for (let f = 1; f <= 100; f++) { const cl = pr.cleared[f], fr = f === pr.maxFloor; b += `<button data-f="${f}" class="${cl ? 'cl' : ''} ${fr ? 'fr' : ''}" ${f > pr.maxFloor ? 'disabled' : ''}>${f}</button>`; }
   show(`<div class="win"><button class="btn sm close" data-a="title">もどる</button><h2>どの階から始める？</h2>
     <p class="small mute">緑＝ボスを倒した階　金＝最前線（${pr.maxFloor}階）。10階ごとに景色が変わる。</p>
-    <div class="floors">${b}</div></div>`);
+    <div class="floors">${b}</div>${Net.on ? '<p class="small mute" style="margin-top:8px">地図を買う：</p><div class="row"><select id="mapf">' + Array.from({ length: pr.maxFloor }, (_, i) => `<option value="${i + 1}">${i + 1}階</option>`).join('') + '</select><button class="btn sm" data-a="mapopen">地図の店へ</button></div>' : ''}</div>`);
 }
 function help() {
   show(`<div class="win"><button class="btn sm close" data-a="title">もどる</button><h2>遊び方</h2>
@@ -124,9 +137,9 @@ function boardScreen(from) {
 }
 function boardCellTap(i) {
   const id = pr.board[i];
-  if (ui.bagSel != null) { IL.placePart(pr, i, ui.bagSel); ui.bagSel = null; ui.sel = i; sfx('place'); }
-  else if (ui.sel === i && id != null) { IL.rotatePart(pr, id); sfx('rotate'); }
-  else if (ui.sel != null && ui.sel !== i && pr.board[ui.sel] != null) { IL.swapCells(pr, ui.sel, i); ui.sel = i; sfx('place'); }
+  if (ui.bagSel != null) { X(['place', i, ui.bagSel]); ui.bagSel = null; ui.sel = i; sfx('place'); }
+  else if (ui.sel === i && id != null) { X(['rot', id]); sfx('rotate'); }
+  else if (ui.sel != null && ui.sel !== i && pr.board[ui.sel] != null) { X(['swap', ui.sel, i]); ui.sel = i; sfx('place'); }
   else { ui.sel = i; sfx('click', 0.3); }
   save(); boardScreen();
 }
@@ -162,7 +175,7 @@ function synth() {
 /* ---------- ガチャ ---------- */
 function gacha() {
   ui.scr = 'gacha'; const day = todayKey();
-  if (!pr.gacha || pr.gacha.day !== day) { IL.rollGacha(pr, day, new IL.RNG((Date.now() ^ (pr.nextId * 2654435761)) >>> 0)); save(); }
+  if (!pr.gacha || pr.gacha.day !== day) { X(['groll', day]); save(); }
   const g = pr.gacha;
   const opts = g.opts.map((p, i) => `<div class="bagitem" data-gp="${i}" style="--s:64px;background:var(--panel2);padding:10px">${partHTML(p)}<small>${IL.RAR_NAME[p.rar]}</small><div class="small" style="text-align:left">${partText(p)}</div></div>`).join('');
   const picked = g.pickedId != null ? pr.bag.find(p => p.id === g.pickedId) : null;
@@ -186,7 +199,7 @@ function resize() {
   dirty = true;
 }
 addEventListener('resize', resize);
-function enterRun(r) { run = r; ui.scr = null; hideScreen(); $('#hud').hidden = false; $('#pad').hidden = false; dirty = true; hud(); save(); }
+function enterRun(r) { run = r; ui.scr = null; ui.ghosts = []; watchLive(true); hideScreen(); $('#hud').hidden = false; $('#pad').hidden = false; dirty = true; hud(); save(); }
 function hud() {
   if (!run) return; const st = IL.playerStats(pr);
   $('#h-floor').textContent = run.floor; $('#h-biome').textContent = IL.biomeOf(run.floor).name;
@@ -224,6 +237,8 @@ function render(now) {
   const vis = (x, y) => Math.abs(x - run.x) <= 9 && Math.abs(y - run.y) <= 7 && bits[y * fl.W + x];
   if (run.merchant && vis(run.merchant.x, run.merchant.y)) drawTile(g, src, 84, cx + run.merchant.x * TS, cy + run.merchant.y * TS, TS);
   for (const e of run.enemies) if (vis(e.x, e.y)) { drawTile(g, src, e.tile, cx + e.x * TS, cy + e.y * TS, TS); if (e.cool) { g.fillStyle = 'rgba(255,255,255,.25)'; g.fillRect(cx + e.x * TS, cy + e.y * TS, TS, TS); } }
+  for (const d of ui.drops) if (!(run.picked && run.picked[d.id]) && vis(d.x, d.y)) { drawTile(g, src, d.p.rar >= 2 ? 102 : 101, cx + d.x * TS, cy + d.y * TS, TS); }
+  g.globalAlpha = 0.45; for (const o of ui.ghosts) if (Math.abs(o.x - run.x) <= 12 && Math.abs(o.y - run.y) <= 9) drawTile(g, sheet, 85 + (IL.hashStr(o.u) % 4), cx + o.x * TS, cy + o.y * TS, TS); g.globalAlpha = 1;
   drawTile(g, sheet, 97, Math.round(W / 2 - TS / 2), Math.round(H / 2 - TS / 2), TS);
   // 見えている範囲の外を少し暗く
   const grd = g.createRadialGradient(W / 2, H / 2, TS * 4, W / 2, H / 2, TS * 11); grd.addColorStop(0, 'rgba(0,0,0,0)'); grd.addColorStop(1, 'rgba(0,0,0,.6)'); g.fillStyle = grd; g.fillRect(0, 0, W, H);
@@ -258,11 +273,11 @@ function afterAct() {
 }
 function act(dir) {
   if (!run || ui.scr || run.battle || run.prompt || run.over) return;
-  const ox = run.x, oy = run.y; IL.step(pr, run, dir);
-  if (run.x !== ox || run.y !== oy) { anim = { x0: ox, y0: oy, t0: performance.now() }; if (run.turn % 2) sfx('step', 0.15); }
+  const ox = run.x, oy = run.y; X(['mv', dir]);
+  if (run.x !== ox || run.y !== oy) { anim = { x0: ox, y0: oy, t0: performance.now() }; if (run.turn % 2) sfx('step', 0.15); pickDrops(); watchLive(); }
   afterAct();
 }
-function interact() { if (!run || ui.scr || run.battle || run.prompt) return; IL.interact(pr, run); afterAct(); }
+function interact() { if (!run || ui.scr || run.battle || run.prompt) return; X(['it']); afterAct(); }
 
 /* ---------- 声かけ（ボス部屋・安全地帯・行商人） ---------- */
 function prompt() {
@@ -336,20 +351,20 @@ function battleResult() {
 }
 function bcmd(c) {
   const before = run.battle.log.length, hpB = run.hp;
-  IL.battleCmd(pr, run, c);
+  X(['bc', c]);
   const bt = run.battle, nl = bt.log.slice(before);
   if (nl.some(l => l.skill)) { const sk = nl.find(l => l.skill); sfx(sk.tier >= 5 ? 'god' : 'skill', 0.5); if (sk.tier >= 5) godFx(IL.SKILLS[sk.skill][sk.tier]); } else if (nl.some(l => l.hit)) sfx('hit', 0.5);
   if (run.hp < hpB) setTimeout(() => sfx('hurt', 0.45), 160);
   ui.sub = null; save(); battle(); hud();
   if (run.hp < hpB) { const w = document.querySelector('.battle'); if (w) w.classList.add('shake'); }
   if (bt.over === 'win') { sfx('win', 0.5); if (bt.reward.ups) setTimeout(() => sfx('levelup', 0.5), 400); }
-  if (bt.over === 'lose') sfx('fail', 0.5);
+  if (bt.over === 'lose') { sfx('fail', 0.5); const li = bt.loseInfo; if (li && li.lost && li.lost.length && !li.boss) Net.addDrops(li.where.floor, li.where.x, li.where.y, li.lost, opt.name); }
 }
 function godFx(name) { const d = document.createElement('div'); d.className = 'god'; d.textContent = name; $('#app').appendChild(d); setTimeout(() => d.remove(), 1700); }
 function runMenu() {
   ui.scr = 'menu';
   show(`<div class="win" style="max-width:420px"><button class="btn sm close" data-a="back">とじる</button><h2>メニュー</h2><div class="grid">
-    <button class="btn" data-a="board2">盤面とかばん</button><button class="btn" data-a="potion">回復薬を使う（${pr.potions.length}）</button><button class="btn" data-a="map">地図</button>
+    <button class="btn" data-a="board2">盤面とかばん</button><button class="btn" data-a="potion">回復薬を使う（${pr.potions.length}）</button><button class="btn" data-a="map">地図</button>${Net.on ? '<button class="btn" data-a="mapshop">この階の地図を売り買い</button>' : ''}
     <button class="btn" data-a="sound">音 ${opt.sound ? 'あり' : 'なし'}</button><button class="btn warn" data-a="giveup">あきらめる（倒れたのと同じ）</button></div>
     <p class="small mute">帰れるのは、安全地帯とボスのあとの帰還ポータルだけ。</p></div>`);
 }
@@ -360,30 +375,121 @@ function potionMenu() {
   show(`<div class="win" style="max-width:480px"><button class="btn sm close" data-a="back">とじる</button><h2>回復薬</h2><div class="grid">${list}</div></div>`);
 }
 function endScreen() {
+  Net.liveLeave(); syncProfile();
   const o = run.over; ui.scr = 'end'; $('#hud').hidden = true; $('#pad').hidden = true;
   const txt = o.why === 'return' ? '無事に帰ってきた。拾った欠片はすべて持ち帰った。' : '';
-  run = null; save();
+  run = null; S.run = null; save();
   if (txt) { show(`<div class="win" style="max-width:460px"><h2>帰還</h2><p>${txt}</p><button class="btn pri" data-a="title">タイトルへ</button></div>`); }
   else title();
 }
 
+
+/* ---------- みんなとつながる部分 ---------- */
+async function fetchDrops() { ui.drops = []; if (!Net.on || !run) return; const f = run.floor; const list = await Net.getDrops(f); if (run && run.floor === f) { ui.drops = list.filter(d => d && d.p); dirty = true; } }
+function pickDrops() {
+  if (!ui.drops.length) return; const here = ui.drops.filter(d => d.x === run.x && d.y === run.y && !(run.picked && run.picked[d.id]));
+  for (const d of here) { const q = X(['pick', d.id, d.p]); if (q && q !== true) { sfx('pickup', 0.5); toast((d.n ? d.n + 'の' : '') + IL.SP_NAME[q.sp] + 'の欠片（' + IL.RAR_NAME[q.rar] + '）を拾った'); Net.takeDrop(run.floor, d.id); } }
+  if (here.length) save();
+}
+function watchLive(force) {
+  if (!Net.on || !run) return; Net.liveSend(run.floor, run.x, run.y, opt.name || '', force);
+  const key = run.floor + ':' + Net.chunkOf(run.x, run.y); if (force || Net.liveKey !== key) Net.liveWatch(run.floor, run.x, run.y, list => { const now = Net.now(); ui.ghosts = list.filter(o => now - (o.t || 0) < 15000).slice(0, 10); dirty = true; });
+}
+async function claimFirst(floor, br) {
+  if (!br || !br.maybeFirst) return;
+  if (!Net.on) { const got = X(['first', floor]); if (got && got !== true) { save(); showFirst(floor, got); } return; }
+  await flushJournal();
+  const ok = await Net.claimFirst(floor, { n: opt.name || '名無し', jn: Net.journalCount(), dg: IL.digest(pr), lv: pr.lv });
+  if (ok) { const got = X(['first', floor]); save(); syncProfile(); if (got && got !== true) showFirst(floor, got); }
+}
+function showFirst(floor, got) { sfx('god', 0.5); toast(floor + '階のボスを、だれよりも先に倒した！ 初撃破ボーナス：' + got.map(p => IL.SP_NAME[p.sp] + 'の欠片（' + IL.RAR_NAME[p.rar] + '）').join('、')); }
+function onFirsts(fs) {
+  ui.firsts = fs || {}; const floors = Object.keys(ui.firsts).map(Number).filter(n => n > 0 && !(ui.firsts[n] && ui.firsts[n].ng)).sort((a, b) => a - b);
+  const cur = Object.keys(S.gclear || {}).map(Number).sort((a, b) => a - b).join(',');
+  if (floors.join(',') !== cur) { X(['gclr', floors]); save(); if (ui.scr === 'title') title(); }
+}
+const BAN = ['死ね', 'しね', '殺す', 'ころす', 'ちんこ', 'まんこ', 'セックス', 'sex', 'fuck', 'shit', 'nigger', 'killyourself', 'line.me', 'http', 'www.', '@'];
+function banned(t) { const s = String(t).toLowerCase().replace(/\s/g, ''); return BAN.some(w => s.includes(w)); }
+function plaza() {
+  ui.scr = 'plaza';
+  show(`<div class="win"><button class="btn sm close" data-a="plazaback">とじる</button><h2>広場（全体掲示板）</h2>
+    ${Net.on ? `<div class="row"><input id="pmsg" maxlength="140" placeholder="ひとこと（20秒に1回）" style="flex:1;min-width:200px;padding:10px;border-radius:8px;border:2px solid var(--line);background:#0e0c14;color:var(--ink);font:inherit"><button class="btn pri" data-a="post">送る</button></div>` : '<p class="mute">オンラインのときだけ使えます</p>'}
+    <div id="plist" class="log" style="height:52vh"></div><p class="small mute">いやな書きこみは「通報」してください。</p></div>`);
+  if (ui.unBoard) ui.unBoard();
+  ui.unBoard = Net.watchBoard(v => { const el = $('#plist'); if (!el) return; const ids = Object.keys(v).sort((a, b) => (v[b].t || 0) - (v[a].t || 0));
+    el.innerHTML = ids.map(id => { const m = v[id]; if (!m || banned(m.s || '') || (ui.hidden && ui.hidden[id])) return ''; return `<div style="margin-bottom:6px"><b>${esc(m.n || '名無し')}</b> <span class="mute small">${new Date(m.t || 0).toLocaleTimeString().slice(0, 5)}</span> <button class="btn sm" data-rep="${esc(id)}" style="min-height:24px;padding:0 6px;font-size:11px">通報</button>${'Translator' in window && m.l && m.l !== 'ja' ? ` <button class="btn sm" data-tr="${esc(id)}" data-tl="${esc(m.l)}" style="min-height:24px;padding:0 6px;font-size:11px">翻訳</button>` : ''}<br><span data-msg="${esc(id)}">${esc(m.s || '')}</span></div>`; }).join('') || '<span class="mute">まだ書きこみがない</span>'; });
+}
+let lastPost = 0;
+async function doPost() {
+  const el = $('#pmsg'); if (!el) return; const t = el.value.trim(); if (!t) return;
+  if (banned(t)) { toast('使えない言葉が入っています'); sfx('ng'); return; }
+  if (Date.now() - lastPost < 20000) { toast('あと ' + Math.ceil((20000 - (Date.now() - lastPost)) / 1000) + ' 秒まってね'); return; }
+  const r = await Net.post(opt.name || '名無し', t, (navigator.language || 'ja').slice(0, 2)); if (r === 'ok') { lastPost = Date.now(); el.value = ''; sfx('ok', 0.4); } else toast(r === 'rate' ? '20秒に1回まで' : '送れませんでした');
+}
+async function translateMsg(id, from) {
+  const el = document.querySelector('[data-msg="' + CSS.escape(id) + '"]'); if (!el) return;
+  try { const tr = await Translator.create({ sourceLanguage: from || 'en', targetLanguage: 'ja' }); el.textContent = await tr.translate(el.textContent); } catch (e) { toast('この端末では翻訳できません'); }
+}
+function profileScreen() {
+  ui.scr = 'profile';
+  show(`<div class="win" style="max-width:520px"><button class="btn sm close" data-a="title">もどる</button><h2>名前と引き継ぎ</h2>
+    <p>名前（12文字まで。ほかの人の画面や掲示板に出ます）</p>
+    <div class="row"><input id="pname" maxlength="12" value="${esc(opt.name || '')}" style="flex:1;padding:10px;border-radius:8px;border:2px solid var(--line);background:#0e0c14;color:var(--ink);font:inherit"><button class="btn pri" data-a="savename">決める</button></div>
+    <h2 style="margin-top:18px">別の端末で続ける</h2>
+    ${Net.on ? `<p class="small mute">この端末で合言葉を作って、別の端末の「合言葉を入れる」に入れると、そこから続きを遊べます。</p>
+    <div class="row"><button class="btn" data-a="mkcode">合言葉を作る</button><span id="code" class="gold" style="font-size:22px;letter-spacing:.1em"></span></div>
+    <div class="row" style="margin-top:10px"><input id="incode" maxlength="9" placeholder="合言葉（8文字）" style="flex:1;padding:10px;border-radius:8px;border:2px solid var(--line);background:#0e0c14;color:var(--ink);font:inherit;text-transform:uppercase"><button class="btn warn" data-a="usecode">合言葉を入れる</button></div>
+    <p class="small mute">合言葉を入れると、この端末のデータはそのデータに置きかわります。</p>` : '<p class="mute">オンラインのときだけ使えます</p>'}</div>`);
+}
+function mapTotal(f) { const fl = IL.genFloor(f); let n = 0; for (const v of fl.t) if (v && v !== IL.T.BOSS) n++; return n; }
+async function mapShop(floor) {
+  ui.scr = 'mapshop'; ui.mapFloor = floor; const back = run ? 'back' : 'floors';
+  show(`<div class="win" style="max-width:560px"><button class="btn sm close" data-a="${back}">とじる</button><h2>${floor}階の地図</h2><p class="mute">読みこみ中…</p></div>`);
+  const list = await Net.listMaps(floor); ui.mapList = list;
+  const mine = pr.maps[String(floor)];
+  const rows = list.map((m, i) => `<div class="item"><div class="nm"><b>${esc(m.n || '名無し')}</b>の地図　${m.pct}％<br><span class="small mute">${m.boss ? 'ボス部屋あり　' : ''}安全地帯${m.safe || 0}　台座${m.peds || 0}</span></div><button class="btn sm" data-mb="${i}" ${pr.gold >= 10 ? '' : 'disabled'}>10 G</button></div>`).join('') || '<p class="mute">まだ売りに出ている地図がない</p>';
+  show(`<div class="win shop" style="max-width:560px"><button class="btn sm close" data-a="${back}">とじる</button><h2>${floor}階の地図</h2><p class="gold">所持金 ${pr.gold} G</p><div class="grid">${rows}</div>
+    <h2 style="margin-top:14px">自分の地図を売りに出す</h2><p class="small mute">出すのに100G。だれかが買うたびに5G入る（次にタイトルに戻ったとき受け取る）。いま${mine ? Math.round(100 * mine.n / mapTotal(floor)) : 0}％描けている。</p>
+    <button class="btn" data-a="mapsell" ${Net.on && pr.gold >= 100 && mine && mine.n ? '' : 'disabled'}>売りに出す（100 G）</button></div>`);
+}
+function mapInfo(f) {
+  const fl = IL.genFloor(f), m = pr.maps[String(f)], bits = IL.decodeBits(m ? m.bits : '', fl.W * fl.H); let boss = false, safe = 0, peds = 0;
+  for (let i = 0; i < bits.length; i++) if (bits[i]) { const v = fl.t[i]; if (v === IL.T.GATE) boss = true; if (v === IL.T.SAFE) safe++; if (v === IL.T.PED) peds++; }
+  return { bits: m ? m.bits : '', pct: m ? Math.round(100 * m.n / mapTotal(f)) : 0, boss, safe, peds, n: opt.name || '名無し' };
+}
+async function buyMap(i) {
+  const m = ui.mapList[i]; if (!m || pr.gold < 10) return; const got = await Net.buyMap(ui.mapFloor, m.pid); if (!got) { toast('買えませんでした'); return; }
+  X(['mapbuy', ui.mapFloor, m.pid]);
+  const f = ui.mapFloor, fl = IL.genFloor(f), a = IL.decodeBits(pr.maps[String(f)] ? pr.maps[String(f)].bits : '', fl.W * fl.H), b = IL.decodeBits(got.bits, fl.W * fl.H);
+  if (run && run.floor === f && run._bits) for (let k = 0; k < a.length; k++) if (run._bits[k]) a[k] = 1;
+  for (let k = 0; k < a.length; k++) if (b[k]) a[k] = 1; let n = 0; for (const v of a) n += v;
+  let str = ''; for (let k = 0; k < a.length; k += 5) { let v = 0; for (let q = 0; q < 5; q++) if (a[k + q]) v |= 1 << q; str += v.toString(32); }
+  pr.maps[String(f)] = { bits: str, n }; if (run && run.floor === f) { run._bits = a; run._dirty = false; }
+  sfx('coin'); toast('地図を手に入れた'); save(); dirty = true; mapShop(f);
+}
+async function sellMap() { const f = ui.mapFloor; if (pr.gold < 100) return; if (run && run.floor === f) IL.saveMap(pr, run); const ok = await Net.sellMap(f, mapInfo(f)); if (ok) { X(['mapsell', f]); sfx('coin'); toast('地図を売りに出した'); save(); } else toast('出せませんでした'); mapShop(f); }
+async function collectSales() { if (!Net.on) return; const n = await Net.claimSales(); if (n > 0) { X(['mapgain', n]); save(); toast('地図が ' + n + ' 回売れた（+' + 5 * n + ' G）'); if (ui.scr === 'title') title(); } }
+
 /* ---------- クリック ---------- */
-document.addEventListener('click', e => {
-  const t = e.target.closest('[data-a],[data-f],[data-cell],[data-bag],[data-pt],[data-syn],[data-gp],[data-buy],[data-c],[data-sk],[data-it],[data-tg],[data-use],[data-dpot]'); if (!t) return;
+document.addEventListener('click', async e => {
+  const t = e.target.closest('[data-a],[data-f],[data-cell],[data-bag],[data-pt],[data-syn],[data-gp],[data-buy],[data-c],[data-sk],[data-it],[data-tg],[data-use],[data-dpot],[data-mb],[data-rep],[data-tr]'); if (!t) return;
   const d = t.dataset;
-  if (d.f && t.tagName === 'BUTTON') { sfx('ok', 0.4); enterRun(IL.startRun(pr, +d.f, (Date.now() ^ (pr.nextId * 2654435761)) >>> 0)); return; }
+  if (d.f && t.tagName === 'BUTTON') { sfx('ok', 0.4); X(['start', +d.f]); enterRun(run); fetchDrops(); return; }
   if (d.cell != null) return boardCellTap(+d.cell);
-  if (d.bag != null) { const id = +d.bag; ui.bagSel = ui.bagSel === id ? null : id; if (ui.sel != null && ui.bagSel != null && pr.board[ui.sel] == null) { IL.placePart(pr, ui.sel, id); ui.bagSel = null; sfx('place'); save(); } else sfx('click', 0.3); return boardScreen(); }
-  if (d.pt) { IL.allocPoint(pr, d.pt); sfx('select', 0.4); save(); return points(); }
+  if (d.bag != null) { const id = +d.bag; ui.bagSel = ui.bagSel === id ? null : id; if (ui.sel != null && ui.bagSel != null && pr.board[ui.sel] == null) { X(['place', ui.sel, id]); ui.bagSel = null; sfx('place'); save(); } else sfx('click', 0.3); return boardScreen(); }
+  if (d.pt) { X(['pt', d.pt]); sfx('select', 0.4); save(); return points(); }
   if (d.syn != null) { const id = +d.syn; if (ui.synthBase == null) ui.synthBase = id; else ui.synthMat = ui.synthMat === id ? null : id; sfx('click', 0.3); return synth(); }
-  if (d.gp != null) { const p = IL.pickGacha(pr, +d.gp); if (p) { sfx(p.rar >= 2 ? 'god' : 'ok', 0.5); save(); } return gacha(); }
-  if (d.buy != null) { const r = IL.buy(pr, run, +d.buy); sfx(r === 'ok' ? 'coin' : 'ng', 0.5); save(); hud(); return shop(); }
+  if (d.gp != null) { const p = X(['gpick', +d.gp]);  if (p) { sfx(p.rar >= 2 ? 'god' : 'ok', 0.5); save(); } return gacha(); }
+  if (d.buy != null) { const r = X(['buy', +d.buy]); sfx(r === 'ok' ? 'coin' : 'ng', 0.5); save(); hud(); return shop(); }
   if (d.tg != null && +d.tg >= 0) { ui.target = +d.tg; return battle(); }
   if (d.c) { if (d.c === 'skill' || d.c === 'item') { ui.sub = d.c; sfx('click', 0.3); return battle(); } return bcmd({ c: d.c, t: ui.target }); }
   if (d.sk) return bcmd({ c: 'skill', sp: d.sk, t: ui.target });
   if (d.it != null) return bcmd({ c: 'item', i: +d.it });
-  if (d.use != null) { IL.usePotion(pr, run, +d.use); afterAct(); return potionMenu(); }
-  if (d.dpot != null) { pr.potions.splice(+d.dpot, 1); save(); return potionMenu(); }
+  if (d.use != null) { X(['pot', +d.use]); afterAct(); return potionMenu(); }
+  if (d.mb != null) return buyMap(+d.mb);
+  if (d.rep != null) { Net.report(d.rep); toast('通報しました'); return; }
+  if (d.tr != null) return translateMsg(d.tr, d.tl);
+  if (d.dpot != null) { X(['dpot', +d.dpot]); save(); return potionMenu(); }
   switch (d.a) {
     case 'title': sfx('click', 0.3); return title();
     case 'floors': sfx('click', 0.3); return floors();
@@ -392,40 +498,50 @@ document.addEventListener('click', e => {
     case 'board': ui.sel = null; ui.bagSel = null; return boardScreen('title');
     case 'board2': ui.sel = null; ui.bagSel = null; return boardScreen('run');
     case 'boardback': hud(); if (ui.boardFrom === 'run' && run) { hideScreen(); dirty = true; return; } return title();
-    case 'rot': { const id = ui.sel != null && pr.board[ui.sel] != null ? pr.board[ui.sel] : ui.bagSel; if (id != null) { IL.rotatePart(pr, id); sfx('rotate'); save(); } return boardScreen(); }
-    case 'unequip': if (ui.sel != null) { pr.board[ui.sel] = null; save(); } return boardScreen();
-    case 'discard': if (ui.bagSel != null && IL.discard(pr, ui.bagSel)) { ui.bagSel = null; save(); } return boardScreen();
+    case 'rot': { const id = ui.sel != null && pr.board[ui.sel] != null ? pr.board[ui.sel] : ui.bagSel; if (id != null) { X(['rot', id]); sfx('rotate'); save(); } return boardScreen(); }
+    case 'unequip': if (ui.sel != null) { X(['unq', ui.sel]); save(); } return boardScreen();
+    case 'discard': if (ui.bagSel != null && !pr.board.includes(ui.bagSel)) { X(['disc', ui.bagSel]); ui.bagSel = null; save(); } return boardScreen();
     case 'gacha': return gacha();
-    case 'reroll': if (pr.tickets > 0) { pr.tickets--; IL.rollGacha(pr, todayKey(), new IL.RNG((Date.now() ^ (pr.nextId * 40503)) >>> 0)); save(); } return gacha();
+    case 'reroll': if (pr.tickets > 0) { X(['groll', todayKey(), 1]); save(); } return gacha();
     case 'synth': ui.synthBase = null; ui.synthMat = null; return synth();
     case 'synreset': ui.synthBase = null; ui.synthMat = null; return synth();
-    case 'dosynth': { const r = IL.synth(pr, new IL.RNG((Date.now() ^ (pr.nextId * 7919)) >>> 0), ui.synthBase, ui.synthMat); if (r) { if (r.ok) { sfx('god', 0.5); toast('成功！ ' + IL.STAT_NAME[r.stat] + 'が ' + r.rank + ' になった'); ui.synthMat = null; } else { sfx('fail', 0.5); toast('失敗…　2つとも消えてしまった'); ui.synthBase = null; ui.synthMat = null; } save(); } return synth(); }
+    case 'dosynth': { const r = X(['syn', ui.synthBase, ui.synthMat]); if (r && r !== true) { if (r.ok) { sfx('god', 0.5); toast('成功！ ' + IL.STAT_NAME[r.stat] + 'が ' + r.rank + ' になった'); ui.synthMat = null; } else { sfx('fail', 0.5); toast('失敗…　2つとも消えてしまった'); ui.synthBase = null; ui.synthMat = null; } save(); } return synth(); }
     case 'points': return points();
-    case 'respec': if (IL.respec(pr)) { sfx('ok'); save(); } return points();
+    case 'respec': if (pr.respec > 0) { X(['respec']); sfx('ok'); save(); } return points();
     case 'back': hideScreen(); dirty = true; return;
     case 'map': return fullMap();
     case 'potion': return potionMenu();
     case 'giveup': return endGiveUp();
-    case 'stairs': run = IL.goNextFloor(pr, run); sfx('ok'); return enterRun(run);
-    case 'boss': IL.fightBoss(pr, run); return afterAct();
-    case 'cancel': run.prompt = null; hideScreen(); dirty = true; save(); return;
-    case 'return': IL.leaveRun(pr, run, 'return'); sfx('win', 0.5); return endScreen();
+    case 'plaza': return plaza();
+    case 'plazaback': if (ui.unBoard) { ui.unBoard(); ui.unBoard = null; } return title();
+    case 'post': return doPost();
+    case 'profile': return profileScreen();
+    case 'savename': { const v = ($('#pname').value || '').trim().slice(0, 12); if (v && banned(v)) { toast('使えない言葉が入っています'); return; } opt.name = v; saveOpt(); syncProfile(); toast('名前を決めた'); return title(); }
+    case 'mkcode': { const c = await Net.makeCode(); await syncProfile(); const el = $('#code'); if (el) el.textContent = c || '作れませんでした'; return; }
+    case 'usecode': { const v = $('#incode').value; const sv = await Net.useCode(v); if (!sv) { toast('合言葉がちがうか、使えません'); return; } try { const o = JSON.parse(sv); S = { uid: Net.pid, pr: o.pr, run: null, journal: [], gclear: o.gclear || {} }; pr = S.pr; run = null; save(); toast('引き継ぎました'); } catch (e) { toast('読みこめませんでした'); } return title(); }
+    case 'mapopen': return mapShop(+$('#mapf').value);
+    case 'mapshop': return mapShop(run.floor);
+    case 'mapsell': return sellMap();
+
+    case 'stairs': X(['stairs']); sfx('ok'); enterRun(run); return fetchDrops();
+    case 'boss': X(['boss']); return afterAct();
+    case 'cancel': X(['cancel']); hideScreen(); dirty = true; save(); return;
+    case 'return': X(['leave']); sfx('win', 0.5); return endScreen();
     case 'shop': return shop();
     case 'fightm': run.prompt = { kind: 'fightm' }; return prompt();
-    case 'fightm2': IL.fightMerchant(pr, run); return afterAct();
+    case 'fightm2': X(['fm']); return afterAct();
     case 'subback': ui.sub = null; return battle();
-    case 'bclose': { const k = run.battle.kind, ov = run.battle.over; IL.closeBattle(pr, run); hideScreen(); dirty = true; hud(); save(); if (k === 'boss' && ov === 'win') { run.prompt = { kind: 'bosswin' }; prompt(); } return; }
+    case 'bclose': { const k = run.battle.kind, ov = run.battle.over, br = run.battle.bossReward; X(['bx']); hideScreen(); dirty = true; hud(); save(); if (k === 'boss' && ov === 'win') { X(['bosswin']); prompt(); claimFirst(run.floor, br); } return; }
     case 'dead': return endScreen();
-    case 'next': run = IL.goNextFloor(pr, run); sfx('ok'); return enterRun(run);
-    case 'portal': IL.leaveRun(pr, run, 'return'); sfx('win', 0.5); return endScreen();
+    case 'next': X(['next']); sfx('ok'); enterRun(run); return fetchDrops();
+    case 'portal': X(['leave']); sfx('win', 0.5); return endScreen();
   }
 });
 function endGiveUp() { // あきらめる：ふつうに倒れたのと同じ
-  pr.stats.deaths++;
-  const onBoard = pr.board.map(id => id == null ? null : pr.bag.find(p => p.id === id)).filter(Boolean).filter(p => !p.gacha);
-  const ids = new Set(onBoard.map(p => p.id)); pr.bag = pr.bag.filter(p => !ids.has(p.id)); pr.board = pr.board.map(id => ids.has(id) ? null : id);
-  IL.saveMap(pr, run); run.over = { why: 'dead', lost: onBoard }; run.battle = null;
-  show(`<div class="win" style="max-width:460px"><h2>あきらめた</h2><p>盤面の欠片をこの場所に落とした。</p>${onBoard.length ? '<div class="lootlist">' + onBoard.map(p => partHTML(p)).join('') + '</div>' : ''}<button class="btn pri" data-a="dead">タイトルへ</button></div>`);
+  const where = { floor: run.floor, x: run.x, y: run.y }; const lost = X(['giveup']) || [];
+  if (Array.isArray(lost) && lost.length) Net.addDrops(where.floor, where.x, where.y, lost, opt.name);
+  Net.liveLeave(); syncProfile();
+  show(`<div class="win" style="max-width:460px"><h2>あきらめた</h2><p>盤面の欠片をこの場所に落とした。</p>${lost.length ? '<div class="lootlist">' + lost.map(p => partHTML(p)).join('') + '</div>' : ''}<button class="btn pri" data-a="dead">タイトルへ</button></div>`);
 }
 document.addEventListener('change', e => { const s = e.target.closest('select[data-f]'); if (!s) return; ui.filt[s.dataset.f] = s.value; boardScreen(); });
 $('#mini').addEventListener('click', () => { if (run && !ui.scr) fullMap(); });
@@ -455,8 +571,19 @@ let lastTouch = 0; document.addEventListener('touchend', e => { const n = Date.n
 document.addEventListener('gesturestart', e => e.preventDefault());
 
 /* ---------- はじまり ---------- */
-load(); resize(); requestAnimationFrame(render);
-sheet.onload = () => { dirty = true; if (run) { enterRun(run); if (run.battle) battle(); else if (run.prompt) prompt(); } else title(); };
-if (sheet.complete && sheet.naturalWidth) sheet.onload();
-window.__IL = { get pr() { return pr; }, get run() { return run; }, act, interact, bcmd, title };
+async function boot() {
+  resize(); requestAnimationFrame(render); drawIdle();
+  show('<div class="win title"><div class="logo">INTEGRA LAYER<small>インテグラ・レイヤー</small></div><p class="mute">つないでいます…</p></div>');
+  const timeout = new Promise(r => setTimeout(() => r(false), 7000));
+  await Promise.race([Net.init(), timeout]);
+  let pid = null; try { pid = localStorage.getItem('il_pid'); } catch (e) {}
+  if (!pid) { pid = Net.uid || ('local-' + Math.random().toString(36).slice(2, 12)); try { localStorage.setItem('il_pid', pid); } catch (e) {} }
+  Net.pid = pid; loadState(pid);
+  if (Net.on) { Net.watchFirsts(onFirsts); collectSales(); setInterval(() => { flushJournal(); }, 60000); }
+  const go = () => { dirty = true; if (run && !run.over) { enterRun(run); fetchDrops(); if (run.battle) battle(); else if (run.prompt) prompt(); } else title(); };
+  if (sheet.complete && sheet.naturalWidth) go(); else sheet.onload = go;
+}
+addEventListener('pagehide', () => { save(); });
+boot();
+window.__IL = { get pr() { return pr; }, get run() { return run; }, get S() { return S; }, get ui() { return ui; }, act, interact, bcmd, title, X };
 })();

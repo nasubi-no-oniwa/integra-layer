@@ -1,0 +1,106 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "admins": {
+      ".read": "auth != null"
+    },
+    "firsts": {
+      ".read": true,
+      "$f": {
+        ".write": "auth != null && ((!data.exists() && newData.child('t').val() === now && (newData.child('pid').val() === auth.uid || root.child('owner/' + newData.child('pid').val() + '/uid').val() === auth.uid)) || root.child('admins/' + auth.uid).exists())",
+        ".validate": "!newData.exists() || ($f.matches(/^[0-9]{1,3}$/) && newData.hasChildren(['pid','t']))"
+      }
+    },
+    "journal": {
+      "$pid": {
+        ".read": "auth != null",
+        "$n": {
+          ".write": "!data.exists() && (auth.uid === $pid || root.child('owner/' + $pid + '/uid').val() === auth.uid)",
+          ".validate": "newData.hasChildren(['d','t']) && newData.child('t').val() === now && newData.child('d').isString() && newData.child('d').val().length < 300000"
+        }
+      }
+    },
+    "players": {
+      "$pid": {
+        ".read": "auth != null",
+        ".write": "(auth.uid === $pid || root.child('owner/' + $pid + '/uid').val() === auth.uid)",
+        ".validate": "!newData.child('save').exists() || newData.child('save').val().length < 3000000",
+        "n": {
+          ".validate": "newData.isString() && newData.val().length <= 12"
+        }
+      }
+    },
+    "xfer": {
+      "$code": {
+        ".read": "auth != null",
+        ".write": "auth != null && !data.exists() && (newData.child('pid').val() === auth.uid || root.child('owner/' + newData.child('pid').val() + '/uid').val() === auth.uid)",
+        ".validate": "$code.matches(/^[A-Z0-9]{8}$/)"
+      }
+    },
+    "owner": {
+      "$pid": {
+        ".write": "auth != null && newData.child('uid').val() === auth.uid && root.child('xfer/' + newData.child('code').val() + '/pid').val() === $pid"
+      }
+    },
+    "drops": {
+      "$f": {
+        ".read": "auth != null",
+        "$id": {
+          ".write": "auth != null && (!newData.exists() || (!data.exists() && newData.child('t').val() === now && (newData.child('pid').val() === auth.uid || root.child('owner/' + newData.child('pid').val() + '/uid').val() === auth.uid)))"
+        }
+      }
+    },
+    "maps": {
+      "$f": {
+        ".read": "auth != null",
+        "$pid": {
+          ".write": "(auth.uid === $pid || root.child('owner/' + $pid + '/uid').val() === auth.uid)",
+          ".validate": "!newData.exists() || (newData.child('bits').isString() && newData.child('bits').val().length < 3000)"
+        }
+      }
+    },
+    "sales": {
+      "$pid": {
+        ".read": "auth != null",
+        "$f": {
+          ".write": "auth != null && newData.isNumber() && newData.val() === (data.exists() ? data.val() : 0) + 1"
+        }
+      }
+    },
+    "rate": {
+      "$pid": {
+        ".write": "(auth.uid === $pid || root.child('owner/' + $pid + '/uid').val() === auth.uid) && newData.val() === now && (!data.exists() || now - data.val() > 20000)"
+      }
+    },
+    "board": {
+      ".read": true,
+      "$id": {
+        ".write": "auth != null && ((!data.exists() && newData.child('t').val() === now && root.child('rate/' + newData.child('pid').val()).val() >= now - 3000 && (newData.child('pid').val() === auth.uid || root.child('owner/' + newData.child('pid').val() + '/uid').val() === auth.uid)) || root.child('admins/' + auth.uid).exists())",
+        ".validate": "!newData.exists() || (newData.child('s').isString() && newData.child('s').val().length <= 140 && newData.child('n').val().length <= 12)"
+      }
+    },
+    "hidden": {
+      ".read": true,
+      "$id": {
+        ".write": "root.child('admins/' + auth.uid).exists()"
+      }
+    },
+    "reports": {
+      ".read": "root.child('admins/' + auth.uid).exists()",
+      "$id": {
+        "$pid": {
+          ".write": "auth != null && ($pid === auth.uid || root.child('owner/' + $pid + '/uid').val() === auth.uid)"
+        }
+      }
+    },
+    "stream": {
+      ".read": true,
+      ".write": "root.child('admins/' + auth.uid).exists()"
+    },
+    "news": {
+      ".read": true,
+      ".write": "root.child('admins/' + auth.uid).exists()"
+    }
+  }
+}

@@ -1,0 +1,24 @@
+# データベースのルールを GitHub に上げたら、自動で Firebase に反映する
+name: rules
+on:
+  push:
+    branches: [main]
+    paths: ['database.rules.json', 'live.rules.json', '.github/workflows/rules.yml']
+  workflow_dispatch:
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - name: main
+        env: { SA: '${{ secrets.FIREBASE_SA_MAIN }}' }
+        run: |
+          echo "$SA" > /tmp/sa.json
+          GOOGLE_APPLICATION_CREDENTIALS=/tmp/sa.json npx -y firebase-tools@13 deploy --only database --project integra-layer --config firebase.json --non-interactive
+      - name: live
+        env: { SA: '${{ secrets.FIREBASE_SA_LIVE }}' }
+        run: |
+          echo "$SA" > /tmp/sa2.json
+          GOOGLE_APPLICATION_CREDENTIALS=/tmp/sa2.json npx -y firebase-tools@13 deploy --only database --project integra-live --config firebase-live.json --non-interactive

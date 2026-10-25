@@ -423,13 +423,9 @@ function endBattle(pr, run) {
       const n = rng.range(3, 5);
       for (let k = 0; k < n; k++) { const isJ = rng.chance(0.03); const p = newPart(pr, rng, { rar: isJ ? 3 : rollRar(rng, IL.RAR_TABLE.boss, luck), sp: isJ ? 'joker' : rollSpecies(rng), floor: run.floor, luck, src: 'boss' }); pr.bag.push(p); parts.push(p); }
       let respec = 0; if (rng.chance(0.05)) { respec = 1; pr.respec++; }
-      let first = null;
-      if (!pr.cleared[run.floor]) { // 初撃破ボーナス（段階1ではこの端末で最初）
-        first = []; for (let k = 0; k < 2; k++) { const p = newPart(pr, rng, { rar: rng.chance(0.5) ? 2 : 1, sp: rollSpecies(rng), floor: run.floor + 1, luck, src: 'first' }); pr.bag.push(p); first.push(p); }
-        pr.firsts[run.floor] = 1;
-      }
+      const first = !(pr.cleared[run.floor] || (run.gclear && run.gclear[run.floor])); // 初撃破かもしれない（本当に最初かはサーバーで決まる）
       pr.cleared[run.floor] = 1; pr.maxFloor = Math.max(pr.maxFloor, Math.min(100, run.floor + 1));
-      bt.bossReward = { respec, first };
+      bt.bossReward = { respec, maybeFirst: first };
     } else if (bt.kind === 'merchant') {
       const m = run.merchant; m.beaten = true;
       for (const s of m.stock) { if (s.kind === 'potion') for (let i = 0; i < s.n; i++) pr.potions.push({ floor: s.floor }); else if (s.kind === 'ticket') pr.tickets += s.n; else if (s.kind === 'part') { const p = Object.assign({}, s.part, { id: pr.nextId++, src: 'shop' }); pr.bag.push(p); parts.push(p); } }
@@ -516,6 +512,86 @@ IL.pickGacha = (pr, i) => {
   if (g.pickedId != null) { pr.bag = pr.bag.filter(p => p.id !== g.pickedId); pr.board = pr.board.map(id => id === g.pickedId ? null : id); }
   const p = Object.assign({}, g.opts[i], { id: pr.nextId++, gacha: true }); pr.bag.push(p); g.picked = true; g.pickedId = p.id; return p;
 };
+
+
+/* ---------- あきらめる・拾う・地図 ---------- */
+IL.giveUp = (pr, run) => {
+  pr.stats.deaths++;
+  const onBoard = pr.board.map(id => id == null ? null : pr.bag.find(p => p.id === id)).filter(Boolean).filter(p => !p.gacha);
+  const ids = new Set(onBoard.map(p => p.id)); pr.bag = pr.bag.filter(p => !ids.has(p.id)); pr.board = pr.board.map(id => ids.has(id) ? null : id);
+  IL.saveMap(pr, run); run.battle = null; run.over = { why: 'dead', lost: onBoard, where: { floor: run.floor, x: run.x, y: run.y } };
+  return onBoard;
+};
+function cleanPart(q) { // 拾った欠片の中身を確かめて、おかしな値ははじく
+  if (!q || typeof q !== 'object') return null;
+  const sp = ['fire', 'rock', 'forest', 'wind', 'star', 'none', 'joker'].includes(q.sp) ? q.sp : null; if (!sp) return null;
+  const rar = [0, 1, 2, 3].includes(q.rar) ? q.rar : null; if (rar == null) return null;
+  const floor = Math.max(1, Math.min(100, q.floor | 0));
+  if (!Array.isArray(q.stats) || q.stats.length !== (rar === 3 ? 2 : rar + 1)) return null;
+  const stats = []; for (const st of q.stats) { if (!IL.STATS.includes(st.k) || !['A', 'B', 'C'].includes(st.r)) return null; stats.push({ k: st.k, r: st.r }); }
+  if (!Array.isArray(q.edges) || q.edges.length !== 4) return null;
+  const edges = q.edges.map(v => (v === 1 || v === 2) ? v : 0);
+  return { sp, rar, floor, stats, edges, rot: (q.rot | 0) & 3, src: 'pick', gacha: false };
+}
+IL.cleanPart = cleanPart;
+
+IL.grantFirst = (S, f) => {
+  const pr = S.pr; if (pr.firsts[f]) return null; const rng = new RNG(hashStr(S.uid + ':first:' + f)), luck = playerStats(pr).luck, got = [];
+  for (let k = 0; k < 2; k++) { const p = newPart(pr, rng, { rar: rng.chance(0.5) ? 2 : 1, sp: rollSpecies(rng), floor: Math.min(100, f + 1), luck, src: 'first' }); pr.bag.push(p); got.push(p); }
+  pr.firsts[f] = 1; return got;
+};
+/* ---------- すべての操作はここを通す（記録して、あとから同じ結果を再生できる） ---------- */
+// S = { uid, pr, run, journal:[] }
+IL.newState = (uid, now) => ({ uid, pr: newProfile(now || 0), run: null, journal: [] });
+IL.runSeed = (uid, n) => hashStr(uid + ':run:' + n);
+IL.exec = (S, op) => {
+  const pr = S.pr; let run = S.run; const k = op[0]; let res = null;
+  switch (k) {
+    case 'start': { if (run && !run.over) return null; const n = (pr.stats.ri = (pr.stats.ri || 0) + 1); const f = Math.max(1, Math.min(op[1] | 0, pr.maxFloor)); S.run = startRun(pr, f, IL.runSeed(S.uid, n)); S.run.gclear = S.gclear || {}; break; }
+    case 'mv': if (!run) return null; step(pr, run, op[1] & 3); break;
+    case 'it': if (!run) return null; interact(pr, run); break;
+    case 'wt': if (!run) return null; wait(pr, run); break;
+    case 'bc': if (!run || !run.battle) return null; battleCmd(pr, run, op[1]); res = run.battle; break;
+    case 'bx': if (!run) return null; IL.closeBattle(pr, run); break;
+    case 'cancel': if (!run) return null; run.prompt = null; break;
+    case 'boss': if (!run || !run.prompt || run.prompt.kind !== 'gate') return null; IL.fightBoss(pr, run); break;
+    case 'fm': if (!run || !run.merchant) return null; IL.fightMerchant(pr, run); break;
+    case 'buy': if (!run) return null; res = IL.buy(pr, run, op[1] | 0); break;
+    case 'stairs': if (!run || !run.prompt || run.prompt.kind !== 'gate' || !(pr.cleared[run.floor] || (S.gclear && S.gclear[run.floor]))) return null; S.run = IL.goNextFloor(pr, run); S.run.gclear = S.gclear || {}; break;
+    case 'next': if (!run || !run.prompt || run.prompt.kind !== 'bosswin') return null; S.run = IL.goNextFloor(pr, run); S.run.gclear = S.gclear || {}; break;
+    case 'bosswin': if (!run) return null; run.prompt = { kind: 'bosswin' }; break;
+    case 'leave': if (!run || !run.prompt || !['safe', 'bosswin'].includes(run.prompt.kind)) return null; IL.leaveRun(pr, run, 'return'); break;
+    case 'giveup': if (!run || run.battle) return null; res = IL.giveUp(pr, run); break;
+    case 'pot': if (!run) return null; usePotion(pr, run, op[1] | 0); break;
+    case 'dpot': pr.potions.splice(op[1] | 0, 1); break;
+    case 'pick': { if (!run) return null; const q = cleanPart(op[2]); if (!q) return null; if (q.floor > pr.maxFloor) return null; q.id = pr.nextId++; pr.bag.push(q); run.picked = run.picked || {}; run.picked[op[1]] = 1; res = q; break; }
+    case 'place': IL.placePart(pr, op[1] | 0, op[2] == null ? null : op[2]); break;
+    case 'swap': IL.swapCells(pr, op[1] | 0, op[2] | 0); break;
+    case 'rot': IL.rotatePart(pr, op[1]); break;
+    case 'unq': pr.board[op[1] | 0] = null; break;
+    case 'disc': IL.discard(pr, op[1]); break;
+    case 'pt': IL.allocPoint(pr, op[1]); break;
+    case 'respec': IL.respec(pr); break;
+    case 'syn': { const n = (pr.stats.sy = (pr.stats.sy || 0) + 1); res = IL.synth(pr, new RNG(hashStr(S.uid + ':syn:' + n)), op[1], op[2]); break; }
+    case 'groll': { const day = String(op[1]); if (op[2]) { if (pr.tickets <= 0) return null; pr.tickets--; } else if (pr.gacha && pr.gacha.day === day) return null; const n = (pr.stats.gr = (pr.stats.gr || 0) + 1); IL.rollGacha(pr, day, new RNG(hashStr(S.uid + ':gacha:' + day + ':' + n))); break; }
+    case 'gpick': res = IL.pickGacha(pr, op[1] | 0); break;
+    case 'mapsell': if (pr.gold < 100) return null; pr.gold -= 100; break;
+    case 'mapbuy': if (pr.gold < 10) return null; pr.gold -= 10; break;
+    case 'mapgain': pr.gold += 5 * Math.max(0, op[1] | 0); break;
+    case 'first': if (!pr.cleared[op[1] | 0]) return null; res = IL.grantFirst(S, op[1] | 0); if (!res) return null; break;
+    case 'gclr': { S.gclear = {}; for (const f of op[1] || []) S.gclear[f] = 1; const mx = Math.max(0, ...(op[1] || [0])); pr.maxFloor = Math.max(pr.maxFloor, Math.min(100, mx + 1)); if (S.run) S.run.gclear = S.gclear; break; }
+    default: return null;
+  }
+  S.journal.push(op);
+  return res === null ? true : res;
+};
+/* 記録から最初からやりなおして、同じ状態になるかを確かめる */
+IL.digest = pr => { const o = { lv: pr.lv, exp: pr.exp, gold: pr.gold, pts: pr.pts, free: pr.freePts, bag: pr.bag.map(p => [p.id, p.sp, p.rar, p.floor, p.stats.map(s => s.k + s.r).join(''), p.edges.join(''), p.rot]), board: pr.board, mf: pr.maxFloor, cl: Object.keys(pr.cleared).length };
+  return hashStr(JSON.stringify(o)).toString(36); };
+IL.replay = (uid, journal) => { const S = IL.newState(uid, 0); for (const op of journal) { const before = S.journal.length; IL.exec(S, op); if (S.journal.length === before) return { ok: false, at: before, S }; } return { ok: true, S }; };
+/* 記録を短くする（歩く操作は1文字に） */
+IL.packJournal = j => { let out = [], mv = ''; for (const op of j) { if (op[0] === 'mv' && op.length === 2) { mv += 'urdl'[op[1]]; continue; } if (mv) { out.push(mv); mv = ''; } out.push(op); } if (mv) out.push(mv); return JSON.stringify(out); };
+IL.unpackJournal = s => { const a = JSON.parse(s), out = []; for (const x of a) { if (typeof x === 'string') { for (const c of x) out.push(['mv', 'urdl'.indexOf(c)]); } else out.push(x); } return out; };
 
 if (typeof module !== 'undefined' && module.exports) module.exports = IL; else root.IL = IL;
 })(typeof self !== 'undefined' ? self : this);
