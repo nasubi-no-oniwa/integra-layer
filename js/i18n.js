@@ -42,7 +42,7 @@ const D = {
 '・ボスを倒すと次の階へ。帰れるのは「安全地帯」と「ボスのあとの帰還ポータル」だけ。': ['• Beat the boss to go up. You can only return home from a Safe Zone or the portal after a boss.', '・擊敗頭目就能前往下一層。只能從「安全地帶」或「頭目後的歸還傳送門」回去。', '・보스를 쓰러뜨리면 다음 층으로. 귀환은 「안전지대」와 「보스 후 귀환 포털」에서만.'],
 '・倒れると、盤面の欠片を落とす（ガチャの欠片は残る）。ボスにやられると盤面の欠片が全部消える。': ['• If you fall, you drop the shards on your board (gacha shards stay). Losing to a boss destroys every shard on your board.', '・倒下時會掉落盤面上的碎片（扭蛋碎片保留）。被頭目打倒則盤面碎片全部消失。', '・쓰러지면 판의 조각을 떨어뜨린다 (뽑기 조각은 남음). 보스에게 지면 판의 조각이 전부 사라진다.'],
 '・行商人とは戦えるが、とても強い。負けるとかばんの中身が消える。': ['• You can fight the merchant, but he is very strong. Lose and your bag is emptied.', '・可以和行商人戰鬥，但他非常強。輸了背包會被清空。', '・행상인과 싸울 수 있지만 매우 강하다. 지면 가방이 비워진다.'],
-'・操作：矢印キー／WASDで移動、スペース／Zで調べる、Xでメニュー。スマホは画面のボタン。': ['• Controls: Arrows/WASD to move, Space/Z to search, X for menu. On phones, use the on-screen buttons.', '・操作：方向鍵／WASD移動，空白鍵／Z調查，X開選單。手機使用畫面按鈕。', '・조작: 방향키/WASD 이동, 스페이스/Z 조사, X 메뉴. 스마트폰은 화면 버튼.'],
+'・操作：矢印キー／WASDで移動、スペース／Zで調べる、Xでメニュー。スマホは十字キー（押したまま指をすべらせると向きが変わる）か、行きたい場所をタップするとそこまで歩く。': ['• Controls: Arrows/WASD to move, Space/Z to search, X for menu. On phones, use the D-pad (slide your finger to change direction) or tap a spot to walk there.', '・操作：方向鍵／WASD移動，空白鍵／Z調查，X開選單。手機使用畫面按鈕。', '・조작: 방향키/WASD 이동, 스페이스/Z 조사, X 메뉴. 스마트폰은 화면 버튼.'],
 // ---- 盤面 ----
 'マスか欠片を選ぶ。欠片を選んでからマスを押すと置ける。置いた欠片をもう一度押すと回る。': ['Pick a cell or a shard. Pick a shard, then a cell, to place it. Tap a placed shard again to rotate it.', '選擇格子或碎片。先選碎片再按格子即可放置。再按一次已放置的碎片會旋轉。', '칸이나 조각을 고른다. 조각을 고른 뒤 칸을 누르면 놓인다. 놓은 조각을 다시 누르면 회전.'],
 '同じ種族を2個以上つなげると技が使える': ['Link 2+ shards of the same kind to unlock a skill', '同種族2個以上相連即可使用技能', '같은 종족을 2개 이상 이으면 기술 사용 가능'],
@@ -288,7 +288,7 @@ const D = {
 ' 個まで選んで拾える（1つのバッグにつき1回だけ）。バッグの中身は減らないので、ほかの人も同じものを拾える。': [' items (once per bag). Bags never empty, so others can take the same items.', ' 個撿走（每個背包只能1次）。背包內容不會減少，其他人也能撿一樣的東西。', ' 개까지 골라 주울 수 있다 (가방마다 1번). 가방 내용은 줄지 않아서 다른 사람도 같은 것을 주울 수 있다.'],
 '選んだものを拾う（': ['Take selected (', '撿起選擇的（', '고른 것 줍기 ('],
 'このバッグはもう開けた': ["You've already opened this bag", '這個背包已經打開過了', '이 가방은 이미 열었다'],
-'もっと近づくと開けられる': ['Get closer to open it', '再靠近一點就能打開', '더 가까이 가면 열 수 있다'],
+'敵が近い！': ['An enemy is near!', '敵人靠近了！', '적이 가까이 있다!'], 'そこへは行けない': ['You can\'t get there', '到不了那裡', '그곳에는 갈 수 없다'], 'もっと近づくと開けられる': ['Get closer to open it', '再靠近一點就能打開', '더 가까이 가면 열 수 있다'],
 '拾えませんでした': ["Couldn't pick up", '無法撿起', '줍지 못했습니다'],
 'のバッグから ': ["'s bag: ", '的背包撿了 ', '의 가방에서 '],
 ' 個拾った': [' picked up', ' 個', '개 주웠다'],

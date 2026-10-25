@@ -176,7 +176,7 @@ function help() {
 ・だれかのバッグは、となりで「調べる」と開ける。1つのバッグから5個まで、1回だけ拾える。中身は減らない。
 ・メニューの「欠片を託す」で、選んだ欠片をバッグに入れて、だれかのために置いていける（倒れるのと同じ）。
 ・行商人とは戦えるが、とても強い。負けるとかばんの中身が消える。
-・操作：矢印キー／WASDで移動、スペース／Zで調べる、Xでメニュー。スマホは画面のボタン。</p></div>`);
+・操作：矢印キー／WASDで移動、スペース／Zで調べる、Xでメニュー。スマホは十字キー（押したまま指をすべらせると向きが変わる）か、行きたい場所をタップするとそこまで歩く。</p></div>`);
 }
 
 /* ---------- 設定 ---------- */
@@ -385,6 +385,7 @@ function render(now) {
   for (const b of ui.bags) if (bits[b.y * fl.W + b.x] && b.x >= x0 && b.x <= x1 && b.y >= y0 && b.y <= y1) { g.globalAlpha = opened[b.id] ? 0.35 : 1; const bob = opened[b.id] ? 0 : Math.sin(now / 400 + b.x) * TS * 0.04; g.drawImage(BAG, cx + b.x * TS, cy + b.y * TS + bob, TS, TS); g.globalAlpha = 1; }
   if (ui.bags.some(b => !opened[b.id])) dirty = true;
   g.globalAlpha = 0.45; for (const o of ui.ghosts) if (Math.abs(o.x - run.x) <= 12 && Math.abs(o.y - run.y) <= 9) drawTile(g, sheet, 85 + (IL.hashStr(o.u) % 4), cx + o.x * TS, cy + o.y * TS, TS); g.globalAlpha = 1;
+  if (walk && walk.target != null) { const tx = walk.target % fl.W, ty = (walk.target / fl.W) | 0, px = cx + tx * TS, py = cy + ty * TS; g.strokeStyle = 'rgba(242,209,75,' + (0.55 + 0.3 * Math.sin(now / 150)) + ')'; g.lineWidth = Math.max(2, TS / 16); g.strokeRect(px + TS * 0.15, py + TS * 0.15, TS * 0.7, TS * 0.7); dirty = true; }
   drawTile(g, sheet, 97, Math.round(W / 2 - TS / 2), Math.round(H / 2 - TS / 2), TS);
   // 見えている範囲の外を少し暗く
   // たいまつの明かり（自分のまわりだけ明るい）
@@ -443,10 +444,38 @@ cv.addEventListener('pointerup', e => { // 画面の回復草・バッグをタ�
   const r = cv.getBoundingClientRect(), x = Math.floor(((e.clientX - r.left) * cv.width / r.width - ui.cam.cx) / ui.cam.TS), y = Math.floor(((e.clientY - r.top) * cv.height / r.height - ui.cam.cy) / ui.cam.TS);
   const fl = IL.genFloor(run.floor), i = y * fl.W + x;
   const bg = ui.bags.find(b => b.x === x && b.y === y);
-  if (bg) { if (Math.abs(x - run.x) + Math.abs(y - run.y) > 1) return toast('もっと近づくと開けられる'); if ((pr.bagsOpen || {})[bg.id]) return toast('このバッグはもう開けた'); return bagScreen(bg); }
-  if (IL.herbNear(fl, run, i)) { X(['hb', i]); afterAct(); }
-  else if (IL.herbAvail(fl, run, i)) toast('もっと近づくと食べられる');
+  if (bg && Math.abs(x - run.x) + Math.abs(y - run.y) <= 1) { if ((pr.bagsOpen || {})[bg.id]) return toast('このバッグはもう開けた'); return bagScreen(bg); }
+  if (IL.herbNear(fl, run, i)) { X(['hb', i]); afterAct(); return; }
+  if (Math.abs(e.clientX - tapStart.x) > 12 || Math.abs(e.clientY - tapStart.y) > 12) return;
+  if (bg || IL.herbAvail(fl, run, i)) return walkTo(x, y, true, bg ? () => { if (!ui.scr && bagNear() === bg && !(pr.bagsOpen || {})[bg.id]) bagScreen(bg); } : () => { if (IL.herbNear(fl, run, i)) { X(['hb', i]); afterAct(); } });
+  walkTo(x, y, false);
 });
+const tapStart = { x: 0, y: 0 }; cv.addEventListener('pointerdown', e => { tapStart.x = e.clientX; tapStart.y = e.clientY; if (walk) stopWalk(); });
+/* タップした所まで歩く（見えている床だけを通る。敵・案内・戦いがあれば止まる） */
+let walk = null;
+function stopWalk() { if (walk) { clearTimeout(walk.timer); walk = null; dirty = true; } }
+function walkTo(tx, ty, adj, done) {
+  stopWalk(); const fl = IL.genFloor(run.floor), bits = IL.mapBits(pr, run), W = fl.W, start = run.y * W + run.x;
+  if (tx < 0 || ty < 0 || tx >= W || ty >= fl.H || !bits[ty * W + tx]) return;
+  const tv = fl.t[ty * W + tx]; if (!adj && !IL.walkable(fl, tx, ty) && tv !== IL.T.PED) return;
+  const stopTile = j => { const v = fl.t[j]; return v === IL.T.GATE || v === IL.T.BOSS; }; // ボス部屋の入口は、そこをタップしたときだけ
+  const goal = i => { const x = i % W, y = (i / W) | 0; return adj ? Math.abs(x - tx) + Math.abs(y - ty) === 1 : (x === tx && y === ty); };
+  if (goal(start)) { if (done) done(); return; }
+  const prev = new Int32Array(W * fl.H).fill(-1); prev[start] = start; const q = [start]; let hit = -1;
+  for (let h = 0; h < q.length && q.length < 20000; h++) { const i = q[h]; if (goal(i)) { hit = i; break; }
+    for (const [o, ok] of [[-W, true], [1, i % W < W - 1], [W, true], [-1, i % W > 0]]) { const j = i + o; if (!ok || j < 0 || j >= W * fl.H || prev[j] >= 0 || !bits[j]) continue; const x = j % W, y = (j / W) | 0; if ((!IL.walkable(fl, x, y) || stopTile(j)) && !(goal(j) && !adj)) continue; prev[j] = i; q.push(j); } }
+  if (hit < 0) return toast('そこへは行けない');
+  const path = []; for (let c = hit; c !== start; c = prev[c]) path.push(c); path.reverse();
+  walk = { path, done, target: path[path.length - 1], near: new Set(run.enemies.filter(en => Math.abs(en.x - run.x) + Math.abs(en.y - run.y) <= 3)) }; dirty = true;
+  const step = () => { if (!walk || !run) return; if (ui.scr || run.battle || run.prompt || run.over) return stopWalk();
+    const n = walk.path.shift(), d = n - (run.y * W + run.x), dir = d === -W ? 0 : d === 1 ? 1 : d === W ? 2 : d === -1 ? 3 : -1;
+    if (dir < 0) return stopWalk(); const before = run.y * W + run.x; act(dir);
+    if (run.y * W + run.x === before || ui.scr || run.battle || run.prompt) return stopWalk();
+    if (run.enemies.some(en => !en.cool && !walk.near.has(en) && Math.abs(en.x - run.x) + Math.abs(en.y - run.y) <= 3)) { stopWalk(); return toast('敵が近い！'); } // 敵が近づいたら止まる
+    if (!walk.path.length) { const f = walk.done; stopWalk(); if (f) f(); return; }
+    walk.timer = setTimeout(step, 125); };
+  step();
+}
 
 /* ---------- 落ちたバッグ ---------- */
 function ago(t) { const m = Math.max(0, Math.floor((Net.now() - (t || 0)) / 60000)); return m < 1 ? 'たった今' : m < 60 ? m + '分前' : m < 1440 ? Math.floor(m / 60) + '時間前' : Math.floor(m / 1440) + '日前'; }
@@ -806,8 +835,8 @@ addEventListener('pointerdown', () => { if (IOS || STANDALONE || document.fullsc
 /* ---------- キーとパッド ---------- */
 const KEYDIR = { ArrowUp: 0, KeyW: 0, ArrowRight: 1, KeyD: 1, ArrowDown: 2, KeyS: 2, ArrowLeft: 3, KeyA: 3 };
 let hold = null, holdTimer = null;
-function startHold(dir) { stopHold(); hold = dir; act(dir); holdTimer = setInterval(() => { if (hold != null) act(hold); }, 135); }
-function stopHold() { hold = null; clearInterval(holdTimer); holdTimer = null; document.querySelectorAll('.dpad button.on').forEach(b => b.classList.remove('on')); }
+function startHold(dir) { stopHold(); stopWalk(); hold = dir; act(dir); holdTimer = setTimeout(function rep() { if (hold == null) return; act(hold); holdTimer = setTimeout(rep, 125); }, 230); }
+function stopHold() { hold = null; clearTimeout(holdTimer); holdTimer = null; document.querySelectorAll('.dpad button.on').forEach(b => b.classList.remove('on')); }
 addEventListener('keydown', e => {
   if (e.repeat && KEYDIR[e.code] != null) { e.preventDefault(); return; }
   if (KEYDIR[e.code] != null && run && !ui.scr) { e.preventDefault(); startHold(KEYDIR[e.code]); return; }
@@ -816,15 +845,19 @@ addEventListener('keydown', e => {
   if (e.code === 'KeyB' && run && !ui.scr) { ui.sel = null; ui.bagSel = null; boardScreen('run'); }
 });
 addEventListener('keyup', e => { if (KEYDIR[e.code] === hold) stopHold(); });
-document.querySelectorAll('.dpad button').forEach(b => {
-  const dir = +b.dataset.dir;
-  b.addEventListener('pointerdown', e => { e.preventDefault(); b.classList.add('on'); startHold(dir); });
-  ['pointerup', 'pointercancel', 'pointerleave'].forEach(ev => b.addEventListener(ev, stopHold));
-});
+(() => { // 十字キー：パッド全体で指を追う。押したまま指をすべらせると向きが変わる
+  const pad = document.querySelector('.dpad'); let pid = null;
+  const dirAt = e => { const r = pad.getBoundingClientRect(), dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2); if (dx * dx + dy * dy < (r.width * 0.12) ** 2) return null; return Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 1 : 3) : (dy > 0 ? 2 : 0); };
+  const light = d => pad.querySelectorAll('button').forEach(b => b.classList.toggle('on', +b.dataset.dir === d));
+  pad.addEventListener('pointerdown', e => { e.preventDefault(); pid = e.pointerId; try { pad.setPointerCapture(pid); } catch (_) {} const d = dirAt(e); if (d != null) { light(d); startHold(d); } });
+  pad.addEventListener('pointermove', e => { if (e.pointerId !== pid) return; const d = dirAt(e); if (d == null) { if (hold != null) stopHold(); return; } if (d !== hold) { light(d); if (hold == null) startHold(d); else { hold = d; } } });
+  const end = e => { if (e.pointerId !== pid) return; pid = null; stopHold(); };
+  ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(ev => pad.addEventListener(ev, end));
+})();
 /* スマホでは touchstart を止めているので click が来ない → pointerup で受ける */
 function padBtn(b, fn) { b.addEventListener('pointerdown', e => { e.preventDefault(); b.classList.add('on'); }); b.addEventListener('pointerleave', () => b.classList.remove('on')); b.addEventListener('pointerup', e => { e.preventDefault(); const was = b.classList.contains('on'); b.classList.remove('on'); if (was) fn(); }); }
-padBtn($('#b-act'), interact);
-padBtn($('#b-menu'), () => { if (run && !ui.scr) runMenu(); });
+padBtn($('#b-act'), () => { stopWalk(); interact(); });
+padBtn($('#b-menu'), () => { stopWalk(); if (run && !ui.scr) runMenu(); });
 document.addEventListener('dblclick', e => e.preventDefault(), { passive: false });
 let lastTouch = 0; document.addEventListener('touchend', e => { const n = Date.now(); if (n - lastTouch < 300) e.preventDefault(); lastTouch = n; }, { passive: false });
 document.addEventListener('gesturestart', e => e.preventDefault());

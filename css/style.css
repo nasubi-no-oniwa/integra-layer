@@ -19,7 +19,7 @@ button{font:inherit;color:inherit;touch-action:manipulation}
 #pad{position:absolute;left:0;right:0;bottom:0;display:flex;justify-content:space-between;align-items:flex-end;padding:0 14px max(14px,env(safe-area-inset-bottom));pointer-events:none}
 #pad[hidden]{display:none}
 .dpad{position:relative;width:156px;height:156px;pointer-events:auto}
-.dpad button{position:absolute;width:52px;height:52px;border-radius:10px;border:2px solid var(--line);background:rgba(34,28,48,.82);font-size:18px}
+.dpad button{pointer-events:none;position:absolute;width:52px;height:52px;border-radius:10px;border:2px solid var(--line);background:rgba(34,28,48,.82);font-size:18px}
 .dpad .up{left:52px;top:0}.dpad .down{left:52px;bottom:0}.dpad .left{left:0;top:52px}.dpad .right{right:0;top:52px}
 .dpad button:active,.dpad button.on{background:#4a3d6a}
 .abtn{display:flex;gap:12px;align-items:flex-end;pointer-events:auto}
@@ -219,8 +219,8 @@ html,body,*{-webkit-touch-callout:none}
 @media (max-height:500px){
   #mini{border-width:1px}
   .hud-r{min-width:140px;padding:4px 8px}.hud-floor b{font-size:17px}.hud-floor small{font-size:11px}.hud-small{font-size:11px}
-  .dpad{width:120px;height:120px}.dpad button{width:40px;height:40px;font-size:14px;border-radius:8px}
-  .dpad .up{left:40px}.dpad .down{left:40px}.dpad .left{top:40px}.dpad .right{top:40px}
+  .dpad{width:141px;height:141px}.dpad button{width:47px;height:47px;font-size:15px;border-radius:9px}
+  .dpad .up{left:47px}.dpad .down{left:47px}.dpad .left{top:47px}.dpad .right{top:47px}
   .abtn{gap:12px}.abtn button{width:56px;height:56px;font-size:20px}.abtn .big{width:78px;height:78px;font-size:15px}
   #pad{padding:0 10px max(8px,env(safe-area-inset-bottom)) max(10px,env(safe-area-inset-left))}
 }
