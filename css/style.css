@@ -113,3 +113,8 @@ select{background:var(--panel2);color:var(--ink);border:2px solid var(--line);bo
 @media (max-width:640px){.board{--s:46px}.cmds{grid-template-columns:repeat(3,1fr)}.logo{font-size:32px}.hud-r{min-width:130px}}
 
 @media (max-height:520px) and (orientation:landscape){.ov{padding:6px}.win{padding:10px}.bwrap{display:grid;grid-template-columns:1fr 1.25fr;gap:10px;align-items:start}.battle .log{height:84px;margin:0 0 6px}.foes{margin:0 0 6px}.foe{min-width:100px;padding:4px}.cmds{grid-template-columns:repeat(3,1fr)}.cmds .btn{padding:6px 4px;min-height:38px}.sublist .btn{min-height:38px;padding:6px 10px}.battle{max-width:100%}}
+
+.stream{display:block;margin:6px auto 8px;max-width:420px;padding:6px 10px;border-radius:8px;background:#5a1420;border:2px solid #d6455c;color:#fff;text-decoration:none;animation:livep 1.6s ease-in-out infinite}
+@keyframes livep{50%{box-shadow:0 0 12px #d6455c}}
+.news{max-width:460px;margin:4px auto 8px;padding:6px 10px;border:1px solid var(--line);border-radius:8px;text-align:left;font-size:12px;background:rgba(0,0,0,.25)}
+.news b{color:var(--gold);margin-right:6px}

@@ -77,6 +77,9 @@ Net.post = async (name, text, lang) => {
   try { await db.ref('rate/' + Net.pid).set(T()); } catch (e) { return 'rate'; }
   try { await db.ref('board').push({ pid: Net.pid, n: name, s: text, l: lang || 'ja', t: T() }); return 'ok'; } catch (e) { return 'ng'; }
 };
+Net.watchHidden = cb => { if (!db) return () => {}; let h = {}, r = {}; const go = () => { const o = Object.assign({}, h); for (const id in r) if (Object.keys(r[id] || {}).length >= 3) o[id] = true; cb(o); };
+  const a = db.ref('hidden'), b = db.ref('reports'), fa = s => { h = s.val() || {}; go(); }, fb = s => { r = s.val() || {}; go(); }; a.on('value', fa); b.on('value', fb); return () => { a.off('value', fa); b.off('value', fb); }; };
+Net.watchInfo = cb => { if (!db) return; db.ref('stream').on('value', s => cb('stream', s.val())); db.ref('news').limitToLast(3).on('value', s => cb('news', s.val())); };
 Net.report = async id => { if (!db) return; try { await db.ref('reports/' + id + '/' + Net.pid).set(T()); } catch (e) {} };
 
 /* ---- 半透明の人（別のデータベース） ---- */

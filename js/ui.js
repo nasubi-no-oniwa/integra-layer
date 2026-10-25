@@ -66,11 +66,30 @@ function todayKey() { const d = new Date(); return d.getFullYear() + '-' + (d.ge
 function gachaReady() { return !pr.gacha || pr.gacha.day !== todayKey() || !pr.gacha.picked; }
 
 /* ---------- タイトル ---------- */
+const SHARE = {
+  ja: { boss: f => `インテグラ・レイヤー ${f}階のボスを倒した！`, first: f => `インテグラ・レイヤー ${f}階のボスを、世界で最初に倒した！`, god: (f, n) => `インテグラ・レイヤー ${f}階で神技「${n}」が出た！`, tags: 'インテグラレイヤー,ゲーム制作,gamedev' },
+  en: { boss: f => `Beat the floor ${f} boss in Integra Layer!`, first: f => `I was the FIRST in the world to beat the floor ${f} boss in Integra Layer!`, god: (f, n) => `Unleashed the divine skill "${n}" on floor ${f} in Integra Layer!`, tags: 'IntegraLayer,gamedev,indiegame' },
+  zh: { boss: f => `在整合層擊敗了第${f}層的頭目！`, first: f => `在整合層全世界第一個擊敗了第${f}層的頭目！`, god: (f, n) => `在整合層第${f}層使出了神技「${n}」！`, tags: 'IntegraLayer,gamedev,獨立遊戲' },
+  ko: { boss: f => `인테그라 레이어 ${f}층 보스를 쓰러뜨렸다!`, first: f => `인테그라 레이어 ${f}층 보스를 세계 최초로 쓰러뜨렸다!`, god: (f, n) => `인테그라 레이어 ${f}층에서 신기술 「${n}」 발동!`, tags: 'IntegraLayer,gamedev,인디게임' },
+};
+function shareX(kind, f, name) {
+  const L = SHARE[L10N.lang] || SHARE.ja; const text = L[kind](f, L10N.t(name || ''));
+  const u = 'https://x.com/intent/post?text=' + encodeURIComponent(text) + '&url=' + encodeURIComponent(location.origin + location.pathname) + '&hashtags=' + encodeURIComponent(L.tags);
+  window.open(u, '_blank', 'noopener');
+}
+function infoHTML() {
+  let h = ''; const st = ui.stream;
+  if (st && st.on) h += `<a class="stream" href="${/^https?:\/\//.test(st.url || '') ? esc(st.url) : '#'}" target="_blank" rel="noopener">🔴 配信中${st.txt ? '　<span class="nt">' + esc(st.txt) + '</span>' : ''}</a>`;
+  const nw = ui.news || {}; const ids = Object.keys(nw).sort((a, b) => (nw[b].t || 0) - (nw[a].t || 0)).slice(0, 3);
+  if (ids.length) h += '<div class="news"><b>お知らせ</b>' + ids.map(id => `<div><span class="mute">${new Date(nw[id].t || 0).toLocaleDateString()}</span> <span class="nt">${esc(nw[id].s)}</span></div>`).join('') + '</div>';
+  return h;
+}
 function title() {
   if (S.run && S.run.over) S.run = null; run = S.run; ui.scr = 'title'; $('#hud').hidden = true; $('#pad').hidden = true; save(); drawIdle();
   const st = IL.playerStats(pr);
   show(`<div class="win title">
     <div class="logo">INTEGRA LAYER<small>インテグラ・レイヤー</small></div>
+    ${infoHTML()}
     <p class="story">倒れた誰かの欠片が、きみの盤面でつながる。\n全員で、100階の塔を上れ。</p>
     <div class="statline"><span>Lv ${pr.lv}</span><span>最前線 ${pr.maxFloor}階</span><span class="gold">${pr.gold} G</span><span>回復薬 ${pr.potions.length}</span><span>チケット ${pr.tickets}</span></div>
     <div class="menu">
@@ -80,8 +99,8 @@ function title() {
       <button class="btn" data-a="synth">合成</button>
       <button class="btn" data-a="points">能力${pr.freePts ? '<span class="badge">' + pr.freePts + '</span>' : ''}</button>
       <button class="btn" data-a="plaza">広場（掲示板）</button>
-      <div class="row" style="justify-content:center"><button class="btn sm" data-a="profile">名前と引き継ぎ</button><button class="btn sm" data-a="help">遊び方</button><button class="btn sm" data-a="sound">音 ${opt.sound ? 'あり' : 'なし'}</button></div>
-      <p class="small mute">${Net.on ? 'オンライン　' + esc(opt.name || '名無し') : 'オフライン（この端末だけ）'}</p>
+      <div class="row" style="justify-content:center"><button class="btn sm" data-a="profile">名前と引き継ぎ</button><button class="btn sm" data-a="help">遊び方</button><button class="btn sm" data-a="sound">音 ${opt.sound ? 'あり' : 'なし'}</button><button class="btn sm" data-a="lang">🌐 ${L10N.LANGS[L10N.lang]}</button></div>
+      <p class="small mute">${Net.on ? 'オンライン　<span class="nt">' + esc(opt.name || '名無し') + '</span>' : 'オフライン（この端末だけ）'}</p>
     </div></div>`);
 }
 function floors() {
@@ -295,7 +314,7 @@ function prompt() {
     show(`<div class="win" style="max-width:460px"><h2>本当に戦いますか？</h2><p>行商人はとても強い（この階＋30階のボスくらい）。勝てば売り物をすべてもらえる。<br><b style="color:#ff8a8a">負けると、かばんの中身がすべて消えます。</b>（盤面は残る）</p><div class="row"><button class="btn warn" data-a="fightm2">戦う</button><button class="btn" data-a="cancel">やめる</button></div></div>`, 'clear');
   } else if (p.kind === 'bosswin') {
     const last = run.floor >= 100;
-    show(`<div class="win" style="max-width:460px"><h2>${last ? '頂上にたどり着いた！' : 'ボスを倒した！'}</h2><p>${last ? 'インテグラ・レイヤーの頂上。' : '階段と、帰還ポータルが開いた。'}</p><div class="row">${last ? '' : '<button class="btn pri" data-a="next">次の階へ</button>'}<button class="btn" data-a="portal">帰還ポータルで帰る</button></div></div>`, 'clear');
+    show(`<div class="win" style="max-width:460px"><h2>${last ? '頂上にたどり着いた！' : 'ボスを倒した！'}</h2><p>${last ? 'インテグラ・レイヤーの頂上。' : '階段と、帰還ポータルが開いた。'}</p><div class="row">${last ? '' : '<button class="btn pri" data-a="next">次の階へ</button>'}<button class="btn" data-a="portal">帰還ポータルで帰る</button></div>${ui.firstFloor === run.floor ? '<p class="gold">世界で最初に倒した！</p>' : ''}<div class="row" style="margin-top:6px"><button class="btn sm" data-a="sharex">𝕏 でつぶやく</button></div></div>`, 'clear');
   }
 }
 function shop() {
@@ -340,7 +359,7 @@ function battleResult() {
   if (bt.over === 'win') {
     const r = bt.reward; const parts = r.parts.map(p => partHTML(p)).join('');
     let extra = ''; if (bt.bossReward) { if (bt.bossReward.first) extra += `<p class="gold">初撃破ボーナス！</p><div class="lootlist">${bt.bossReward.first.map(p => partHTML(p)).join('')}</div>`; if (bt.bossReward.respec) extra += '<p>振りなおしの札を手に入れた</p>'; }
-    return `<p>勝った！ 経験値 ${r.exp}・${r.gold} G${r.ups ? `<b class="gold">　レベルが ${pr.lv} に上がった！（ポイント+${r.ups * 3}）</b>` : ''}</p>${parts ? '<div class="lootlist">' + parts + '</div>' : ''}${extra}<button class="btn pri" data-a="bclose">続ける</button>`;
+    return `<p>勝った！ 経験値 ${r.exp}・${r.gold} G${r.ups ? `<b class="gold">　レベルが ${pr.lv} に上がった！（ポイント+${r.ups * 3}）</b>` : ''}</p>${parts ? '<div class="lootlist">' + parts + '</div>' : ''}${extra}<div class="row"><button class="btn pri" data-a="bclose">続ける</button>${ui.godName ? '<button class="btn sm" data-a="sharegod">𝕏 神技をつぶやく</button>' : ''}</div>`;
   }
   if (bt.over === 'flee') return '<button class="btn pri" data-a="bclose">続ける</button>';
   if (bt.over === 'lose') {
@@ -360,7 +379,7 @@ function bcmd(c) {
   if (bt.over === 'win') { sfx('win', 0.5); if (bt.reward.ups) setTimeout(() => sfx('levelup', 0.5), 400); }
   if (bt.over === 'lose') { sfx('fail', 0.5); const li = bt.loseInfo; if (li && li.lost && li.lost.length && !li.boss) Net.addDrops(li.where.floor, li.where.x, li.where.y, li.lost, opt.name); }
 }
-function godFx(name) { const d = document.createElement('div'); d.className = 'god'; d.textContent = name; $('#app').appendChild(d); setTimeout(() => d.remove(), 1700); }
+function godFx(name) { ui.godName = name; const d = document.createElement('div'); d.className = 'god'; d.textContent = name; $('#app').appendChild(d); setTimeout(() => d.remove(), 1700); }
 function runMenu() {
   ui.scr = 'menu';
   show(`<div class="win" style="max-width:420px"><button class="btn sm close" data-a="back">とじる</button><h2>メニュー</h2><div class="grid">
@@ -402,7 +421,7 @@ async function claimFirst(floor, br) {
   const ok = await Net.claimFirst(floor, { n: opt.name || '名無し', jn: Net.journalCount(), dg: IL.digest(pr), lv: pr.lv });
   if (ok) { const got = X(['first', floor]); save(); syncProfile(); if (got && got !== true) showFirst(floor, got); }
 }
-function showFirst(floor, got) { sfx('god', 0.5); toast(floor + '階のボスを、だれよりも先に倒した！ 初撃破ボーナス：' + got.map(p => IL.SP_NAME[p.sp] + 'の欠片（' + IL.RAR_NAME[p.rar] + '）').join('、')); }
+function showFirst(floor, got) { ui.firstFloor = floor; if (run && run.prompt && run.prompt.kind === 'bosswin' && ui.scr === 'prompt') prompt(); sfx('god', 0.5); toast(floor + '階のボスを、だれよりも先に倒した！ 初撃破ボーナス：' + got.map(p => IL.SP_NAME[p.sp] + 'の欠片（' + IL.RAR_NAME[p.rar] + '）').join('、')); }
 function onFirsts(fs) {
   ui.firsts = fs || {}; const floors = Object.keys(ui.firsts).map(Number).filter(n => n > 0 && !(ui.firsts[n] && ui.firsts[n].ng)).sort((a, b) => a - b);
   const cur = Object.keys(S.gclear || {}).map(Number).sort((a, b) => a - b).join(',');
@@ -416,19 +435,22 @@ function plaza() {
     ${Net.on ? `<div class="row"><input id="pmsg" maxlength="140" placeholder="ひとこと（20秒に1回）" style="flex:1;min-width:200px;padding:10px;border-radius:8px;border:2px solid var(--line);background:#0e0c14;color:var(--ink);font:inherit"><button class="btn pri" data-a="post">送る</button></div>` : '<p class="mute">オンラインのときだけ使えます</p>'}
     <div id="plist" class="log" style="height:52vh"></div><p class="small mute">いやな書きこみは「通報」してください。</p></div>`);
   if (ui.unBoard) ui.unBoard();
-  ui.unBoard = Net.watchBoard(v => { const el = $('#plist'); if (!el) return; const ids = Object.keys(v).sort((a, b) => (v[b].t || 0) - (v[a].t || 0));
-    el.innerHTML = ids.map(id => { const m = v[id]; if (!m || banned(m.s || '') || (ui.hidden && ui.hidden[id])) return ''; return `<div style="margin-bottom:6px"><b>${esc(m.n || '名無し')}</b> <span class="mute small">${new Date(m.t || 0).toLocaleTimeString().slice(0, 5)}</span> <button class="btn sm" data-rep="${esc(id)}" style="min-height:24px;padding:0 6px;font-size:11px">通報</button>${'Translator' in window && m.l && m.l !== 'ja' ? ` <button class="btn sm" data-tr="${esc(id)}" data-tl="${esc(m.l)}" style="min-height:24px;padding:0 6px;font-size:11px">翻訳</button>` : ''}<br><span data-msg="${esc(id)}">${esc(m.s || '')}</span></div>`; }).join('') || '<span class="mute">まだ書きこみがない</span>'; });
+  ui.unBoard = Net.watchBoard(v => { ui.boardV = v; drawBoard(); });
+}
+function drawBoard() { const v = ui.boardV || {};
+    { const el = $('#plist'); if (!el) return; const ids = Object.keys(v).sort((a, b) => (v[b].t || 0) - (v[a].t || 0));
+    el.innerHTML = ids.map(id => { const m = v[id]; if (!m || banned(m.s || '') || (ui.hidden && ui.hidden[id])) return ''; return `<div style="margin-bottom:6px"><b class="nt">${esc(m.n || '名無し')}</b> <span class="mute small">${new Date(m.t || 0).toLocaleTimeString().slice(0, 5)}</span> <button class="btn sm" data-rep="${esc(id)}" style="min-height:24px;padding:0 6px;font-size:11px">通報</button>${'Translator' in window && m.l && m.l !== L10N.lang ? ` <button class="btn sm" data-tr="${esc(id)}" data-tl="${esc(m.l)}" style="min-height:24px;padding:0 6px;font-size:11px">翻訳</button>` : ''}<br><span class="nt" data-msg="${esc(id)}">${esc(m.s || '')}</span></div>`; }).join('') || '<span class="mute">まだ書きこみがない</span>'; }
 }
 let lastPost = 0;
 async function doPost() {
   const el = $('#pmsg'); if (!el) return; const t = el.value.trim(); if (!t) return;
   if (banned(t)) { toast('使えない言葉が入っています'); sfx('ng'); return; }
   if (Date.now() - lastPost < 20000) { toast('あと ' + Math.ceil((20000 - (Date.now() - lastPost)) / 1000) + ' 秒まってね'); return; }
-  const r = await Net.post(opt.name || '名無し', t, (navigator.language || 'ja').slice(0, 2)); if (r === 'ok') { lastPost = Date.now(); el.value = ''; sfx('ok', 0.4); } else toast(r === 'rate' ? '20秒に1回まで' : '送れませんでした');
+  const r = await Net.post(opt.name || '名無し', t, L10N.lang); if (r === 'ok') { lastPost = Date.now(); el.value = ''; sfx('ok', 0.4); } else toast(r === 'rate' ? '20秒に1回まで' : '送れませんでした');
 }
 async function translateMsg(id, from) {
   const el = document.querySelector('[data-msg="' + CSS.escape(id) + '"]'); if (!el) return;
-  try { const tr = await Translator.create({ sourceLanguage: from || 'en', targetLanguage: 'ja' }); el.textContent = await tr.translate(el.textContent); } catch (e) { toast('この端末では翻訳できません'); }
+  try { const tr = await Translator.create({ sourceLanguage: { zh: 'zh-Hant' }[from] || from || 'en', targetLanguage: { zh: 'zh-Hant' }[L10N.lang] || L10N.lang }); el.textContent = await tr.translate(el.textContent); } catch (e) { toast('この端末では翻訳できません'); }
 }
 function profileScreen() {
   ui.scr = 'profile';
@@ -447,7 +469,7 @@ async function mapShop(floor) {
   show(`<div class="win" style="max-width:560px"><button class="btn sm close" data-a="${back}">とじる</button><h2>${floor}階の地図</h2><p class="mute">読みこみ中…</p></div>`);
   const list = await Net.listMaps(floor); ui.mapList = list;
   const mine = pr.maps[String(floor)];
-  const rows = list.map((m, i) => `<div class="item"><div class="nm"><b>${esc(m.n || '名無し')}</b>の地図　${m.pct}％<br><span class="small mute">${m.boss ? 'ボス部屋あり　' : ''}安全地帯${m.safe || 0}　台座${m.peds || 0}</span></div><button class="btn sm" data-mb="${i}" ${pr.gold >= 10 ? '' : 'disabled'}>10 G</button></div>`).join('') || '<p class="mute">まだ売りに出ている地図がない</p>';
+  const rows = list.map((m, i) => `<div class="item"><div class="nm"><b class="nt">${esc(m.n || '名無し')}</b>の地図　${m.pct}％<br><span class="small mute">${m.boss ? 'ボス部屋あり　' : ''}安全地帯${m.safe || 0}　台座${m.peds || 0}</span></div><button class="btn sm" data-mb="${i}" ${pr.gold >= 10 ? '' : 'disabled'}>10 G</button></div>`).join('') || '<p class="mute">まだ売りに出ている地図がない</p>';
   show(`<div class="win shop" style="max-width:560px"><button class="btn sm close" data-a="${back}">とじる</button><h2>${floor}階の地図</h2><p class="gold">所持金 ${pr.gold} G</p><div class="grid">${rows}</div>
     <h2 style="margin-top:14px">自分の地図を売りに出す</h2><p class="small mute">出すのに100G。だれかが買うたびに5G入る（次にタイトルに戻ったとき受け取る）。いま${mine ? Math.round(100 * mine.n / mapTotal(floor)) : 0}％描けている。</p>
     <button class="btn" data-a="mapsell" ${Net.on && pr.gold >= 100 && mine && mine.n ? '' : 'disabled'}>売りに出す（100 G）</button></div>`);
@@ -495,6 +517,7 @@ document.addEventListener('click', async e => {
     case 'floors': sfx('click', 0.3); return floors();
     case 'help': return help();
     case 'sound': opt.sound = !opt.sound; saveOpt(); return run ? runMenu() : title();
+    case 'lang': { const ks = Object.keys(L10N.LANGS); L10N.lang = opt.lang = ks[(ks.indexOf(L10N.lang) + 1) % ks.length]; saveOpt(); document.documentElement.lang = L10N.lang; return location.reload(); }
     case 'board': ui.sel = null; ui.bagSel = null; return boardScreen('title');
     case 'board2': ui.sel = null; ui.bagSel = null; return boardScreen('run');
     case 'boardback': hud(); if (ui.boardFrom === 'run' && run) { hideScreen(); dirty = true; return; } return title();
@@ -531,7 +554,9 @@ document.addEventListener('click', async e => {
     case 'fightm': run.prompt = { kind: 'fightm' }; return prompt();
     case 'fightm2': X(['fm']); return afterAct();
     case 'subback': ui.sub = null; return battle();
-    case 'bclose': { const k = run.battle.kind, ov = run.battle.over, br = run.battle.bossReward; X(['bx']); hideScreen(); dirty = true; hud(); save(); if (k === 'boss' && ov === 'win') { X(['bosswin']); prompt(); claimFirst(run.floor, br); } return; }
+    case 'sharex': return shareX(ui.firstFloor === run.floor ? 'first' : 'boss', run.floor);
+    case 'sharegod': return shareX('god', run.floor, ui.godName);
+    case 'bclose': { ui.godName = null; const k = run.battle.kind, ov = run.battle.over, br = run.battle.bossReward; X(['bx']); hideScreen(); dirty = true; hud(); save(); if (k === 'boss' && ov === 'win') { X(['bosswin']); prompt(); claimFirst(run.floor, br); } return; }
     case 'dead': return endScreen();
     case 'next': X(['next']); sfx('ok'); enterRun(run); return fetchDrops();
     case 'portal': X(['leave']); sfx('win', 0.5); return endScreen();
@@ -572,6 +597,8 @@ document.addEventListener('gesturestart', e => e.preventDefault());
 
 /* ---------- はじまり ---------- */
 async function boot() {
+  try { opt = Object.assign(opt, JSON.parse(localStorage.getItem(SAVE_O) || '{}')); } catch (e) {}
+  L10N.lang = opt.lang || L10N.pick(); document.documentElement.lang = L10N.lang; L10N.observe(); L10N.apply();
   resize(); requestAnimationFrame(render); drawIdle();
   show('<div class="win title"><div class="logo">INTEGRA LAYER<small>インテグラ・レイヤー</small></div><p class="mute">つないでいます…</p></div>');
   const timeout = new Promise(r => setTimeout(() => r(false), 7000));
@@ -579,7 +606,7 @@ async function boot() {
   let pid = null; try { pid = localStorage.getItem('il_pid'); } catch (e) {}
   if (!pid) { pid = Net.uid || ('local-' + Math.random().toString(36).slice(2, 12)); try { localStorage.setItem('il_pid', pid); } catch (e) {} }
   Net.pid = pid; loadState(pid);
-  if (Net.on) { Net.watchFirsts(onFirsts); collectSales(); setInterval(() => { flushJournal(); }, 60000); }
+  if (Net.on) { Net.watchHidden(h => { ui.hidden = h; if (ui.scr === 'plaza') drawBoard(); }); Net.watchInfo((k, v) => { ui[k] = v; if (ui.scr === 'title') title(); }); Net.watchFirsts(onFirsts); collectSales(); setInterval(() => { flushJournal(); }, 60000); }
   const go = () => { dirty = true; if (run && !run.over) { enterRun(run); fetchDrops(); if (run.battle) battle(); else if (run.prompt) prompt(); } else title(); };
   if (sheet.complete && sheet.naturalWidth) go(); else sheet.onload = go;
 }

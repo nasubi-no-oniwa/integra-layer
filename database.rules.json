@@ -1,7 +1,7 @@
 {
   "rules": {
-    ".read": false,
-    ".write": false,
+    ".read": "auth != null && root.child('admins/' + auth.uid).exists()",
+    ".write": "auth != null && root.child('admins/' + auth.uid).exists()",
     "admins": {
       ".read": "auth != null"
     },
@@ -87,10 +87,11 @@
       }
     },
     "reports": {
-      ".read": "root.child('admins/' + auth.uid).exists()",
+      ".read": "auth != null",
       "$id": {
         "$pid": {
-          ".write": "auth != null && ($pid === auth.uid || root.child('owner/' + $pid + '/uid').val() === auth.uid)"
+          ".write": "auth != null && ($pid === auth.uid || root.child('owner/' + $pid + '/uid').val() === auth.uid)",
+          ".validate": "newData.val() === now && root.child('board/' + $id).exists()"
         }
       }
     },
