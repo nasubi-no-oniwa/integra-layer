@@ -18,13 +18,13 @@ IL.RNG = RNG; IL.hashStr = hashStr;
 /* ---------- 釣り合いの数字（調整用スプレッドシートのたたき台） ---------- */
 const B = IL.B = {
   base: { atk: 10, hp: 100, def: 10, spd: 10, luck: 10 },
-  perLv: { atk: 6, hp: 30, def: 6, spd: 2, luck: 2 },
-  perPt: { atk: 4, hp: 40, def: 4, spd: 3, luck: 3 },
+  perLv: { atk: 1.2, hp: 5, def: 1.2, spd: 0.4, luck: 0.4 },
+  perPt: { atk: 1, hp: 6, def: 1, spd: 1, luck: 1 },
   ptsPerLv: 3, maxLv: 100,
-  partBase: 10, partPerFloor: 1, hpCoef: 5, spRatio: 2 / 3,
+  partBase: 2, partPerFloor: 0.2, hpCoef: 3, spRatio: 2 / 3,
   rarMul: [1, 2.5, 6, 3], rankMul: { A: 1.2, B: 1.0, C: 0.8 },
   eAtk: 0.9, eHp: 1.8, eDef: 0.6,
-  bossHp: 12, bossAt: 2.0, bigHp: 16, bigAt: 2.4, depth: 0.3, chargeMul: 2.5,
+  bossHp: 8, bossAt: 2.0, bigHp: 11, bigAt: 2.4, depth: 0.3, chargeMul: 2.5,
   expBase: 8, expPer: 3, bossExp: 10, bigExp: 15,
   potion: 0.5, potionPrice: 5, ticketPrice: 60, partPrice: [15, 80, 300, 300],
   synthRate: 0.2,
@@ -32,7 +32,7 @@ const B = IL.B = {
   coef: { fire: 1.0, wind: 0.6, rock: 0.7, forest: 0.6, star: 1.0 },
   guard: [0, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.5],
   burn: 0.1, burnTurns: 3, drain: 0.5, counter: 0.3,
-  dropEnemy: 0.12, herbs: 20, herbHeal: 0.3, f1Hp: 2.5, f1Atk: 2.0, enemyCount: 30, respawnEvery: 12, regen: 0.005,
+  dropEnemy: 0.12, herbs: 20, herbHeal: 0.3, f1Hp: 1, f1Atk: 1, enemyCount: 30, respawnEvery: 12, regen: 0.005,
   mapW: 120, mapH: 90, boardK: 50, lateGrow: 0.6,
 };
 const NEED=[0, 40, 139, 289, 485, 725, 1006, 1328, 1689, 2088, 2524, 2996, 3504, 4047, 4625, 5236, 5881, 6559, 7270, 8013, 8788, 9595, 10433, 11302, 12202, 13133, 14093, 15084, 16104, 17154, 18234, 19342, 20480, 21646, 22841, 24065, 25317, 26596, 27904, 29240, 30603, 31994, 33412, 34858, 36331, 37831, 39357, 40911, 42491, 44097, 45731, 47390, 49076, 50787, 52525, 54289, 56079, 57894, 59735, 61602, 63494, 65411, 67354, 69322, 71316, 73334, 75377, 77445, 79538, 81656, 83799, 85966, 88157, 90374, 92614, 94879, 97168, 99482, 101819, 104181, 106567, 108977, 111410, 113868, 116349, 118854, 121383, 123935, 126511, 129111, 131734, 134380, 137050, 139743, 142459, 145199, 147961, 150747, 153556, 156388, 159243];
@@ -87,7 +87,7 @@ IL.RAR_TABLE = { chest: [0.88, 0.10, 0.02], boss: [0.60, 0.32, 0.08], gacha: [0.
 function rollSpecies(rng) { const r = rng.int(6); return r < 5 ? SPECIES[r] : 'none'; }
 function partStat(p, s) {
   const v = partValue(p.floor) * B.rarMul[p.rar] * B.rankMul[s.r] * ((p.sp !== 'none' && p.sp !== 'joker') ? B.spRatio : 1) * (s.k === 'hp' ? B.hpCoef : 1);
-  return Math.round(v);
+  return Math.round(v * 10) / 10;
 }
 IL.partStat = partStat;
 function edgeAt(p, side) { return p.edges[(side - p.rot + 4) % 4]; }
@@ -133,7 +133,7 @@ function newProfile(now) {
     cleared: {}, firsts: {}, maxFloor: 1, maps: {}, gacha: null, stats: { kills: 0, deaths: 0, runs: 0 } };
 }
 IL.newProfile = newProfile;
-function baseStats(pr) { const o = {}; for (const k of IL.STATS) o[k] = B.base[k] + B.perLv[k] * (pr.lv - 1) + B.perPt[k] * pr.pts[k]; return o; }
+function baseStats(pr) { const o = {}; for (const k of IL.STATS) o[k] = Math.round(B.base[k] + B.perLv[k] * (pr.lv - 1) + B.perPt[k] * pr.pts[k]); return o; }
 function boardArr(pr) { return pr.board.map(id => id == null ? null : pr.bag.find(p => p.id === id) || null); }
 IL.boardArr = boardArr;
 function playerStats(pr) { const b = baseStats(pr), an = analyzeBoard(boardArr(pr)); const o = {}; for (const k of IL.STATS) o[k] = b[k] + an.add[k]; o.skills = an.skills; return o; }
@@ -170,7 +170,7 @@ IL.ETYPES = {
 };
 IL.EPREFIX = ['苔', '砂', '晶', '炎', '氷', '毒', '鋼', '影', '星', '核'];
 function expLv(f) { return Math.max(1, Math.min(100, Math.round(0.97 * f - 0.5))); }
-function fillOf(f) { return Math.min(1, (f - 1) / 15); } // 序盤は盤面がまだ埋まっていない
+function fillOf(f) { return Math.min(1, (f - 1) / 9); } // 序盤は盤面がまだ埋まっていない
 function expBoard(f) { return IL.B.boardK * partValue(Math.max(1, f - 3)) * fillOf(f); }
 function expAtk(f) { const L = expLv(f); return B.base.atk + (B.perLv.atk + B.perPt.atk) * (L - 1) + expBoard(f); }
 function expSpd(f) { const L = expLv(f); return B.base.spd + B.perLv.spd * (L - 1) + expBoard(f); }
@@ -346,9 +346,9 @@ function interactPed(pr, run, i) {
   if (run.opened[i]) { run.events.push({ t: 'msg', s: 'もう空っぽだ' }); return; }
   run.opened[i] = 1;
   const rng = run.rng, luck = playerStats(pr).luck, got = [];
-  const n = rng.range(1, 3);
+  const n = rng.chance(0.5) ? 1 : 0; // 欠片は出すぎないように
   for (let k = 0; k < n; k++) { const p = newPart(pr, rng, { rar: rollRar(rng, IL.RAR_TABLE.chest, luck), sp: rollSpecies(rng), floor: run.floor, luck }); pr.bag.push(p); got.push(p); }
-  let gold = 0; if (rng.chance(0.3)) { gold = rng.range(5, 10); pr.gold += gold; }
+  let gold = 0; if (!n || rng.chance(0.3)) { gold = rng.range(5, 10); pr.gold += gold; }
   let ticket = 0; if (rng.chance(0.03)) { ticket = 1; pr.tickets++; }
   run.events.push({ t: 'loot', parts: got, gold, ticket, from: '台座' });
 }
