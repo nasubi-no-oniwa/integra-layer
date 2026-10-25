@@ -295,7 +295,7 @@ function reveal(pr, run, fl) {
 function decodeBits(s, n) { const b = new Uint8Array(n); if (!s) return b; let i = 0; for (const ch of s) { const v = parseInt(ch, 32); for (let k = 0; k < 5 && i < n; k++, i++) b[i] = (v >> k) & 1; } return b; }
 function encodeBits(b) { let s = ''; for (let i = 0; i < b.length; i += 5) { let v = 0; for (let k = 0; k < 5; k++) if (b[i + k]) v |= 1 << k; s += v.toString(32); } return s; }
 IL.saveMap = (pr, run) => { if (run._bits && run._dirty) { let n = 0; for (const v of run._bits) n += v; pr.maps[String(run.floor)] = { bits: encodeBits(run._bits), n }; run._dirty = false; } };
-IL.mapBits = (pr, run) => run._bits;
+IL.mapBits = (pr, run) => { if (!run._bits) { const fl = genFloor(run.floor), m = pr.maps[String(run.floor)]; run._bits = decodeBits(m ? m.bits : '', fl.W * fl.H); reveal(pr, run, fl); } return run._bits; }; // 読みなおした直後も地図が見えるように
 IL.decodeBits = decodeBits;
 
 /* 1歩すすむ／調べる。戻り値は画面に伝えるできごと */
