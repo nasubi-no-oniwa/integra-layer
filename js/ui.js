@@ -4,7 +4,7 @@
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const SAVE_S = 'il_state_v1', SAVE_O = 'il_opt_v1';
-const DEV = true; // 開発用（公開するときは false にする：リセットボタンが消える）
+const DEV = false; // 開発用（公開するときは false にする：リセットボタンが消える）
 let S = null, pr = null, run = null, opt = { sound: true, name: '', bgm: 0.5, se: 0.7, fx: 'normal', shake: true, tut: {} };
 const ui = { scr: null, sel: null, bagSel: null, filt: { sp: 'all', rar: 'all', sort: 'score' }, target: 0, sub: null, synthBase: null, synthMat: null, bags: [], ghosts: [], firsts: {}, pickSel: [] };
 
@@ -832,6 +832,7 @@ setInterval(() => { if (!run || run.over || ui.scr === 'title') checkUpdate(); }
 addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && (!run || !run.battle)) checkUpdate(); });
 async function boot() {
   if (await checkUpdate()) return;
+  if (/[?&]reset=1/.test(location.search)) { try { ['il_state_v1', 'il_salesgot', 'il_jn'].forEach(k => localStorage.removeItem(k)); } catch (e) {} history.replaceState(null, '', location.pathname); } // この端末のデータだけ消す
   try { opt = Object.assign(opt, JSON.parse(localStorage.getItem(SAVE_O) || '{}')); } catch (e) {}
   L10N.lang = opt.lang || L10N.pick(); document.documentElement.lang = L10N.lang; L10N.observe(); L10N.apply(); applyOpt();
   resize(); requestAnimationFrame(render); drawIdle();
