@@ -311,7 +311,7 @@ function step(pr, run, dir) {
   if (run.bossChest && run.bossChest.i === ni && !run.bossChest.opened) { openChest(pr, run); return; }
   if (!IL.walkable(fl, nx, ny)) { if (fl.t[ny * fl.W + nx] === T_PED) interactPed(pr, run, ny * fl.W + nx); return; }
   run.x = nx; run.y = ny; run.turn++;
-  const st = playerStats(pr); run.hp = Math.min(st.hp, run.hp + Math.max(1, Math.round(st.hp * B.regen)));
+  const st = playerStats(pr); if (run.turn % 5 === 0) run.hp = Math.min(st.hp, run.hp + 1); // 5歩で1回復
   reveal(pr, run, fl);
   const v = fl.t[ny * fl.W + nx];
   if (ni === bc && run.bossDown) { run.prompt = { kind: 'bosswin' }; return; } // ボスのいた所の階段
