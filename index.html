@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#14111c">
+<title>インテグラ・レイヤー</title>
+<meta name="description" content="倒れた誰かの欠片をつないで、全員で100階の塔を上るローグライク。">
+<link rel="stylesheet" href="css/style.css?v=1">
+</head>
+<body>
+<div id="app">
+  <canvas id="view"></canvas>
+  <div id="hud" hidden>
+    <div class="hud-l">
+      <canvas id="mini"></canvas>
+    </div>
+    <div class="hud-r">
+      <div class="hud-floor"><b id="h-floor">1</b><span>階</span> <small id="h-biome"></small></div>
+      <div class="hud-bar"><i id="h-hpbar"></i><span id="h-hp"></span></div>
+      <div class="hud-small"><span id="h-lv"></span> <span id="h-gold"></span></div>
+    </div>
+  </div>
+  <div id="pad" hidden>
+    <div class="dpad">
+      <button data-dir="0" class="up" aria-label="上">▲</button>
+      <button data-dir="3" class="left" aria-label="左">◀</button>
+      <button data-dir="1" class="right" aria-label="右">▶</button>
+      <button data-dir="2" class="down" aria-label="下">▼</button>
+    </div>
+    <div class="abtn">
+      <button id="b-menu" aria-label="メニュー">≡</button>
+      <button id="b-act" class="big" aria-label="調べる">調べる</button>
+    </div>
+  </div>
+  <div id="screen"></div>
+  <div id="toast"></div>
+</div>
+<script src="js/core.js?v=1"></script>
+<script src="js/ui.js?v=1"></script>
+</body>
+</html>
