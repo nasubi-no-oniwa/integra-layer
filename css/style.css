@@ -193,3 +193,17 @@ body.noshake .shake,body.noshake .foe.hitfx canvas{animation:none}
 .roll{top:0;padding-top:45vh;animation:roll2 75s linear forwards}
 @keyframes roll2{to{transform:translateY(-100%)}}
 .roll.still{padding-top:20px}
+/* 盤面：欠片がかみ合って見えるように */
+.board{gap:var(--g);--g:8px;padding:14px;--s:58px}
+.cell{border-radius:4px}
+.cell:has(.part){background:transparent;border-color:transparent}
+.board .part{border-radius:4px;box-shadow:inset 0 0 0 2px rgba(0,0,0,.28),inset 0 -4px 0 rgba(0,0,0,.2)}
+.board .e.c{background:#0e0c14}
+.board .e.v.lk{z-index:3}
+.board .e.t.v.lk{top:calc(-20% - var(--g));height:calc(22% + var(--g));border-radius:40% 40% 0 0}
+.board .e.b.v.lk{bottom:calc(-20% - var(--g));height:calc(22% + var(--g));border-radius:0 0 40% 40%}
+.board .e.l.v.lk{left:calc(-20% - var(--g));width:calc(22% + var(--g));border-radius:40% 0 0 40%}
+.board .e.r.v.lk{right:calc(-20% - var(--g));width:calc(22% + var(--g));border-radius:0 40% 40% 0}
+.cell.lk .part{filter:none;box-shadow:inset 0 0 0 2px rgba(255,255,255,.35),0 0 10px var(--c)}
+.cell.lk .part::before{content:'';position:absolute;inset:0;border-radius:4px;background:linear-gradient(135deg,rgba(255,255,255,.18),transparent 60%);pointer-events:none}
+@media (max-width:640px){.board{--s:48px;--g:6px}}

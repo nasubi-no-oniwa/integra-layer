@@ -98,10 +98,10 @@ const EMB = { // 種族の紋章（色が見分けにくくても分かるよう
   none: '<circle cx="8" cy="8" r="4.5"/>',
   joker: '<path d="M8 1 15 8 8 15 1 8z"/>',
 };
-function partHTML(p, cls) {
+function partHTML(p, cls, lk) { // lk: つながっている辺（0上 1右 2下 3左）
   const c = IL.SP_COLOR[p.sp];
   const sides = ['t', 'r', 'b', 'l'];
-  let e = ''; for (let s = 0; s < 4; s++) { const v = IL.edgeAt(p, s); if (v) e += `<i class="e ${sides[s]} ${v === 1 ? 'v' : 'c'}"></i>`; }
+  let e = ''; for (let s = 0; s < 4; s++) { const v = IL.edgeAt(p, s); if (v) e += `<i class="e ${sides[s]} ${v === 1 ? 'v' : 'c'}${lk && lk[s] ? ' lk' : ''}"></i>`; }
   const rk = p.stats.map(s => s.r).join('');
   return `<div class="part r${p.rar} ${cls || ''}" style="--c:${c}">${e}<svg viewBox="0 0 16 16">${EMB[p.sp] || ''}</svg><span class="rk">${rk}</span>${p.gacha ? '<span class="gc">★</span>' : ''}</div>`;
 }
@@ -231,10 +231,11 @@ function boardScreen(from) {
   ui.scr = 'board'; ui.boardFrom = from || ui.boardFrom || 'title';
   const ba = IL.boardArr(pr), an = IL.analyzeBoard(ba), st = IL.playerStats(pr);
   const gcol = ['#ffd17a', '#8ad3ff', '#ff9ad5', '#b5f78a', '#ffb36b', '#c7a8ff', '#7fffd4', '#ff7f7f'];
-  let cells = '';
+  let cells = ''; const lks = Array.from({ length: 25 }, () => [0, 0, 0, 0]);
+  for (const [a, b] of an.links) { if (b === a + 1) { lks[a][1] = 1; lks[b][3] = 1; } else { lks[a][2] = 1; lks[b][0] = 1; } }
   for (let i = 0; i < 25; i++) {
     const p = ba[i], gi = an.groupOf[i], big = gi >= 0 && an.groups[gi].cells.length > 1;
- cells += `<div class="cell ${ui.sel === i ? 'sel' : ''} ${big ? 'lk' : ''}" data-cell="${i}" style="${big ? 'box-shadow:0 0 0 2px ' + gcol[gi % gcol.length] : ''}">${p ? partHTML(p) : ''}${p && big ? `<span class="gm">×${an.mulOf[i]}</span>` : ''}</div>`;
+ cells += `<div class="cell ${ui.sel === i ? 'sel' : ''} ${big ? 'lk' : ''}" data-cell="${i}">${p ? partHTML(p, '', lks[i]) : ''}${p && big ? `<span class="gm">×${an.mulOf[i]}</span>` : ''}</div>`;
   }
   let sk = ''; for (const sp of IL.SPECIES) { const s = st.skills[sp]; if (s) sk += `<div class="skill" style="--c:${IL.SP_COLOR[sp]}"><i></i>${IL.SKILLS[sp][s.tier]} <span class="mute">${IL.SP_NAME[sp]}×${s.count}・段階${s.tier}${IL.TIER_NAME[s.tier] ? '（' + IL.TIER_NAME[s.tier] + '）' : ''}</span></div>`; }
   if (!sk) sk = '<div class="mute small">同じ種族を2個以上つなげると技が使える</div>';
