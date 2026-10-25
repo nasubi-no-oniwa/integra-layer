@@ -51,7 +51,27 @@ function watchNews() {
 async function loadPlayers() {
   players = (await db.ref('players').once('value')).val() || {};
   const ids = Object.keys(players).sort((a, b) => (players[b].mf || 0) - (players[a].mf || 0));
-  $('#players').innerHTML = '<tr><th>名前</th><th>Lv</th><th>最前線</th><th>最後</th><th>ID</th></tr>' + ids.map(id => { const p = players[id]; return `<tr><td>${esc(p.n || '名無し')}</td><td>${p.lv || 1}</td><td>${p.mf || 1}階</td><td class="mute">${tm(p.t)}</td><td class="mute"><code>${esc(id)}</code></td><td><button class="warn" data-wipe="${esc(id)}">全部消す</button></td></tr>`; }).join('');
+  $('#players').innerHTML = '<tr><th>名前</th><th>Lv</th><th>最前線</th><th>最後</th><th>ID</th></tr>' + ids.map(id => { const p = players[id]; return `<tr><td>${esc(p.n || '名無し')}</td><td>${p.lv || 1}</td><td>${p.mf || 1}階</td><td class="mute">${tm(p.t)}</td><td class="mute"><code>${esc(id)}</code></td><td><button data-bd2="${esc(id)}">盤面を見る</button> <button class="warn" data-wipe="${esc(id)}">全部消す</button></td></tr>`; }).join('');
+}
+/* その人の盤面（最後に保存されたとき） */
+function showBoard(pid) {
+  const p = players[pid]; let pr = null; try { pr = JSON.parse(p.save || '{}').pr; } catch (e) {}
+  const box = $('#pboard'); if (!pr) { box.innerHTML = '<p class="ng">盤面のデータがまだありません（その人が一度タイトルに戻ると保存されます）</p>'; box.scrollIntoView({ behavior: 'smooth' }); return; }
+  const ba = IL.boardArr(pr), an = IL.analyzeBoard(ba), st = IL.playerStats(pr);
+  const lk = Array.from({ length: 25 }, () => [0, 0, 0, 0]); for (const [a, b] of an.links) { if (b === a + 1) { lk[a][1] = lk[b][3] = 1; } else { lk[a][2] = lk[b][0] = 1; } }
+  let cells = ''; for (let i = 0; i < 25; i++) { const q = ba[i];
+    if (!q) { cells += '<div class="bc"></div>'; continue; }
+    const sides = ['t', 'r', 'b', 'l'];
+    const e = [0, 1, 2, 3].map(s => { const v = IL.edgeAt(q, s); return v ? `<i class="be ${sides[s]} ${v === 1 ? 'v' : 'c'}${lk[i][s] ? ' lk' : ''}"></i>` : ''; }).join('');
+    const tip = IL.SP_NAME[q.sp] + '・' + IL.RAR_NAME[q.rar] + '・' + q.floor + '階　' + q.stats.map(x => IL.STAT_NAME[x.k] + x.r + ' +' + IL.partStat(q, x)).join(' ');
+    cells += `<div class="bc"><div class="bp r${q.rar}" style="--c:${IL.SP_COLOR[q.sp]}" title="${esc(tip)}">${e}<span>${IL.SP_NAME[q.sp]}</span><small>${q.stats.map(x => x.r).join('')}${an.mulOf[i] > 1 ? ' ×' + an.mulOf[i] : ''}</small></div></div>`; }
+  const sk = IL.SPECIES.filter(sp => st.skills[sp]).map(sp => `${IL.SKILLS[sp][st.skills[sp].tier]}（${IL.SP_NAME[sp]}×${st.skills[sp].count}・段階${st.skills[sp].tier}）`).join('　') || 'なし';
+  const cl = Object.keys(pr.cleared || {}).map(Number).sort((a, b) => a - b);
+  box.innerHTML = `<h3 style="margin:0 0 6px">${esc(p.n || '名無し')} の盤面 <span class="mute" style="font-size:12px">（保存：${tm(p.t)}）</span></h3>
+    <p>Lv ${pr.lv}　攻撃 <b>${st.atk}</b>　体力 <b>${st.hp}</b>　守り <b>${st.def}</b>　素早さ <b>${st.spd}</b>　運 <b>${st.luck}</b>　所持金 ${pr.gold}G　回復薬 ${(pr.potions || []).length}　かばん ${(pr.bag || []).length}個</p>
+    <p>技：${sk}</p><p class="mute">倒したボス：${cl.length ? cl.join('・') + '階' : 'なし'}　倒れた回数 ${(pr.stats || {}).deaths || 0}</p>
+    <div class="bgrid">${cells}</div><p class="mute" style="font-size:12px">欠片にマウスを乗せると中身が出ます。</p>`;
+  box.scrollIntoView({ behavior: 'smooth' });
 }
 /* 初撃破の確認 */
 let firsts = {};
@@ -108,7 +128,7 @@ async function wipePlayer(pid) {
   const bd = (await db.ref('board').once('value')).val() || {}; for (const id in bd) if (bd[id].pid === pid) up['board/' + id] = null;
   await db.ref().update(up); alertMsg('消しました'); await loadPlayers(); loadFirsts(); stat();
 }
-$('#players').addEventListener('click', e => { const w = e.target.dataset.wipe; if (w) wipePlayer(w); });
+$('#players').addEventListener('click', e => { const w = e.target.dataset.wipe; if (w) wipePlayer(w); const b = e.target.dataset.bd2; if (b) showBoard(b); });
 $('#fv-all').onclick = async () => { const fs = Object.keys(firsts).map(Number); let bad = 0; for (const f of fs) if (!(await verify(f))) bad++; $('#fv-msg').textContent = `${fs.length}件中 おかしい／未確認 ${bad}件`; };
 /* 掲示板 */
 function watchBoard() {

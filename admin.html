@@ -18,6 +18,14 @@ input,textarea{background:#0e0c14;color:var(--ink);border:1px solid var(--line);
 table{width:100%;border-collapse:collapse;font-size:13px} td,th{border-bottom:1px solid var(--line);padding:4px 6px;text-align:left;vertical-align:top}
 .mute{color:var(--mute)} .ok{color:var(--ok)} .ng{color:var(--warn)} .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .scroll{max-height:420px;overflow:auto} code{background:#000;padding:1px 5px;border-radius:4px;word-break:break-all}
+.bgrid{display:grid;grid-template-columns:repeat(5,64px);gap:8px;padding:12px;background:#0e0c14;border-radius:8px;width:max-content}
+.bc{width:64px;height:64px;border:1px dashed #3a3350;border-radius:4px;position:relative}
+.bp{position:absolute;inset:0;background:var(--c);border-radius:4px;color:#14111c;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:700;font-size:15px;cursor:default}
+.bp small{font-size:10px;font-weight:400}.bp.r1{outline:2px solid #fff}.bp.r2{outline:3px solid #f2d14b}.bp.r3{outline:3px dashed #fff}
+.be{position:absolute;background:var(--c)}.be.t,.be.b{left:30%;width:40%;height:20%}.be.l,.be.r{top:30%;height:40%;width:20%}
+.be.t.v{top:-18%;border-radius:50% 50% 0 0}.be.b.v{bottom:-18%;border-radius:0 0 50% 50%}.be.l.v{left:-18%;border-radius:50% 0 0 50%}.be.r.v{right:-18%;border-radius:0 50% 50% 0}
+.be.c{background:#0e0c14}.be.t.c{top:0;border-radius:0 0 50% 50%}.be.b.c{bottom:0;border-radius:50% 50% 0 0}.be.l.c{left:0;border-radius:0 50% 50% 0}.be.r.c{right:0;border-radius:50% 0 0 50%}
+.be.v.lk{z-index:3}.be.t.v.lk{top:-36%;height:38%}.be.b.v.lk{bottom:-36%;height:38%}.be.l.v.lk{left:-36%;width:38%}.be.r.v.lk{right:-36%;width:38%}
 </style>
 </head>
 <body>
@@ -41,7 +49,7 @@ table{width:100%;border-collapse:collapse;font-size:13px} td,th{border-bottom:1p
   <p class="mute">通報が3つ以上ついた書きこみは、みんなの画面では自動で隠れます。</p>
   <div class="scroll"><table id="board"></table></div>
 </section>
-<section><h2>プレイヤー</h2><div class="scroll"><table id="players"></table></div></section>
+<section><h2>プレイヤー</h2><div class="scroll"><table id="players"></table></div><div id="pboard" style="margin-top:12px"></div></section>
 <section><h2>お掃除</h2>
   <div class="row"><button id="cl-drops">古いバッグの控えを消す</button><button id="cl-board">60件より前の書きこみを消す</button><span id="cl-msg" class="mute"></span></div>
   <div class="row" style="margin-top:10px"><button id="cl-all" class="warn">公開前：全部消す</button><span class="mute">テストのデータを消すときだけ使う</span></div>
@@ -49,8 +57,8 @@ table{width:100%;border-collapse:collapse;font-size:13px} td,th{border-bottom:1p
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
-<script src="js/firebase-config.js?v=20"></script>
-<script src="js/core.js?v=20"></script>
-<script src="js/admin.js?v=20"></script>
+<script src="js/firebase-config.js?v=21"></script>
+<script src="js/core.js?v=21"></script>
+<script src="js/admin.js?v=21"></script>
 </body>
 </html>
