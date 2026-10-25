@@ -245,7 +245,9 @@ function genFloor(f) {
 }
 function bfs(t, W, H, sx, sy) { const d = new Int32Array(W * H).fill(-1), q = [sy * W + sx]; d[q[0]] = 0; for (let h = 0; h < q.length; h++) { const i = q[h]; for (const o of [1, -1, W, -W]) { const j = i + o; if (t[j] && t[j] !== T_BOSS && d[j] < 0) { d[j] = d[i] + 1; q.push(j); } } } return d; }
 IL.genFloor = genFloor;
-IL.walkable = (fl, x, y) => { if (x < 0 || y < 0 || x >= fl.W || y >= fl.H) return false; const v = fl.t[y * fl.W + x]; return v === T_FLOOR || v === T_SAFE || v === T_GATE; };
+IL.walkable = (fl, x, y) => { if (x < 0 || y < 0 || x >= fl.W || y >= fl.H) return false; const v = fl.t[y * fl.W + x]; return v === T_FLOOR || v === T_SAFE || v === T_GATE || v === T_BOSS; };
+IL.bossCenter = fl => { const r = fl.rooms[fl.bossRoom]; return r.cy * fl.W + r.cx; };
+IL.chestPos = fl => IL.bossCenter(fl) + 1;
 
 /* ---------- 冒険（ダンジョンに入ってから帰るまで） ---------- */
 const DIRS = [[0, -1], [1, 0], [0, 1], [-1, 0]];
@@ -304,14 +306,15 @@ function step(pr, run, dir) {
   const en = run.enemies.find(e => e.x === nx && e.y === ny);
   if (en) { startBattle(pr, run, en); return; }
   if (run.merchant && run.merchant.x === nx && run.merchant.y === ny) { run.prompt = { kind: 'merchant' }; return; }
+  const ni = ny * fl.W + nx, bc = IL.bossCenter(fl);
+  if (ni === bc && !run.bossDown) { run.prompt = { kind: 'gate' }; return; } // 階段の上に動かないボス
+  if (run.bossChest && run.bossChest.i === ni && !run.bossChest.opened) { openChest(pr, run); return; }
   if (!IL.walkable(fl, nx, ny)) { if (fl.t[ny * fl.W + nx] === T_PED) interactPed(pr, run, ny * fl.W + nx); return; }
   run.x = nx; run.y = ny; run.turn++;
   const st = playerStats(pr); run.hp = Math.min(st.hp, run.hp + Math.max(1, Math.round(st.hp * B.regen)));
   reveal(pr, run, fl);
-  const hi = ny * fl.W + nx; run.herbs = run.herbs || {};
-  if (fl.herbAt[hi] && !run.herbs[hi] && run.hp < st.hp) { const h = Math.min(st.hp - run.hp, Math.round(st.hp * B.herbHeal)); run.hp += h; run.herbs[hi] = 1; run.events.push({ t: 'msg', s: '回復草で体力が ' + h + ' 回復した' }); }
   const v = fl.t[ny * fl.W + nx];
-  if (v === T_GATE) { run.prompt = { kind: 'gate' }; return; }
+  if (ni === bc && run.bossDown) { run.prompt = { kind: 'bosswin' }; return; } // ボスのいた所の階段
   if (v === T_SAFE) { run.prompt = { kind: 'safe' }; return; }
   enemiesAct(pr, run, fl);
 }
@@ -326,10 +329,18 @@ function interact(pr, run) { // 向いている先を調べる
     if (fl.t[i] === T_PED && !run.opened[i]) { interactPed(pr, run, i); return; }
     if (run.merchant && run.merchant.x === x && run.merchant.y === y) { run.prompt = { kind: 'merchant' }; return; }
   }
-  const v = fl.t[run.y * fl.W + run.x];
+  const here = run.y * fl.W + run.x;
+  if (run.bossChest && !run.bossChest.opened) { const c = run.bossChest.i; if (Math.abs(c % fl.W - run.x) + Math.abs(((c / fl.W) | 0) - run.y) <= 1) { openChest(pr, run); return; } }
+  for (const i of [here, here - fl.W, here + 1, here + fl.W, here - 1]) if (herbAvail(fl, run, i)) { run.prompt = { kind: 'herb', i }; return; }
+  const v = fl.t[here];
   if (v === T_SAFE) run.prompt = { kind: 'safe' };
-  else if (v === T_GATE) run.prompt = { kind: 'gate' };
+  else if (here === IL.bossCenter(fl) && run.bossDown) run.prompt = { kind: 'bosswin' };
 }
+function herbAvail(fl, run, i) { return !!fl.herbAt[i] && !(run.herbs && run.herbs[i]); }
+IL.herbAvail = herbAvail;
+IL.herbNear = (fl, run, i) => herbAvail(fl, run, i) && Math.abs(i % fl.W - run.x) + Math.abs(((i / fl.W) | 0) - run.y) <= 1;
+function eatHerb(pr, run, i) { const st = playerStats(pr); const h = Math.min(st.hp - run.hp, Math.round(st.hp * B.herbHeal)); run.hp += h; run.herbs = run.herbs || {}; run.herbs[i] = 1; run.prompt = null; run.events.push({ t: 'msg', s: '回復草を食べた。体力が ' + h + ' 回復した' }); }
+function openChest(pr, run) { const c = run.bossChest; c.opened = true; for (const p of c.parts) pr.bag.push(p); run.events.push({ t: 'loot', parts: c.parts, gold: c.gold || 0, ticket: 0, from: '宝箱' }); pr.gold += c.gold || 0; }
 IL.interact = interact;
 function interactPed(pr, run, i) {
   if (run.opened[i]) { run.events.push({ t: 'msg', s: 'もう空っぽだ' }); return; }
@@ -429,11 +440,12 @@ function endBattle(pr, run) {
       for (const f of bt.foes) if (rng.chance(B.dropEnemy)) { const p = newPart(pr, rng, { rar: rollRar(rng, IL.RAR_TABLE.chest, luck), sp: rollSpecies(rng), floor: run.floor, luck }); pr.bag.push(p); parts.push(p); }
     } else if (bt.kind === 'boss') {
       const n = rng.range(3, 5);
-      for (let k = 0; k < n; k++) { const isJ = rng.chance(0.03); const p = newPart(pr, rng, { rar: isJ ? 3 : rollRar(rng, IL.RAR_TABLE.boss, luck), sp: isJ ? 'joker' : rollSpecies(rng), floor: run.floor, luck, src: 'boss' }); pr.bag.push(p); parts.push(p); }
+      const chest = []; for (let k = 0; k < n; k++) { const isJ = rng.chance(0.03); const p = newPart(pr, rng, { rar: isJ ? 3 : rollRar(rng, IL.RAR_TABLE.boss, luck), sp: isJ ? 'joker' : rollSpecies(rng), floor: run.floor, luck, src: 'boss' }); chest.push(p); }
+      run.bossDown = true; run.bossChest = { i: IL.chestPos(fl), parts: chest, gold, opened: false }; gold = 0; // ボスの落とし物はとなりの宝箱へ
       let respec = 0; if (rng.chance(0.05)) { respec = 1; pr.respec++; }
       const first = !(pr.cleared[run.floor] || (run.gclear && run.gclear[run.floor])); // 初撃破かもしれない（本当に最初かはサーバーで決まる）
       pr.cleared[run.floor] = 1; pr.maxFloor = Math.max(pr.maxFloor, Math.min(100, run.floor + 1));
-      bt.bossReward = { respec, maybeFirst: first };
+      bt.bossReward = { respec, maybeFirst: first, chest: true };
     } else if (bt.kind === 'merchant') {
       const m = run.merchant; m.beaten = true;
       for (const s of m.stock) { if (s.kind === 'potion') for (let i = 0; i < s.n; i++) pr.potions.push({ floor: s.floor }); else if (s.kind === 'ticket') pr.tickets += s.n; else if (s.kind === 'part') { const p = Object.assign({}, s.part, { id: pr.nextId++, src: 'shop' }); pr.bag.push(p); parts.push(p); } }
@@ -562,6 +574,8 @@ IL.exec = (S, op) => {
     case 'bc': if (!run || !run.battle) return null; battleCmd(pr, run, op[1]); res = run.battle; break;
     case 'bx': if (!run) return null; IL.closeBattle(pr, run); break;
     case 'cancel': if (!run) return null; run.prompt = null; break;
+    case 'hb': { if (!run || run.battle || run.prompt || run.over) return null; const fl = genFloor(run.floor); if (!IL.herbNear(fl, run, op[1] | 0)) return null; run.prompt = { kind: 'herb', i: op[1] | 0 }; break; }
+    case 'eat': if (!run || !run.prompt || run.prompt.kind !== 'herb') return null; eatHerb(pr, run, run.prompt.i); break;
     case 'boss': if (!run || !run.prompt || run.prompt.kind !== 'gate') return null; IL.fightBoss(pr, run); break;
     case 'fm': if (!run || !run.merchant) return null; IL.fightMerchant(pr, run); break;
     case 'buy': if (!run) return null; res = IL.buy(pr, run, op[1] | 0); break;

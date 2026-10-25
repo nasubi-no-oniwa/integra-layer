@@ -17,17 +17,20 @@ while (!(S.pr.cleared[goal]) && guard++ < 400) {
   while (S.run && !S.run.over && steps++ < 5000) {
     const run = S.run, pr = S.pr, st = IL.playerStats(pr), fl = IL.genFloor(run.floor);
     if (run.battle) {
-      if (run.battle.over) { const k = run.battle.kind, ov = run.battle.over; X(['bx']); if (k === 'boss' && ov === 'win') { X(['bosswin']); X(['leave']); } continue; }
+      if (run.battle.over) { const k = run.battle.kind, ov = run.battle.over; X(['bx']); continue; }
       if (run.hp < st.hp * 0.3 && pr.potions.length) X(['bc', { c: 'item', i: 0 }]);
       else { const sp = Object.keys(st.skills)[0]; X(['bc', sp ? { c: 'skill', sp, t: 0 } : { c: 'atk', t: 0 }]); }
       continue;
     }
     if (run.prompt) { const k = run.prompt.kind;
+      if (k === 'bosswin') { X(['leave']); continue; }
       if (k === 'gate') { if (pr.lv >= 6 + 2 * run.floor) X(['boss']); else X(['cancel']); }
       else X(['cancel']); continue; }
     const bits = IL.mapBits(pr, run);
     let d = pathDir(fl, run, i => run.enemies.some(e => e.y * fl.W + e.x === i));
-    if (pr.lv >= 6 + 2 * run.floor) d = pathDir(fl, run, i => fl.t[i] === IL.T.GATE);
+    if (run.hp < st.hp * 0.7) { const h = fl.herbs.find(i => IL.herbNear(fl, run, i)); if (h != null) { X(['hb', h]); X(['eat']); continue; } }
+    if (pr.lv >= 6 + 2 * run.floor) d = pathDir(fl, run, i => i === IL.bossCenter(fl));
+    if (run.bossDown) d = run.bossChest && !run.bossChest.opened ? pathDir(fl, run, i => i === run.bossChest.i) : pathDir(fl, run, i => i === IL.bossCenter(fl));
     if (d < 0) d = pathDir(fl, run, i => !bits[i] && fl.t[i] === IL.T.FLOOR);
     if (d < 0) d = steps % 4;
     X(['mv', d]); if (S.run) S.run.events.length = 0;

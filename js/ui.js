@@ -250,7 +250,7 @@ function render(now) {
     const v = fl.t[i], px = Math.round(cx + x * TS), py = Math.round(cy + y * TS);
     if (v === T.WALL) { let adj = false; for (const o of [1, -1, fl.W, -fl.W, fl.W + 1, fl.W - 1, -fl.W + 1, -fl.W - 1]) if (fl.t[i + o]) adj = true; if (adj) drawTile(g, src, B.wallTile, px, py, TS); continue; }
     drawTile(g, src, ((i * 2654435761) >>> 0) % 17 === 0 ? (B.floorTile === 48 ? 49 : B.floorTile === 0 ? 12 : 24) : B.floorTile, px, py, TS);
-    if (v === T.BOSS) { g.fillStyle = 'rgba(120,20,40,.45)'; g.fillRect(px, py, TS, TS); }
+    if (v === T.BOSS) { g.fillStyle = 'rgba(120,20,40,.25)'; g.fillRect(px, py, TS, TS); }
     else if (v === T.PED) drawTile(g, src, run.opened[i] ? 55 : 54, px, py, TS);
     else if (v === T.SAFE) drawTile(g, src, 32, px, py, TS);
     else if (v === T.GATE) drawTile(g, src, 45, px, py, TS);
@@ -259,9 +259,13 @@ function render(now) {
   // ボス部屋の中
   if (bits && bits[br.cy * fl.W + br.cx]) {
     const px = cx + br.cx * TS, py = cy + br.cy * TS;
-    if (cleared) drawTile(g, src, 39, px, py, TS);
-    else { const bt = IL.ETYPES[IL.bossType(run.floor)]; drawTile(g, src, bt.tile, px - TS, py - TS, TS * 3); }
+    drawTile(g, src, 39, px, py, TS); // 階段
+    if (!run.bossDown) { const bt = IL.ETYPES[IL.bossType(run.floor)], k = 1.7, wob = Math.sin(now / 300) * TS * 0.04;
+      g.fillStyle = 'rgba(255,60,80,.18)'; g.beginPath(); g.arc(px + TS / 2, py + TS / 2, TS * 0.95, 0, 7); g.fill();
+      drawTile(g, src, bt.tile, px + TS / 2 - TS * k / 2, py + TS / 2 - TS * k * 0.62 + wob, TS * k); }
   }
+  if (run.bossChest) { const c = run.bossChest.i; if (bits[c]) drawTile(g, src, run.bossChest.opened ? 90 : 89, cx + (c % fl.W) * TS, cy + ((c / fl.W) | 0) * TS, TS); }
+  ui.cam = { cx, cy, TS };
   const vis = (x, y) => Math.abs(x - run.x) <= 9 && Math.abs(y - run.y) <= 7 && bits[y * fl.W + x];
   if (run.merchant && vis(run.merchant.x, run.merchant.y)) drawTile(g, src, 84, cx + run.merchant.x * TS, cy + run.merchant.y * TS, TS);
   for (const e of run.enemies) if (vis(e.x, e.y)) { drawTile(g, src, e.tile, cx + e.x * TS, cy + e.y * TS, TS); if (e.cool) { g.fillStyle = 'rgba(255,255,255,.25)'; g.fillRect(cx + e.x * TS, cy + e.y * TS, TS, TS); } }
@@ -286,7 +290,7 @@ function fullMap() {
     m.fillStyle = v === T.BOSS ? '#7a2030' : v === T.GATE ? '#e8553f' : v === T.SAFE ? '#4fd17a' : v === T.PED ? (run.opened[i] ? '#666' : '#f2d14b') : '#5c5470'; m.fillRect(x * k, y * k, k, k); }
   m.fillStyle = '#fff'; m.fillRect(run.x * k - 2, run.y * k - 2, k + 4, k + 4);
   ui.scr = 'map';
-  show(`<div class="win"><button class="btn sm close" data-a="back">とじる</button><h2>${run.floor}階の地図（${Math.round(100 * n / tot)}％）</h2><img class="mapfull" src="${c.toDataURL()}"><p class="small mute">赤＝ボス部屋の入口　緑＝安全地帯　黄＝まだ開けていない台座</p></div>`);
+  show(`<div class="win"><button class="btn sm close" data-a="back">とじる</button><h2>${run.floor}階の地図（${Math.round(100 * n / tot)}％）</h2><img class="mapfull" src="${c.toDataURL()}"><p class="small mute">赤＝ボス部屋の入口（中のボスに触れると戦う）　緑＝安全地帯　黄＝まだ開けていない台座</p></div>`);
 }
 function afterAct() {
   // できごと
@@ -306,24 +310,33 @@ function act(dir) {
   afterAct();
 }
 function interact() { if (!run || ui.scr || run.battle || run.prompt) return; X(['it']); afterAct(); }
+cv.addEventListener('click', e => { // 画面の回復草をタップ
+  if (!run || ui.scr || run.battle || run.prompt || run.over || !ui.cam) return;
+  const r = cv.getBoundingClientRect(), x = Math.floor(((e.clientX - r.left) * cv.width / r.width - ui.cam.cx) / ui.cam.TS), y = Math.floor(((e.clientY - r.top) * cv.height / r.height - ui.cam.cy) / ui.cam.TS);
+  const fl = IL.genFloor(run.floor), i = y * fl.W + x;
+  if (IL.herbNear(fl, run, i)) { X(['hb', i]); afterAct(); }
+  else if (IL.herbAvail(fl, run, i)) toast('もっと近づくと食べられる');
+});
 
 /* ---------- 声かけ（ボス部屋・安全地帯・行商人） ---------- */
 function prompt() {
   const p = run.prompt; ui.scr = 'prompt';
   if (p.kind === 'gate') {
     const last = run.floor >= 100;
-    show(`<div class="win" style="max-width:460px"><h2>ボス部屋</h2>${pr.cleared[run.floor]
+    show(`<div class="win" style="max-width:460px"><h2>ボス</h2>${pr.cleared[run.floor]
       ? `<p>階段が開いています。階段を進みますか？ボスと戦いますか？</p><p class="small mute">ボスからしか出ない欠片や、レアな欠片がある。</p><div class="row">${last ? '' : '<button class="btn pri" data-a="stairs">階段を進む</button>'}<button class="btn warn" data-a="boss">ボスと戦う</button><button class="btn" data-a="cancel">やめる</button></div>`
-      : `<p>この先にボスがいる。入ったら出られない。</p><p class="small mute">ボスはこの階の敵より格段に強い。負けると盤面の欠片がすべて消える。</p><div class="row"><button class="btn warn" data-a="boss">ボスと戦う</button><button class="btn" data-a="cancel">やめる</button></div>`}</div>`, 'clear');
+      : `<p>ボスと戦いますか？　戦いが始まったら逃げられない。</p><p class="small mute">ボスはこの階の敵より格段に強い。負けると盤面の欠片がすべて消える。</p><div class="row"><button class="btn warn" data-a="boss">ボスと戦う</button><button class="btn" data-a="cancel">やめる</button></div>`}</div>`, 'clear');
   } else if (p.kind === 'safe') {
     show(`<div class="win" style="max-width:460px"><h2>安全地帯</h2><p>ここから帰ることができる。帰れば、拾った欠片はすべて持ち帰れる。</p><div class="row"><button class="btn pri" data-a="return">帰る</button><button class="btn" data-a="cancel">続ける</button></div></div>`, 'clear');
   } else if (p.kind === 'merchant') {
     show(`<div class="win" style="max-width:460px"><h2>行商人</h2><p>「なにか買っていくかい？」</p><div class="row"><button class="btn pri" data-a="shop">買う</button><button class="btn warn" data-a="fightm">戦う</button><button class="btn" data-a="cancel">やめる</button></div></div>`, 'clear');
   } else if (p.kind === 'fightm') {
     show(`<div class="win" style="max-width:460px"><h2>本当に戦いますか？</h2><p>行商人はとても強い（この階＋30階のボスくらい）。勝てば売り物をすべてもらえる。<br><b style="color:#ff8a8a">負けると、かばんの中身がすべて消えます。</b>（盤面は残る）</p><div class="row"><button class="btn warn" data-a="fightm2">戦う</button><button class="btn" data-a="cancel">やめる</button></div></div>`, 'clear');
+  } else if (p.kind === 'herb') {
+    show(`<div class="win" style="max-width:420px"><h2>回復草</h2><p>回復草をちぎって食べますか？（体力が30％回復）</p>${run.hp >= IL.playerStats(pr).hp ? '<p class="small mute">いまは体力が満タンです。</p>' : ''}<div class="row"><button class="btn pri" data-a="eat">食べる</button><button class="btn" data-a="cancel">やめる</button></div></div>`, 'clear');
   } else if (p.kind === 'bosswin') {
     const last = run.floor >= 100;
-    show(`<div class="win" style="max-width:460px"><h2>${last ? '頂上にたどり着いた！' : 'ボスを倒した！'}</h2><p>${last ? 'インテグラ・レイヤーの頂上。' : '階段と、帰還ポータルが開いた。'}</p><div class="row">${last ? '' : '<button class="btn pri" data-a="next">次の階へ</button>'}<button class="btn" data-a="portal">帰還ポータルで帰る</button></div>${ui.firstFloor === run.floor ? '<p class="gold">世界で最初に倒した！</p>' : ''}<div class="row" style="margin-top:6px"><button class="btn sm" data-a="sharex">𝕏 でつぶやく</button></div></div>`, 'clear');
+    show(`<div class="win" style="max-width:460px"><h2>${last ? '頂上にたどり着いた！' : 'ボスを倒した！'}</h2><p>${last ? 'インテグラ・レイヤーの頂上。' : 'ボスのいた所の階段から、次の階へ行ける。帰還ポータルで帰ることもできる。'}</p><div class="row">${last ? '' : '<button class="btn pri" data-a="next">次の階へ</button>'}<button class="btn" data-a="portal">帰還ポータルで帰る</button><button class="btn" data-a="cancel">やめる</button></div>${run.bossChest && !run.bossChest.opened ? '<p class="small gold">となりの宝箱を開け忘れていない？</p>' : ''}${ui.firstFloor === run.floor ? '<p class="gold">世界で最初に倒した！</p>' : ''}<div class="row" style="margin-top:6px"><button class="btn sm" data-a="sharex">𝕏 でつぶやく</button></div></div>`, 'clear');
   }
 }
 function shop() {
@@ -367,7 +380,7 @@ function battleResult() {
   const bt = run.battle;
   if (bt.over === 'win') {
     const r = bt.reward; const parts = r.parts.map(p => partHTML(p)).join('');
-    let extra = ''; if (bt.bossReward) { if (bt.bossReward.first) extra += `<p class="gold">初撃破ボーナス！</p><div class="lootlist">${bt.bossReward.first.map(p => partHTML(p)).join('')}</div>`; if (bt.bossReward.respec) extra += '<p>振りなおしの札を手に入れた</p>'; }
+    let extra = ''; if (bt.bossReward) { if (bt.bossReward.first) extra += `<p class="gold">初撃破ボーナス！</p><div class="lootlist">${bt.bossReward.first.map(p => partHTML(p)).join('')}</div>`; if (bt.bossReward.respec) extra += '<p>振りなおしの札を手に入れた</p>'; if (bt.bossReward.chest) extra += '<p class="gold">ボスの落とし物は、となりの宝箱に入っている。</p>'; }
     return `<p>勝った！ 経験値 ${r.exp}・${r.gold} G${r.ups ? `<b class="gold">　レベルが ${pr.lv} に上がった！（ポイント+${r.ups * 3}）</b>` : ''}</p>${parts ? '<div class="lootlist">' + parts + '</div>' : ''}${extra}<div class="row"><button class="btn pri" data-a="bclose">続ける</button>${ui.godName ? '<button class="btn sm" data-a="sharegod">𝕏 神技をつぶやく</button>' : ''}</div>`;
   }
   if (bt.over === 'flee') return '<button class="btn pri" data-a="bclose">続ける</button>';
@@ -559,6 +572,7 @@ document.addEventListener('click', async e => {
     case 'stairs': X(['stairs']); sfx('ok'); enterRun(run); return fetchDrops();
     case 'boss': X(['boss']); return afterAct();
     case 'cancel': X(['cancel']); hideScreen(); dirty = true; save(); return;
+    case 'eat': X(['eat']); hideScreen(); sfx('ok', 0.4); return afterAct();
     case 'return': X(['leave']); sfx('win', 0.5); return endScreen();
     case 'shop': return shop();
     case 'fightm': run.prompt = { kind: 'fightm' }; return prompt();
@@ -566,7 +580,7 @@ document.addEventListener('click', async e => {
     case 'subback': ui.sub = null; return battle();
     case 'sharex': return shareX(ui.firstFloor === run.floor ? 'first' : 'boss', run.floor);
     case 'sharegod': return shareX('god', run.floor, ui.godName);
-    case 'bclose': { ui.godName = null; const k = run.battle.kind, ov = run.battle.over, br = run.battle.bossReward; X(['bx']); hideScreen(); dirty = true; hud(); save(); if (k === 'boss' && ov === 'win') { X(['bosswin']); prompt(); claimFirst(run.floor, br); } return; }
+    case 'bclose': { ui.godName = null; const k = run.battle.kind, ov = run.battle.over, br = run.battle.bossReward; X(['bx']); hideScreen(); dirty = true; hud(); save(); if (k === 'boss' && ov === 'win') { toast('ボスのいた所に階段が、となりに宝箱があらわれた'); claimFirst(run.floor, br); } return; }
     case 'dead': return endScreen();
     case 'next': X(['next']); sfx('ok'); enterRun(run); return fetchDrops();
     case 'portal': X(['leave']); sfx('win', 0.5); return endScreen();

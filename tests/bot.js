@@ -70,7 +70,7 @@ for (let rn = 0; rn < MAXRUN && pr.maxFloor <= 100; rn++) {
   let steps = 0, stuck = 0;
   while (!run.over && steps++ < 6000) {
     const fl = IL.genFloor(run.floor), st = IL.playerStats(pr);
-    if (run.battle) { const { r, k } = fight(run); if (r === 'win' && k === 'boss') { stats.bossWins++; if (run.hp > st.hp * 0.5 && run.floor < 100) { run = IL.goNextFloor(pr, run); stats.maxF = Math.max(stats.maxF, run.floor); continue; } IL.leaveRun(pr, run, 'return'); break; } if (r === 'lose') { if (LOG && stats.deaths % 40 === 0) { const st2 = IL.playerStats(pr); const e = IL.makeEnemy(run.floor, 'slime', 0, null); console.log('death f', run.floor, 'lv', pr.lv, 'bag', pr.bag.length, 'board', pr.board.filter(x => x != null).length, 'atk', st2.atk, 'hp', st2.hp, 'def', st2.def, 'eAtk', e.atk, 'eHp', e.hp, 'steps', steps, 'kind', k, 'pot', pr.potions.length); } stats.deaths++; if (k === 'boss') stats.bossDeaths++; break; } optimizeBoard(); continue; }
+    if (run.battle) { const { r, k } = fight(run); if (r === 'win' && k === 'boss') { stats.bossWins++; if (run.bossChest) { for (const p of run.bossChest.parts) pr.bag.push(p); run.bossChest.opened = true; } if (run.hp > st.hp * 0.5 && run.floor < 100) { run = IL.goNextFloor(pr, run); stats.maxF = Math.max(stats.maxF, run.floor); continue; } IL.leaveRun(pr, run, 'return'); break; } if (r === 'lose') { if (LOG && stats.deaths % 40 === 0) { const st2 = IL.playerStats(pr); const e = IL.makeEnemy(run.floor, 'slime', 0, null); console.log('death f', run.floor, 'lv', pr.lv, 'bag', pr.bag.length, 'board', pr.board.filter(x => x != null).length, 'atk', st2.atk, 'hp', st2.hp, 'def', st2.def, 'eAtk', e.atk, 'eHp', e.hp, 'steps', steps, 'kind', k, 'pot', pr.potions.length); } stats.deaths++; if (k === 'boss') stats.bossDeaths++; break; } optimizeBoard(); continue; }
     if (run.prompt) {
       const k = run.prompt.kind;
       if (k === 'gate') {
@@ -89,9 +89,9 @@ for (let rn = 0; rn < MAXRUN && pr.maxFloor <= 100; rn++) {
     let d = -1;
     d = pathDir(fl, run, i => fl.t[i] === IL.T.PED && !run.opened[i]);
     const wantBoss = steps > 600 || run.hp > st.hp * 0.7;
-    if (d < 0 || steps > 900) d = wantBoss ? pathDir(fl, run, i => fl.t[i] === IL.T.GATE && bits[i]) : -1;
+    if (d < 0 || steps > 900) d = wantBoss ? pathDir(fl, run, i => i === IL.bossCenter(fl) && bits[i]) : -1;
     if (d < 0) d = pathDir(fl, run, i => !bits[i] && fl.t[i] === IL.T.FLOOR);
-    if (d < 0) d = pathDir(fl, run, i => fl.t[i] === IL.T.GATE);
+    if (d < 0) d = pathDir(fl, run, i => i === IL.bossCenter(fl));
     if (d < 0) { d = rng.int(4); stuck++; }
     const ox = run.x, oy = run.y; IL.step(pr, run, d); simTime += 0.4; run.events.length = 0;
     if (run.x === ox && run.y === oy && !run.battle && !run.prompt) IL.interact(pr, run);
