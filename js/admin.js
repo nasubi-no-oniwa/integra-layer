@@ -32,7 +32,7 @@ async function loadEngines() {
 async function stat() {
   const [f, b, p] = await Promise.all(['firsts', 'board', 'players'].map(k => db.ref(k).once('value').then(s => s.val() || {})));
   const top = Math.max(0, ...Object.keys(f).map(Number));
-  $('#stat').innerHTML = `最前線：<b>${top}階</b>　プレイヤー：<b>${Object.keys(p).length}人</b>　掲示板：<b>${Object.keys(b).length}件</b>`;
+  $('#stat').innerHTML = `最前線：<b>${Math.min(100, top + 1)}階</b>（${top}階まで初撃破ずみ）　プレイヤー：<b>${Object.keys(p).length}人</b>　掲示板：<b>${Object.keys(b).length}件</b>`;
 }
 
 /* 配信中 */
