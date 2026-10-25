@@ -32,7 +32,7 @@ const B = IL.B = {
   coef: { fire: 1.0, wind: 0.6, rock: 0.7, forest: 0.6, star: 1.0 },
   guard: [0, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.5],
   burn: 0.1, burnTurns: 3, drain: 0.5, counter: 0.3,
-  dropEnemy: 0.4, enemyCount: 30, respawnEvery: 12, regen: 0.005,
+  dropEnemy: 0.12, herbs: 20, herbHeal: 0.3, f1Hp: 2.5, f1Atk: 2.0, enemyCount: 30, respawnEvery: 12, regen: 0.005,
   mapW: 120, mapH: 90, boardK: 50, lateGrow: 0.6,
 };
 const NEED=[0, 40, 139, 289, 485, 725, 1006, 1328, 1689, 2088, 2524, 2996, 3504, 4047, 4625, 5236, 5881, 6559, 7270, 8013, 8788, 9595, 10433, 11302, 12202, 13133, 14093, 15084, 16104, 17154, 18234, 19342, 20480, 21646, 22841, 24065, 25317, 26596, 27904, 29240, 30603, 31994, 33412, 34858, 36331, 37831, 39357, 40911, 42491, 44097, 45731, 47390, 49076, 50787, 52525, 54289, 56079, 57894, 59735, 61602, 63494, 65411, 67354, 69322, 71316, 73334, 75377, 77445, 79538, 81656, 83799, 85966, 88157, 90374, 92614, 94879, 97168, 99482, 101819, 104181, 106567, 108977, 111410, 113868, 116349, 118854, 121383, 123935, 126511, 129111, 131734, 134380, 137050, 139743, 142459, 145199, 147961, 150747, 153556, 156388, 159243];
@@ -177,7 +177,8 @@ function expSpd(f) { const L = expLv(f); return B.base.spd + B.perLv.spd * (L - 
 IL.expLv = expLv;
 function makeEnemy(f, type, kind, rng) { // kind: 0 ふつう 1 中ボス 2 大ボス 3 行商人
   const T = IL.ETYPES[type], bi = IL.biomeOf(f), E = expAtk(f) * (1 + B.lateGrow * f / 100), d = kind ? 1 + B.depth * f / 100 : 1;
-  const hm = kind === 1 ? B.bossHp : kind >= 2 ? B.bigHp : 1, am = kind === 1 ? B.bossAt : kind >= 2 ? B.bigAt : 1;
+  const e1 = f === 1 && !kind; // 1階のふつうの敵は、少しだけ固く・強く
+  const hm = kind === 1 ? B.bossHp : kind >= 2 ? B.bigHp : e1 ? B.f1Hp : 1, am = kind === 1 ? B.bossAt : kind >= 2 ? B.bigAt : e1 ? B.f1Atk : 1;
   const sp = SPECIES.slice(); const h = hashStr(type + ':' + Math.floor((f - 1) / 10));
   const weak = kind >= 1 ? bi.weak : sp[h % 5], res0 = kind >= 1 ? bi.res : sp[(h >> 3) % 5];
   const res = res0 === weak ? sp[(SPECIES.indexOf(weak) + 2) % 5] : res0;
@@ -235,6 +236,11 @@ function genFloor(f) {
   }
   const fl = { f, W, H, t, rooms, start: { x: rooms[si].cx, y: rooms[si].cy }, bossRoom: bi, safe, peds, roomAt: null };
   const ra = new Int16Array(W * H).fill(-1); rooms.forEach((r, i) => { for (let yy = r.y; yy < r.y + r.h; yy++) for (let xx = r.x; xx < r.x + r.w; xx++) ra[yy * W + xx] = i; });
+  // 回復草（自生。ボス部屋とスタート地点にはない）
+  const hr = new RNG(hashStr('integra-layer/herb/' + f)), herbs = [], herbAt = {}; tries = 0;
+  while (herbs.length < B.herbs && tries++ < 2000) { const r = rooms[hr.int(rooms.length)]; if (r === rooms[bi]) continue; const x = hr.range(r.x, r.x + r.w - 1), y = hr.range(r.y, r.y + r.h - 1), i = y * W + x;
+    if (t[i] !== T_FLOOR || herbAt[i] || (x === fl.start.x && y === fl.start.y)) continue; herbs.push(i); herbAt[i] = 1; }
+  fl.herbs = herbs; fl.herbAt = herbAt;
   fl.roomAt = ra; floorCache[f] = fl; return fl;
 }
 function bfs(t, W, H, sx, sy) { const d = new Int32Array(W * H).fill(-1), q = [sy * W + sx]; d[q[0]] = 0; for (let h = 0; h < q.length; h++) { const i = q[h]; for (const o of [1, -1, W, -W]) { const j = i + o; if (t[j] && t[j] !== T_BOSS && d[j] < 0) { d[j] = d[i] + 1; q.push(j); } } } return d; }
@@ -302,6 +308,8 @@ function step(pr, run, dir) {
   run.x = nx; run.y = ny; run.turn++;
   const st = playerStats(pr); run.hp = Math.min(st.hp, run.hp + Math.max(1, Math.round(st.hp * B.regen)));
   reveal(pr, run, fl);
+  const hi = ny * fl.W + nx; run.herbs = run.herbs || {};
+  if (fl.herbAt[hi] && !run.herbs[hi] && run.hp < st.hp) { const h = Math.min(st.hp - run.hp, Math.round(st.hp * B.herbHeal)); run.hp += h; run.herbs[hi] = 1; run.events.push({ t: 'msg', s: '回復草で体力が ' + h + ' 回復した' }); }
   const v = fl.t[ny * fl.W + nx];
   if (v === T_GATE) { run.prompt = { kind: 'gate' }; return; }
   if (v === T_SAFE) { run.prompt = { kind: 'safe' }; return; }

@@ -44,6 +44,14 @@ function tintSheet(bi) {
   for (let i = 0; i < a.length; i += 4) { a[i] = Math.min(255, a[i] * t[0]); a[i + 1] = Math.min(255, a[i + 1] * t[1]); a[i + 2] = Math.min(255, a[i + 2] * t[2]); }
   g.putImageData(d, 0, 0); return tinted[bi] = c;
 }
+const HERB = (() => { // 回復草（16×16の点絵）
+  const c = document.createElement('canvas'); c.width = c.height = 16; const g = c.getContext('2d');
+  const px = (col, pts) => { g.fillStyle = col; for (const [x, y] of pts) g.fillRect(x, y, 1, 1); };
+  px('#1d3a1f', [[7,14],[8,14],[6,13],[9,13],[7,13],[8,13]]);
+  px('#3f8f3a', [[7,12],[8,12],[7,11],[8,10],[7,9],[4,8],[5,8],[5,9],[6,9],[6,10],[11,7],[10,8],[10,9],[9,9],[9,10],[3,7],[12,6],[8,7],[8,6]]);
+  px('#7fd05a', [[4,7],[5,7],[11,6],[10,7],[8,5],[3,6],[12,5],[9,6]]);
+  px('#ff8fb0', [[8,4],[7,4],[8,3],[9,4]]); px('#ffe48a', [[8,4]]);
+  return c; })();
 function drawTile(g, src, idx, x, y, s) { g.drawImage(src, (idx % 12) * 16, Math.floor(idx / 12) * 16, 16, 16, x, y, s, s); }
 function spriteCanvas(idx, scale, bi) { const c = document.createElement('canvas'); c.width = c.height = 16 * scale; const g = c.getContext('2d'); g.imageSmoothingEnabled = false; drawTile(g, bi == null ? sheet : tintSheet(bi), idx, 0, 0, 16 * scale); return c; }
 
@@ -246,6 +254,7 @@ function render(now) {
     else if (v === T.PED) drawTile(g, src, run.opened[i] ? 55 : 54, px, py, TS);
     else if (v === T.SAFE) drawTile(g, src, 32, px, py, TS);
     else if (v === T.GATE) drawTile(g, src, 45, px, py, TS);
+    else if (fl.herbAt[i] && !(run.herbs && run.herbs[i])) g.drawImage(HERB, px, py, TS, TS);
   }
   // ボス部屋の中
   if (bits && bits[br.cy * fl.W + br.cx]) {
@@ -494,7 +503,8 @@ async function collectSales() { if (!Net.on) return; const n = await Net.claimSa
 
 /* ---------- クリック ---------- */
 document.addEventListener('click', async e => {
-  const t = e.target.closest('[data-a],[data-f],[data-cell],[data-bag],[data-pt],[data-syn],[data-gp],[data-buy],[data-c],[data-sk],[data-it],[data-tg],[data-use],[data-dpot],[data-mb],[data-rep],[data-tr]'); if (!t) return;
+  const t = e.target.closest('[data-a],[data-f],[data-cell],[data-bag],[data-pt],[data-syn],[data-gp],[data-buy],[data-c],[data-sk],[data-it],[data-tg],[data-use],[data-dpot],[data-mb],[data-rep],[data-tr]');
+  if (!t) { if (ui.scr === 'board' && (ui.sel != null || ui.bagSel != null) && !e.target.closest('select,input,label')) { ui.sel = null; ui.bagSel = null; sfx('click', 0.2); boardScreen(); } return; }
   const d = t.dataset;
   if (d.f && t.tagName === 'BUTTON') { sfx('ok', 0.4); X(['start', +d.f]); enterRun(run); fetchDrops(); return; }
   if (d.cell != null) return boardCellTap(+d.cell);
