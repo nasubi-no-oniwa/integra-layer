@@ -22,15 +22,18 @@ Net.init = async () => {
 
 /* ---- 最前線と初撃破 ---- */
 Net.watchFirsts = cb => { if (!db) return; db.ref('firsts').on('value', s => cb(s.val() || {})); };
-Net.claimFirst = async (floor, info) => {
+Net.claimFirst = async (floor, info) => { // 'first'＝いちばん、'co'＝60秒以内の同時撃破、false＝だめ
   if (!db) return false;
-  try { const r = await db.ref('firsts/' + floor).transaction(cur => cur ? undefined : Object.assign({ pid: Net.pid, t: T() }, info)); return r.committed; } catch (e) { return false; }
+  try { const r = await db.ref('firsts/' + floor).transaction(cur => cur ? undefined : Object.assign({ pid: Net.pid, t: T() }, info)); if (r.committed) return 'first'; } catch (e) {}
+  try { const cur = (await db.ref('firsts/' + floor).once('value')).val(); if (!cur || cur.pid === Net.pid) return false;
+    if (Net.now() - (cur.t || 0) > 60000) return false;
+    await db.ref('firsts/' + floor + '/co/' + Net.pid).set({ n: info.n, lv: info.lv, t: T() }); return 'co'; } catch (e) { return false; }
 };
 
 /* ---- 記録とセーブ ---- */
-Net.pushJournal = async str => {
+Net.pushJournal = async (str, v) => {
   if (!db) return false; let n = +(ls('il_jn') || 0);
-  try { await db.ref('journal/' + Net.pid + '/' + n).set({ d: str, t: T() }); ls('il_jn', String(n + 1)); return n + 1; } catch (e) { return false; }
+  try { await db.ref('journal/' + Net.pid + '/' + n).set({ d: str, v: String(v || '0'), t: T() }); ls('il_jn', String(n + 1)); return n + 1; } catch (e) { return false; }
 };
 Net.journalCount = () => +(ls('il_jn') || 0);
 Net.saveProfile = async (pub, saveStr) => { if (!db) return; try { await db.ref('players/' + Net.pid).update(Object.assign({ t: T(), save: saveStr, jn: Net.journalCount() }, pub)); } catch (e) {} };
@@ -50,13 +53,24 @@ Net.useCode = async code => {
 };
 Net.getJournal = async pid => { const s = (await db.ref('journal/' + pid).once('value')).val() || {}; return Object.keys(s).sort((a, b) => a - b).map(k => s[k].d); };
 
-/* ---- 落ちた欠片 ---- */
-Net.getDrops = async floor => { if (!db) return []; try { const s = (await db.ref('drops/' + floor).limitToLast(300).once('value')).val() || {}; return Object.keys(s).map(id => Object.assign({ id }, s[id])); } catch (e) { return []; } };
-Net.addDrops = async (floor, x, y, parts, name) => {
-  if (!db || !parts.length) return; const strip = p => ({ sp: p.sp, rar: p.rar, floor: p.floor, stats: p.stats, edges: p.edges, rot: p.rot });
-  try { const up = {}; parts.forEach((p, i) => { const k = db.ref('drops/' + floor).push().key; up[k] = { x, y: y, p: strip(p), pid: Net.pid, n: name || '', t: T() }; }); await db.ref('drops/' + floor).update(up); } catch (e) {}
+/* ---- 落ちたバッグ（中身は変わらない。1つの階に20個まで、1人1個まで） ---- */
+const strip = p => ({ sp: p.sp, rar: p.rar, floor: p.floor, stats: p.stats.map(s => ({ k: s.k, r: s.r })), edges: p.edges.slice(), rot: p.rot | 0 });
+Net.strip = strip;
+Net.getBags = async floor => { if (!db) return []; try { const s = (await db.ref('bags/' + floor).once('value')).val() || {}; return Object.keys(s).map(id => Object.assign({ id }, s[id])).filter(b => Array.isArray(b.p) && b.p.length); } catch (e) { return []; } };
+Net.addBag = async (floor, x, y, parts, name, note) => {
+  if (!db || !parts.length) return null;
+  try {
+    const ref = db.ref('bags/' + floor).push(), id = ref.key;
+    const data = { x, y, p: parts.slice(0, 30).map(strip), pid: Net.pid, n: name || '', s: String(note || '').slice(0, 20), t: T() };
+    await db.ref('bagarc/' + id).set(Object.assign({ f: floor }, data)); // 控え（ずるの確かめ用）
+    await ref.set(data);
+    const all = (await db.ref('bags/' + floor).once('value')).val() || {}; const ids = Object.keys(all);
+    for (const k of ids) if (k !== id && all[k].pid === Net.pid) { await db.ref('bags/' + floor + '/' + k).remove(); delete all[k]; } // 1人1個まで
+    const rest = Object.keys(all).sort((a, b) => (all[a].t || 0) - (all[b].t || 0));
+    while (rest.length > 20) { const k = rest.shift(); await db.ref('bags/' + floor + '/' + k).remove(); } // 古いものから消える
+    return id;
+  } catch (e) { return null; }
 };
-Net.takeDrop = async (floor, id) => { if (!db) return; try { await db.ref('drops/' + floor + '/' + id).remove(); } catch (e) {} };
 
 /* ---- 地図の売り買い ---- */
 Net.listMaps = async floor => { if (!db) return []; try { const s = (await db.ref('maps/' + floor).once('value')).val() || {}; return Object.keys(s).map(pid => Object.assign({ pid }, s[pid])).filter(m => m.pid !== Net.pid).sort((a, b) => b.pct - a.pct); } catch (e) { return []; } };
@@ -75,7 +89,7 @@ Net.watchBoard = cb => { if (!db) return () => {}; const r = db.ref('board').lim
 Net.post = async (name, text, lang) => {
   if (!db) return 'off';
   try { await db.ref('rate/' + Net.pid).set(T()); } catch (e) { return 'rate'; }
-  try { await db.ref('board').push({ pid: Net.pid, n: name, s: text, l: lang || 'ja', t: T() }); return 'ok'; } catch (e) { return 'ng'; }
+  try { await db.ref('board').push(Object.assign({ pid: Net.pid, n: name, s: text, l: lang || 'ja', t: T() }, Net.postInfo || {})); return 'ok'; } catch (e) { return 'ng'; }
 };
 Net.watchHidden = cb => { if (!db) return () => {}; let h = {}, r = {}; const go = () => { const o = Object.assign({}, h); for (const id in r) if (Object.keys(r[id] || {}).length >= 3) o[id] = true; cb(o); };
   const a = db.ref('hidden'), b = db.ref('reports'), fa = s => { h = s.val() || {}; go(); }, fb = s => { r = s.val() || {}; go(); }; a.on('value', fa); b.on('value', fb); return () => { a.off('value', fa); b.off('value', fb); }; };

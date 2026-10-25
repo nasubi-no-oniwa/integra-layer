@@ -4,6 +4,7 @@
 'use strict';
 const IL = {};
 IL.VER = 1;
+IL.ENGINE = '10'; // ルールの版（記録に書く。変えたら engine/ に前の版を残す）
 
 /* ---------- 乱数 ---------- */
 function hashStr(s) { let h = 2166136261 >>> 0; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
@@ -32,7 +33,7 @@ const B = IL.B = {
   coef: { fire: 1.0, wind: 0.6, rock: 0.7, forest: 0.6, star: 1.0 },
   guard: [0, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.5],
   burn: 0.1, burnTurns: 3, drain: 0.5, counter: 0.3,
-  dropEnemy: 0.12, herbs: 20, herbHeal: 0.3, f1Hp: 1, f1Atk: 1, enemyCount: 30, respawnEvery: 12, regen: 0.005,
+  dropEnemy: 0.12, herbs: 20, herbHeal: 0.3, f1Hp: 1, f1Atk: 1, enemyCount: 30, bagMax: 20, bagPick: 5, respawnEvery: 12, regen: 0.005,
   mapW: 120, mapH: 90, boardK: 50, lateGrow: 0.6,
 };
 const NEED=[0, 40, 139, 289, 485, 725, 1006, 1328, 1689, 2088, 2524, 2996, 3504, 4047, 4625, 5236, 5881, 6559, 7270, 8013, 8788, 9595, 10433, 11302, 12202, 13133, 14093, 15084, 16104, 17154, 18234, 19342, 20480, 21646, 22841, 24065, 25317, 26596, 27904, 29240, 30603, 31994, 33412, 34858, 36331, 37831, 39357, 40911, 42491, 44097, 45731, 47390, 49076, 50787, 52525, 54289, 56079, 57894, 59735, 61602, 63494, 65411, 67354, 69322, 71316, 73334, 75377, 77445, 79538, 81656, 83799, 85966, 88157, 90374, 92614, 94879, 97168, 99482, 101819, 104181, 106567, 108977, 111410, 113868, 116349, 118854, 121383, 123935, 126511, 129111, 131734, 134380, 137050, 139743, 142459, 145199, 147961, 150747, 153556, 156388, 159243];
@@ -196,24 +197,27 @@ IL.bossType = f => { const bi = IL.biomeOf(f); return bi.types[hashStr('boss' + 
 const T_WALL = 0, T_FLOOR = 1, T_PED = 2, T_SAFE = 3, T_GATE = 4, T_BOSS = 5;
 IL.T = { WALL: T_WALL, FLOOR: T_FLOOR, PED: T_PED, SAFE: T_SAFE, GATE: T_GATE, BOSS: T_BOSS };
 const floorCache = {};
+// 階が上がるほど広くなる（1階＝もとの約3倍、100階＝約12倍の面積）
+function areaOf(f) { return 3 + 9 * (Math.max(1, Math.min(100, f)) - 1) / 99; }
+IL.areaOf = areaOf;
 function genFloor(f) {
   if (floorCache[f]) return floorCache[f];
-  const W = B.mapW, H = B.mapH, rng = new RNG(hashStr('integra-layer/floor/' + f));
-  const t = new Uint8Array(W * H); const rooms = [];
-  for (let a = 0; a < 2000 && rooms.length < 28; a++) {
+  const A = areaOf(f), sA = Math.sqrt(A);
+  const W = Math.round(B.mapW * sA), H = Math.round(B.mapH * sA), rng = new RNG(hashStr('integra-layer/floor/' + f));
+  const t = new Uint8Array(W * H); const rooms = [], nRooms = Math.round(28 * A);
+  for (let a = 0; a < 2000 * A && rooms.length < nRooms; a++) {
     const w = rng.range(7, 15), h = rng.range(6, 11), x = rng.range(2, W - w - 3), y = rng.range(2, H - h - 3);
     if (rooms.some(r => x < r.x + r.w + 3 && x + w + 3 > r.x && y < r.y + r.h + 3 && y + h + 3 > r.y)) continue;
     rooms.push({ x, y, w, h, cx: x + (w >> 1), cy: y + (h >> 1) });
   }
   for (const r of rooms) for (let yy = r.y; yy < r.y + r.h; yy++) for (let xx = r.x; xx < r.x + r.w; xx++) t[yy * W + xx] = T_FLOOR;
   // つなぐ（いちばん近い部屋どうし＋少し多め）
-  const inT = [0], edges = [];
-  while (inT.length < rooms.length) {
-    let bd = 1e9, ba = 0, bb = 0;
-    for (const i of inT) for (let j = 0; j < rooms.length; j++) if (!inT.includes(j)) { const d = Math.abs(rooms[i].cx - rooms[j].cx) + Math.abs(rooms[i].cy - rooms[j].cy); if (d < bd) { bd = d; ba = i; bb = j; } }
-    inT.push(bb); edges.push([ba, bb]);
-  }
-  for (let k = 0; k < 6; k++) { const a = rng.int(rooms.length), b = rng.int(rooms.length); if (a !== b) edges.push([a, b]); }
+  const edges = [], N = rooms.length, inT = new Uint8Array(N), best = new Array(N).fill(1e9), from = new Array(N).fill(0);
+  const dd = (a, b) => Math.abs(rooms[a].cx - rooms[b].cx) + Math.abs(rooms[a].cy - rooms[b].cy);
+  inT[0] = 1; for (let j = 1; j < N; j++) { best[j] = dd(0, j); from[j] = 0; }
+  for (let n = 1; n < N; n++) { let bj = -1; for (let j = 0; j < N; j++) if (!inT[j] && (bj < 0 || best[j] < best[bj])) bj = j; inT[bj] = 1; edges.push([from[bj], bj]);
+    for (let j = 0; j < N; j++) if (!inT[j]) { const d = dd(bj, j); if (d < best[j]) { best[j] = d; from[j] = bj; } } }
+  for (let k = 0; k < Math.round(6 * sA); k++) { const a = rng.int(rooms.length), b = rng.int(rooms.length); if (a !== b) edges.push([a, b]); }
   const carve = (x0, y0, x1, y1) => { let x = x0, y = y0; const hf = rng.chance(0.5); const step = () => { t[y * W + x] = t[y * W + x] || T_FLOOR; };
     if (hf) { while (x !== x1) { step(); x += Math.sign(x1 - x); } while (y !== y1) { step(); y += Math.sign(y1 - y); } } else { while (y !== y1) { step(); y += Math.sign(y1 - y); } while (x !== x1) { step(); x += Math.sign(x1 - x); } } step(); };
   for (const [a, b] of edges) carve(rooms[a].cx, rooms[a].cy, rooms[b].cx, rooms[b].cy);
@@ -226,19 +230,19 @@ function genFloor(f) {
   for (let yy = br.y - 1; yy <= br.y + br.h; yy++) for (let xx = br.x - 1; xx <= br.x + br.w; xx++) if (t[yy * W + xx] === T_FLOOR) t[yy * W + xx] = T_GATE;
   // 安全地帯2つ
   const others = rooms.map((r, i) => i).filter(i => i !== si && i !== bi);
-  const safe = []; for (let k = 0; k < 2; k++) { const i = others.splice(rng.int(others.length), 1)[0]; safe.push(i); t[rooms[i].cy * W + rooms[i].cx] = T_SAFE; }
+  const safe = []; for (let k = 0; k < Math.round(2 * sA); k++) { const i = others.splice(rng.int(others.length), 1)[0]; safe.push(i); t[rooms[i].cy * W + rooms[i].cx] = T_SAFE; }
   // 台座（まわり8マスが床の場所だけ。道をふさがない）
   const peds = []; let tries = 0;
-  while (peds.length < 10 && tries++ < 500) {
+  while (peds.length < Math.round(10 * sA) && tries++ < 2000) {
     const r = rooms[others[rng.int(others.length)]]; const x = rng.range(r.x + 1, r.x + r.w - 2), y = rng.range(r.y + 1, r.y + r.h - 2);
     let ok = true; for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (t[(y + dy) * W + x + dx] !== T_FLOOR) ok = false;
     if (ok) { t[y * W + x] = T_PED; peds.push(y * W + x); }
   }
-  const fl = { f, W, H, t, rooms, start: { x: rooms[si].cx, y: rooms[si].cy }, bossRoom: bi, safe, peds, roomAt: null };
+  const fl = { f, W, H, t, rooms, start: { x: rooms[si].cx, y: rooms[si].cy }, bossRoom: bi, safe, peds, roomAt: null, enemyN: Math.round(B.enemyCount * A) };
   const ra = new Int16Array(W * H).fill(-1); rooms.forEach((r, i) => { for (let yy = r.y; yy < r.y + r.h; yy++) for (let xx = r.x; xx < r.x + r.w; xx++) ra[yy * W + xx] = i; });
   // 回復草（自生。ボス部屋とスタート地点にはない）
   const hr = new RNG(hashStr('integra-layer/herb/' + f)), herbs = [], herbAt = {}; tries = 0;
-  while (herbs.length < B.herbs && tries++ < 2000) { const r = rooms[hr.int(rooms.length)]; if (r === rooms[bi]) continue; const x = hr.range(r.x, r.x + r.w - 1), y = hr.range(r.y, r.y + r.h - 1), i = y * W + x;
+  while (herbs.length < Math.round(B.herbs * sA) && tries++ < 4000) { const r = rooms[hr.int(rooms.length)]; if (r === rooms[bi]) continue; const x = hr.range(r.x, r.x + r.w - 1), y = hr.range(r.y, r.y + r.h - 1), i = y * W + x;
     if (t[i] !== T_FLOOR || herbAt[i] || (x === fl.start.x && y === fl.start.y)) continue; herbs.push(i); herbAt[i] = 1; }
   fl.herbs = herbs; fl.herbAt = herbAt;
   fl.roomAt = ra; floorCache[f] = fl; return fl;
@@ -257,7 +261,7 @@ function startRun(pr, floor, seed) {
   const st = playerStats(pr);
   const run = { floor, seed, rng, x: fl.start.x, y: fl.start.y, hp: st.hp, turn: 0, enemies: [], opened: {}, merchant: null, battle: null,
     prompt: null, events: [], over: null, eseq: 0 };
-  for (let i = 0; i < B.enemyCount; i++) spawnEnemy(run, fl, 12);
+  for (let i = 0; i < fl.enemyN; i++) spawnEnemy(run, fl, 12);
   // 行商人
   const rs = fl.rooms.map((r, i) => i).filter(i => i !== fl.bossRoom); const r = fl.rooms[rs[rng.int(rs.length)]];
   for (let k = 0; k < 50; k++) { const x = rng.range(r.x, r.x + r.w - 1), y = rng.range(r.y, r.y + r.h - 1); if (fl.t[y * fl.W + x] === T_FLOOR && !(x === run.x && y === run.y)) { run.merchant = { x, y, stock: merchantStock(pr, floor, rng), beaten: false }; break; } }
@@ -292,8 +296,11 @@ function reveal(pr, run, fl) {
   if (ri >= 0) { const r = fl.rooms[ri]; for (let y = r.y - 1; y <= r.y + r.h; y++) for (let x = r.x - 1; x <= r.x + r.w; x++) mark(y * fl.W + x); }
   for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) { const x = run.x + dx, y = run.y + dy; if (x >= 0 && y >= 0 && x < fl.W && y < fl.H) mark(y * fl.W + x); }
 }
-function decodeBits(s, n) { const b = new Uint8Array(n); if (!s) return b; let i = 0; for (const ch of s) { const v = parseInt(ch, 32); for (let k = 0; k < 5 && i < n; k++, i++) b[i] = (v >> k) & 1; } return b; }
-function encodeBits(b) { let s = ''; for (let i = 0; i < b.length; i += 5) { let v = 0; for (let k = 0; k < 5; k++) if (b[i + k]) v |= 1 << k; s += v.toString(32); } return s; }
+function decodeBits(s, n) { const b = new Uint8Array(n); if (!s) return b; let i = 0;
+  if (s[0] === 'R') { let v = 0; for (const part of s.slice(1).split('.')) { const len = parseInt(part, 36) || 0; if (v) b.fill(1, i, Math.min(n, i + len)); i += len; v ^= 1; } return b; } // 続いている所をまとめた形
+  for (const ch of s) { const v = parseInt(ch, 32); for (let k = 0; k < 5 && i < n; k++, i++) b[i] = (v >> k) & 1; } return b; }
+function encodeBits(b) { const out = []; let v = 0, len = 0; for (let i = 0; i < b.length; i++) { const x = b[i] ? 1 : 0; if (x === v) len++; else { out.push(len.toString(36)); v = x; len = 1; } } out.push(len.toString(36)); return 'R' + out.join('.'); }
+IL.encodeBits = encodeBits;
 IL.saveMap = (pr, run) => { if (run._bits && run._dirty) { let n = 0; for (const v of run._bits) n += v; pr.maps[String(run.floor)] = { bits: encodeBits(run._bits), n }; run._dirty = false; } };
 IL.mapBits = (pr, run) => { if (!run._bits) { const fl = genFloor(run.floor), m = pr.maps[String(run.floor)]; run._bits = decodeBits(m ? m.bits : '', fl.W * fl.H); reveal(pr, run, fl); } return run._bits; }; // 読みなおした直後も地図が見えるように
 IL.decodeBits = decodeBits;
@@ -366,7 +373,7 @@ function enemiesAct(pr, run, fl) {
     if (!IL.walkable(fl, x, y) || fl.t[y * fl.W + x] !== T_FLOOR || occ.has(y * fl.W + x) || (run.merchant && run.merchant.x === x && run.merchant.y === y)) continue;
     occ.delete(e.y * fl.W + e.x); e.x = x; e.y = y; occ.add(y * fl.W + x);
   }
-  if (run.turn % B.respawnEvery === 0 && run.enemies.length < B.enemyCount) spawnEnemy(run, fl, 14);
+  if (run.turn % B.respawnEvery === 0 && run.enemies.length < fl.enemyN) spawnEnemy(run, fl, 14);
 }
 
 /* ---------- 戦い ---------- */
@@ -554,11 +561,28 @@ function cleanPart(q) { // 拾った欠片の中身を確かめて、おかし�
   return { sp, rar, floor, stats, edges, rot: (q.rot | 0) & 3, src: 'pick', gacha: false };
 }
 IL.cleanPart = cleanPart;
+/* 落ちたバッグ：中身は変わらない。1つのバッグから1人1回、5個まで */
+IL.takeFromBag = (pr, id, parts) => {
+  pr.bagsOpen = pr.bagsOpen || {}; if (!id || pr.bagsOpen[id]) return null;
+  if (!Array.isArray(parts) || parts.length < 1 || parts.length > B.bagPick) return null;
+  const got = []; for (const q0 of parts) { const q = cleanPart(q0); if (!q) return null; q.src = 'bag'; got.push(q); }
+  pr.bagsOpen[id] = 1; for (const q of got) { q.id = pr.nextId++; pr.bag.push(q); } return got;
+};
+/* 欠片を託す：選んだ欠片と、盤面の欠片（ガチャ以外）をバッグに入れて倒れる */
+IL.entrust = (pr, run, ids) => {
+  const pick = new Set((ids || []).filter(id => pr.bag.some(p => p.id === id)));
+  for (const id of pr.board) { const p = id != null && pr.bag.find(q => q.id === id); if (p && !p.gacha) pick.add(id); }
+  const lost = pr.bag.filter(p => pick.has(p.id)).slice(0, 30);
+  const ids2 = new Set(lost.map(p => p.id)); pr.bag = pr.bag.filter(p => !ids2.has(p.id)); pr.board = pr.board.map(id => ids2.has(id) ? null : id);
+  pr.stats.deaths++; IL.saveMap(pr, run); run.battle = null; run.prompt = null; run.over = { why: 'dead', lost, where: { floor: run.floor, x: run.x, y: run.y }, entrust: true };
+  return lost;
+};
 
 IL.grantFirst = (S, f) => {
   const pr = S.pr; if (pr.firsts[f]) return null; const rng = new RNG(hashStr(S.uid + ':first:' + f)), luck = playerStats(pr).luck, got = [];
-  for (let k = 0; k < 2; k++) { const p = newPart(pr, rng, { rar: rng.chance(0.5) ? 2 : 1, sp: rollSpecies(rng), floor: Math.min(100, f + 1), luck, src: 'first' }); pr.bag.push(p); got.push(p); }
-  pr.firsts[f] = 1; return got;
+  const run = S.run, toChest = run && !run.over && run.floor === f && run.bossChest && !run.bossChest.opened; // 宝箱がまだなら宝箱へ
+  for (let k = 0; k < 2; k++) { const p = newPart(pr, rng, { rar: rng.chance(0.5) ? 2 : 1, sp: rollSpecies(rng), floor: Math.min(100, f + 1), luck, src: 'first' }); if (toChest) run.bossChest.parts.push(p); else pr.bag.push(p); got.push(p); }
+  pr.firsts[f] = 1; got.toChest = !!toChest; return got;
 };
 /* ---------- すべての操作はここを通す（記録して、あとから同じ結果を再生できる） ---------- */
 // S = { uid, pr, run, journal:[] }
@@ -586,6 +610,8 @@ IL.exec = (S, op) => {
     case 'giveup': if (!run || run.battle) return null; res = IL.giveUp(pr, run); break;
     case 'pot': if (!run) return null; usePotion(pr, run, op[1] | 0); break;
     case 'dpot': pr.potions.splice(op[1] | 0, 1); break;
+    case 'bag': { if (!run || run.battle || run.over) return null; res = IL.takeFromBag(pr, String(op[1]), op[2]); if (!res) return null; break; }
+    case 'entrust': { if (!run || run.battle || run.over) return null; res = IL.entrust(pr, run, op[1]); break; }
     case 'pick': { if (!run) return null; const q = cleanPart(op[2]); if (!q) return null; if (q.floor > pr.maxFloor) return null; q.id = pr.nextId++; pr.bag.push(q); run.picked = run.picked || {}; run.picked[op[1]] = 1; res = q; break; }
     case 'place': IL.placePart(pr, op[1] | 0, op[2] == null ? null : op[2]); break;
     case 'swap': IL.swapCells(pr, op[1] | 0, op[2] | 0); break;
@@ -615,5 +641,6 @@ IL.replay = (uid, journal) => { const S = IL.newState(uid, 0); for (const op of 
 IL.packJournal = j => { let out = [], mv = ''; for (const op of j) { if (op[0] === 'mv' && op.length === 2) { mv += 'urdl'[op[1]]; continue; } if (mv) { out.push(mv); mv = ''; } out.push(op); } if (mv) out.push(mv); return JSON.stringify(out); };
 IL.unpackJournal = s => { const a = JSON.parse(s), out = []; for (const x of a) { if (typeof x === 'string') { for (const c of x) out.push(['mv', 'urdl'.indexOf(c)]); } else out.push(x); } return out; };
 
-if (typeof module !== 'undefined' && module.exports) module.exports = IL; else root.IL = IL;
+if (typeof module !== 'undefined' && module.exports) module.exports = IL;
+else { root.IL_ENGINES = root.IL_ENGINES || {}; root.IL_ENGINES[IL.ENGINE] = IL; if (!root.IL) root.IL = IL; } // 古い版を一緒に読みこんでも、今の版はそのまま
 })(typeof self !== 'undefined' ? self : this);

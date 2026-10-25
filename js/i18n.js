@@ -262,6 +262,59 @@ const D = {
 '若葉': ['Sprout', '嫩葉', '새싹'], '樹液': ['Sap', '樹液', '수액'], '森羅': ['All Nature', '森羅', '삼라'], '翠緑': ['Emerald', '翠綠', '취록'], '万緑': ['Verdant', '萬綠', '만록'], '大樹海': ['Great Sea of Trees', '大樹海', '대수해'], '世界樹': ['World Tree', '世界樹', '세계수'],
 '微風': ['Breeze', '微風', '미풍'], '疾風': ['Gale', '疾風', '질풍'], '旋風': ['Whirlwind', '旋風', '선풍'], '烈風': ['Tempest', '烈風', '열풍'], '暴嵐': ['Storm', '暴嵐', '폭풍'], '神風': ['Divine Wind', '神風', '신풍'], '天津風': ['Heavenly Wind', '天津風', '천진풍'],
 '星屑': ['Stardust', '星屑', '별가루'], '流星': ['Meteor', '流星', '유성'], '彗星': ['Comet', '彗星', '혜성'], '星雲': ['Nebula', '星雲', '성운'], '銀河': ['Galaxy', '銀河', '은하'], '超新星': ['Supernova', '超新星', '초신성'], '宇宙開闢': ['Big Bang', '宇宙開闢', '우주개벽'],
+
+// ---- v11 で増えた文字 ----
+'あり': ['On', '開', '켬'], 'なし': ['Off', '關', '끔'], '標準': ['Normal', '標準', '표준'],
+'・倒れると、盤面の欠片がバッグになってその場に残る（ガチャの欠片は残る）。ボスにやられると盤面の欠片が全部消える。': ['• When you fall, your board shards become a bag left on the spot (gacha shards stay with you). Losing to a boss destroys all board shards.', '・倒下時，盤面碎片會變成背包留在原地（扭蛋碎片保留）。被頭目打倒則盤面碎片全部消失。', '・쓰러지면 판의 조각이 가방이 되어 그 자리에 남는다 (뽑기 조각은 남음). 보스에게 지면 판의 조각이 전부 사라진다.'],
+'・だれかのバッグは、となりで「調べる」と開ける。1つのバッグから5個まで、1回だけ拾える。中身は減らない。': ["• Search next to someone's bag to open it. Take up to 5 items, once per bag. Bags never empty.", '・在別人的背包旁「調查」即可打開。每個背包最多拿5個，只能拿1次。內容不會減少。', '・누군가의 가방은 옆에서 「조사」하면 열린다. 가방 하나에서 5개까지, 1번만 주울 수 있다. 내용은 줄지 않는다.'],
+'・メニューの「欠片を託す」で、選んだ欠片をバッグに入れて、だれかのために置いていける（倒れるのと同じ）。': ['• Use "Entrust Shards" in the menu to leave chosen shards in a bag for others (same as falling).', '・用選單的「託付碎片」，可以把選的碎片放進背包留給別人（與倒下相同）。', '・메뉴의 「조각 맡기기」로 고른 조각을 가방에 넣어 누군가를 위해 두고 갈 수 있다 (쓰러지는 것과 같음).'],
+
+'さんのバッグ': ["'s Bag", '的背包', '님의 가방'],
+'好きなものを ': ['Pick up to ', '最多可選 ', '원하는 것을 '],
+' 個まで選んで拾える（1つのバッグにつき1回だけ）。バッグの中身は減らないので、ほかの人も同じものを拾える。': [' items (once per bag). Bags never empty, so others can take the same items.', ' 個撿走（每個背包只能1次）。背包內容不會減少，其他人也能撿一樣的東西。', ' 개까지 골라 주울 수 있다 (가방마다 1번). 가방 내용은 줄지 않아서 다른 사람도 같은 것을 주울 수 있다.'],
+'選んだものを拾う（': ['Take selected (', '撿起選擇的（', '고른 것 줍기 ('],
+'このバッグはもう開けた': ["You've already opened this bag", '這個背包已經打開過了', '이 가방은 이미 열었다'],
+'もっと近づくと開けられる': ['Get closer to open it', '再靠近一點就能打開', '더 가까이 가면 열 수 있다'],
+'拾えませんでした': ["Couldn't pick up", '無法撿起', '줍지 못했습니다'],
+'のバッグから ': ["'s bag: ", '的背包撿了 ', '의 가방에서 '],
+' 個拾った': [' picked up', ' 個', '개 주웠다'],
+'個まで': [' max', '個為止', '개까지'],
+'たった今': ['just now', '剛剛', '방금'], '分前': ['m ago', '分鐘前', '분 전'], '時間前': ['h ago', '小時前', '시간 전'], '日前': ['d ago', '天前', '일 전'],
+'欠片を託す（バッグを置いて倒れる）': ['Entrust shards (leave a bag and fall)', '託付碎片（留下背包並倒下）', '조각 맡기기 (가방을 두고 쓰러진다)'],
+'欠片を託す': ['Entrust Shards', '託付碎片', '조각 맡기기'],
+'この場所にバッグを置いて、': ['Leave a bag here and ', '在這裡留下背包，然後', '이곳에 가방을 두고 '],
+'倒れます': ['fall', '倒下', '쓰러집니다'],
+'（死亡と同じ。入れた欠片は手元から消える）。拾った人の手元で、また誰かの力になる。': [' (same as death; the shards leave your hands). They will empower whoever finds them.', '（與死亡相同，放入的碎片會從手上消失）。撿到的人會因此變強。', ' (사망과 같음. 넣은 조각은 손에서 사라진다). 주운 사람의 힘이 된다.'],
+'盤面の欠片（ガチャ以外）は、倒れると必ずバッグに入ります。かばんから足すものを選んでください（あと ': ['Board shards (except gacha) always go into the bag. Choose extra shards from your bag (', '盤面的碎片（扭蛋以外）倒下時一定會放入背包。請從背包中選擇要追加的（還能 ', '판의 조각(뽑기 제외)은 쓰러지면 반드시 가방에 들어갑니다. 가방에서 더할 것을 고르세요 (앞으로 '],
+' 個）。': [' more).', ' 個）。', '개).'],
+'ひとこと（20文字まで）': ['Message (max 20 chars)', '留言（最多20字）', '한마디 (20자까지)'],
+'託して倒れる': ['Entrust and fall', '託付並倒下', '맡기고 쓰러지기'],
+'欠片を託した': ['Shards entrusted', '已託付碎片', '조각을 맡겼다'],
+'にバッグを置いた。だれかが見つけてくれるはず。': [': you left a bag. Someone will find it.', '留下了背包。一定會有人找到。', '에 가방을 두었다. 누군가 찾아줄 것이다.'],
+'場所をコピー': ['Copy location', '複製位置', '위치 복사'], '掲示板に書く': ['Post on board', '寫到留言板', '게시판에 쓰기'],
+'にバッグを置きました': [': I left a bag', '留下了背包', '에 가방을 두었습니다'],
+'コピーした': ['Copied', '已複製', '복사했다'], 'コピーできませんでした': ["Couldn't copy", '無法複製', '복사하지 못했습니다'],
+'託します': ['For you', '託付給你', '맡깁니다'], '力尽きた…': ['Fell here…', '力竭了…', '힘이 다했다…'],
+'橙＝落ちているバッグ': ['Orange = dropped bag', '橙＝掉落的背包', '주황=떨어진 가방'],
+'階のボスを、最初の人とほぼ同時に倒した！ 同じ初撃破ボーナス：': [' F boss beaten almost together with the first! Same first-kill bonus: ', '層的頭目幾乎與第一人同時擊敗！相同的首殺獎勵：', '층 보스를 처음 사람과 거의 동시에 쓰러뜨렸다! 같은 첫 격파 보너스: '],
+'（宝箱に入った）': [' (in the chest)', '（放入寶箱）', ' (보물상자에 들어감)'],
+'設定': ['Settings', '設定', '설정'], 'BGM の音量': ['BGM volume', 'BGM 音量', 'BGM 음량'], '効果音の音量': ['SFX volume', '音效音量', '효과음 음량'],
+'演出': ['Effects', '演出', '연출'], '少なめ': ['Less', '較少', '적게'], '画面のゆれ': ['Screen shake', '畫面震動', '화면 흔들림'], '言葉': ['Language', '語言', '언어'],
+'はじめの案内': ['Tutorial', '新手引導', '처음 안내'], 'もう一度見る': ['Show again', '再看一次', '다시 보기'], '次から案内が出ます': ['The tutorial will show again', '下次會顯示引導', '다음부터 안내가 나옵니다'],
+'わかった': ['Got it', '知道了', '알았어'], '案内をとばす': ['Skip tutorial', '跳過引導', '안내 건너뛰기'],
+'「やあ、新入り。ここは100階まで続く塔さ。まずは歩きまわって“欠片”を集めてきな。台座はとなりで『調べる』と開くよ」': ['"Hey, newcomer. This tower goes up 100 floors. Walk around and gather shards first. Stand next to a pedestal and Search to open it."', '「喂，新來的。這座塔有100層。先四處走走收集“碎片”吧。站在台座旁『調查』就能打開。」', '「어이, 신참. 이 탑은 100층까지 있어. 먼저 돌아다니며 조각을 모아 와. 받침대는 옆에서 『조사』하면 열려.」'],
+'「いい欠片だ。右下の ≡ メニュー →『盤面とかばん』で、盤面に置いてみな」': ['"Nice shard. Open the ≡ menu at the bottom right → Board & Bag, and place it on your board."', '「好碎片。從右下的 ≡ 選單 →『盤面與背包』放到盤面上試試。」', '「좋은 조각이군. 오른쪽 아래 ≡ 메뉴 →『판과 가방』에서 판에 놓아 봐.」'],
+'「凸と凹が向き合うと欠片がつながる。つながるほど強くなるし、同じ種族が2つつながれば技が使えるよ」': ['"When a bump meets a notch, shards link. More links make you stronger, and 2 linked shards of the same kind unlock a skill."', '「凸與凹相對時碎片會相連。連得越多越強，同種族2個相連就能使用技能。」', '「볼록과 오목이 마주하면 조각이 이어져. 많이 이을수록 강해지고, 같은 종족 2개가 이어지면 기술을 쓸 수 있어.」'],
+'「敵だ！『たたかう』で攻撃。技は盤面のつながりで決まる。危なくなったら『にげる』も手さ」': ['"An enemy! Attack to hit it. Your skills depend on your board links. Flee if it gets dangerous."', '「是敵人！用『攻擊』。技能由盤面的相連決定。危險時也可以『逃跑』。」', '「적이다! 『공격』으로 쳐. 기술은 판의 연결로 정해져. 위험하면 『도망』도 방법이야.」'],
+'「誰かのバッグが落ちてるね。倒れた冒険者の欠片さ。となりで調べて、好きなものを5個までもらいな」': ['"Someone\'s bag is lying here — shards of a fallen adventurer. Search next to it and take up to 5."', '「有人的背包掉在這裡。是倒下冒險者的碎片。站在旁邊調查，最多拿5個喜歡的。」', '「누군가의 가방이 떨어져 있네. 쓰러진 모험가의 조각이야. 옆에서 조사해서 5개까지 가져가.」'],
+'「ボスだ。負けると盤面の欠片がぜんぶ消える。よく準備してから挑みな」': ['"The boss. Lose, and every shard on your board is gone. Prepare well before you challenge it."', '「是頭目。輸了盤面碎片會全部消失。做好準備再挑戰吧。」', '「보스다. 지면 판의 조각이 전부 사라져. 잘 준비하고 도전해.」'],
+'エンディング': ['Ending', '結局', '엔딩'], 'インテグラ・レイヤーの頂上に、みんなでたどり着いた。': ['Together, everyone reached the summit of the Integra Layer.', '大家一起抵達了整合層的頂端。', '모두 함께 인테그라 레이어의 정상에 도달했다.'],
+'各階を最初に越えた人たち': ['First to clear each floor', '最先越過各層的人們', '각 층을 처음 넘은 사람들'], 'ありがとう': ['Thank you', '謝謝', '고마워'],
+'音楽：魔王魂　絵と効果音：Kenney': ['Music: Maou-Damashii   Art & SFX: Kenney', '音樂：魔王魂　圖像與音效：Kenney', '음악: 마왕혼　그림과 효과음: Kenney'],
+'音楽：魔王魂': ['Music: Maou-Damashii', '音樂：魔王魂', '음악: 마왕혼'],
+'🍆 応援する': ['🍆 Support', '🍆 支持', '🍆 응원하기'], '⚙ 設定': ['⚙ Settings', '⚙ 設定', '⚙ 설정'], '無名': ['Nameless', '無名', '무명'],
+'スマホを': ['Turn your phone ', '請將手機', '스마트폰을 '], '横向き': ['sideways', '橫向', '가로로'], 'にして遊んでね': [' to play', '再遊玩', ' 해서 즐겨줘'],
+'画面の向きの固定（ロック）をはずしてから回してください': ['Turn off the rotation lock, then rotate.', '請先解除畫面方向鎖定再旋轉', '화면 방향 잠금을 풀고 돌려 주세요'],
 // ---- 種族（最後に1文字ずつ） ----
 '炎': ['Fire ', '炎', '불꽃'], '岩': ['Rock ', '岩', '바위'], '森': ['Forest ', '森', '숲'], '風': ['Wind ', '風', '바람'], '星': ['Star ', '星', '별'], '無': ['Neutral ', '無', '무'],
 '世界で最初に倒した！': ['First in the world!', '全世界第一個擊敗！', '세계 최초 격파!'], '𝕏 神技をつぶやく': ['𝕏 Share divine skill', '𝕏 分享神技', '𝕏 신기술 공유'], '𝕏 でつぶやく': ['𝕏 Share', '𝕏 分享', '𝕏 공유'], '配信中': ['LIVE', '直播中', '방송 중'], 'お知らせ': ['News', '公告', '공지'], '回復草で体力が ': ['Healing herb: HP +', '回復草恢復體力 ', '회복초로 체력이 '], '回復草をちぎって食べますか？（体力が30％回復）': ['Pick and eat the healing herb? (restores 30% HP)', '要摘下回復草吃掉嗎？（恢復30％體力）', '회복초를 뜯어 먹을까? (체력 30% 회복)'],
@@ -291,6 +344,7 @@ L.t = s => {
   out = out.replace(/(\d+)\s*階/g, L.lang === 'en' ? 'F$1' : L.lang === 'zh' ? '$1層' : '$1층');
   if (L.lang === 'en') out = out.replace(/(\d+)\s*個/g, '$1').replace(/(\d+)\s*枚/g, '$1').replace(/ {2,}/g, ' ').replace(/ ([)\]:,.!?])/g, '$1');
   if (L.lang === 'ko') out = out.replace(/(\d+)\s*個/g, '$1개').replace(/(\d+)\s*枚/g, '$1장');
+  if (L.lang !== 'zh') out = out.replace(/（/g, ' (').replace(/）/g, ')').replace(/、/g, ', ').replace(/。/g, '. ').replace(/　/g, '  ');
   out = out.replace(/(\d+)\s*秒/g, L.lang === 'en' ? '$1s' : L.lang === 'zh' ? '$1秒' : '$1초');
   return out;
 };

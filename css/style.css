@@ -118,3 +118,78 @@ select{background:var(--panel2);color:var(--ink);border:2px solid var(--line);bo
 @keyframes livep{50%{box-shadow:0 0 12px #d6455c}}
 .news{max-width:460px;margin:4px auto 8px;padding:6px 10px;border:1px solid var(--line);border-radius:8px;text-align:left;font-size:12px;background:rgba(0,0,0,.25)}
 .news b{color:var(--gold);margin-right:6px}
+
+/* ===== 見た目（v11） ===== */
+.win{border:16px solid transparent;border-image:url(../img/ui/frame.png) 32 / 16px stretch;border-radius:0;background:linear-gradient(180deg,#251e35,#1b1627);background-clip:padding-box;box-shadow:0 12px 50px rgba(0,0,0,.6);padding:14px 16px;image-rendering:pixelated}
+.btn{border-radius:4px;box-shadow:inset 0 -3px 0 rgba(0,0,0,.35),inset 0 2px 0 rgba(255,255,255,.06);transition:transform .06s,filter .1s}
+.btn:active:not(:disabled){transform:translateY(2px);box-shadow:inset 0 -1px 0 rgba(0,0,0,.35)}
+.btn.pri{background:linear-gradient(180deg,#6b52a8,#54408c)}
+.btn:hover:not(:disabled){filter:brightness(1.12)}
+.inp{padding:10px;border-radius:6px;border:2px solid var(--line);background:#0e0c14;color:var(--ink);font:inherit}
+/* タイトル */
+.title .logo{animation:logo 3.2s ease-in-out infinite;font-size:44px}
+@keyframes logo{50%{text-shadow:0 0 28px rgba(242,209,75,.7),0 0 4px #fff}}
+.ov:has(.title){background:rgba(10,8,16,.35)}
+.support,.credit{position:absolute;right:10px;font-size:12px;color:var(--mute);text-decoration:none;pointer-events:auto;background:rgba(20,17,28,.7);padding:4px 8px;border-radius:6px;border:1px solid var(--line)}
+.support{bottom:34px;color:#f0c8ff}.credit{bottom:8px}
+/* 欠片の紋章 */
+.part svg{width:52%;height:52%;fill:rgba(20,17,28,.78)}
+.part.r2::after{content:'';position:absolute;inset:-3px;border-radius:8px;background:linear-gradient(120deg,transparent 30%,rgba(255,255,255,.55) 50%,transparent 70%);background-size:250% 100%;animation:shine 2.4s linear infinite;pointer-events:none}
+@keyframes shine{0%{background-position:150% 0}100%{background-position:-100% 0}}
+.cell.lk .part{filter:drop-shadow(0 0 5px var(--c))}
+.cell .part{animation:pin .18s ease-out}
+@keyframes pin{0%{transform:scale(.6)}70%{transform:scale(1.08)}100%{transform:none}}
+/* バッグ */
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px;max-height:50vh;overflow:auto;padding:4px}
+.pcard{display:flex;gap:8px;align-items:center;background:var(--panel2);border:2px solid var(--line);border-radius:8px;padding:8px;cursor:pointer;--s:44px}
+.pcard.sel{border-color:var(--accent);background:#3e3260;box-shadow:0 0 12px rgba(242,209,75,.35)}
+.note{background:#0e0c14;border-left:4px solid var(--accent);padding:6px 10px;border-radius:4px}
+.bagdrop{display:flex;justify-content:center;height:72px}
+.bagdrop img{width:64px;height:64px;image-rendering:pixelated;animation:bagd .9s cubic-bezier(.3,1.6,.6,1) both}
+@keyframes bagd{0%{transform:translateY(-60px) rotate(-20deg);opacity:0}60%{opacity:1}100%{transform:none}}
+/* 戦い */
+.foe{position:relative;overflow:visible}
+.foe.hitfx canvas{animation:hitf .35s}
+@keyframes hitf{0%{filter:brightness(3);transform:translateX(-6px)}40%{transform:translateX(5px)}100%{filter:none;transform:none}}
+.dmg{position:absolute;left:50%;top:30%;transform:translateX(-50%);font-size:26px;color:#fff;text-shadow:0 0 4px #000,0 2px 0 #000;pointer-events:none;animation:dmg .9s ease-out forwards;z-index:5;white-space:nowrap}
+.dmg.crit{color:var(--accent);font-size:32px}.dmg.me{color:#ff7a7a;top:-10px}.dmg.heal{color:#7dff9a}
+@keyframes dmg{0%{opacity:0;transform:translate(-50%,10px) scale(.6)}15%{opacity:1;transform:translate(-50%,-6px) scale(1.15)}100%{opacity:0;transform:translate(-50%,-40px)}}
+.sfx{position:absolute;left:50%;top:45%;width:180px;height:180px;margin:-90px 0 0 -90px;background:var(--c);-webkit-mask:var(--m) center/contain no-repeat;mask:var(--m) center/contain no-repeat;pointer-events:none;z-index:4;animation:sfx .6s ease-out forwards;mix-blend-mode:screen}
+@keyframes sfx{0%{opacity:0;transform:scale(.3) rotate(-30deg)}30%{opacity:1}100%{opacity:0;transform:scale(1.5) rotate(20deg)}}
+.battle{background:radial-gradient(ellipse at 50% 20%,var(--bb,#2a2140),#140f1d 70%) padding-box}
+/* 案内 */
+#tut{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);z-index:50;width:min(640px,94vw);pointer-events:auto}
+#tut[hidden]{display:none}
+.tbox{display:grid;grid-template-columns:auto 1fr;gap:6px 12px;align-items:center;background:rgba(24,19,34,.96);border:16px solid transparent;border-image:url(../img/ui/frame.png) 32 / 16px stretch;padding:8px 10px;animation:tin2 .25s}
+.tface canvas{image-rendering:pixelated;display:block;grid-row:span 2}
+.ttext{font-size:15px;line-height:1.7}
+.tbtn{grid-column:2;display:flex;gap:8px;justify-content:flex-end}
+@keyframes tin2{0%{opacity:0;transform:translateY(12px)}}
+/* 設定 */
+.setrow{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
+.setrow .btn{margin-left:4px}
+.range{width:55%;accent-color:var(--accent)}
+/* エンディング */
+.ending{position:absolute;inset:0;background:#05040a;overflow:hidden;display:flex;justify-content:center}
+.roll{position:absolute;top:100%;width:min(560px,92vw);text-align:center;animation:roll 70s linear forwards}
+.roll.still{position:static;animation:none;overflow:auto;max-height:100%;padding:30px 0}
+@keyframes roll{to{transform:translateY(calc(-100% - 100vh))}}
+.crt{font-size:40px;color:var(--accent);letter-spacing:.1em;margin:30px 0 10px}
+.crs{color:#d8cfe8;margin-bottom:30px}
+.ending h3{font-weight:400;color:var(--accent);margin:30px 0 14px}
+.cr{display:flex;gap:12px;justify-content:center;padding:4px 0;font-size:16px}.crf{color:var(--mute);min-width:56px;text-align:right}.crn{text-align:left;min-width:200px}
+.skipend{position:absolute;right:12px;top:12px}
+/* 横向きの案内 */
+#rotate{display:none;position:fixed;inset:0;z-index:100;background:#0d0a14;color:var(--ink);flex-direction:column;align-items:center;justify-content:center;gap:18px;text-align:center;padding:20px}
+#rotate .ph{width:56px;height:96px;border:4px solid var(--accent);border-radius:10px;position:relative;animation:rot 2s ease-in-out infinite}
+#rotate .ph::after{content:'';position:absolute;left:50%;bottom:6px;width:10px;height:4px;margin-left:-5px;border-radius:2px;background:var(--accent)}
+@keyframes rot{0%,20%{transform:rotate(0)}60%,100%{transform:rotate(-90deg)}}
+@media (orientation:portrait) and (max-width:820px){#rotate{display:flex}}
+/* 少なめの演出 */
+body.lowfx .dmg,body.lowfx .sfx{animation-duration:.01s}body.lowfx .title .logo,body.lowfx .part.r2::after{animation:none}
+body.noshake .shake,body.noshake .foe.hitfx canvas{animation:none}
+.part{flex:none}
+.title .menu{gap:8px;margin-top:14px}.title .menu .btn{font-size:17px;min-height:42px;padding:8px 14px}
+.roll{top:0;padding-top:45vh;animation:roll2 75s linear forwards}
+@keyframes roll2{to{transform:translateY(-100%)}}
+.roll.still{padding-top:20px}
