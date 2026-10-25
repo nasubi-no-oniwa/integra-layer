@@ -154,6 +154,7 @@ function title() {
       ${DEV ? '<button class="btn sm warn" data-a="devreset">【開発用】データをリセット</button>' : ''}
       <p class="small mute">${Net.on ? 'オンライン　<span class="nt">' + esc(opt.name || '名無し') + '</span>' : 'オフライン（この端末だけ）'}</p>
     </div></div>
+    ${IOS && !STANDALONE ? '<p class="small mute iosh">📱 Safariの「共有」→「ホーム画面に追加」から開くと、上の帯なしの全画面で遊べます</p>' : ''}
     <a class="support" href="https://ofuse.me/001a3b99" target="_blank" rel="noopener">🍆 応援する</a>
     <a class="credit" href="https://maou.audio/" target="_blank" rel="noopener">音楽：魔王魂</a>`);
   drawTitleBg();
@@ -323,7 +324,7 @@ function resize() {
   cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
   const sc = Math.max(2, Math.min(4, Math.floor(Math.min(W / (16 * 22), H / (16 * 13)))));
   TS = 16 * sc * dpr; g.imageSmoothingEnabled = false;
-  const k = W < 700 ? 1 : 1.4; mini.width = 150; mini.height = 100; mini.style.width = Math.round(150 * k) + 'px'; mini.style.height = Math.round(100 * k) + 'px';
+  const k = W < 900 || H < 500 ? 0.8 : 1.2; mini.width = 150; mini.height = 100; mini.style.width = Math.round(150 * k) + 'px'; mini.style.height = Math.round(100 * k) + 'px';
   dirty = true;
 }
 addEventListener('resize', resize);
@@ -393,12 +394,12 @@ function render(now) {
   if (!fxLow()) dirty = true;
   drawMini(fl, bits);
 }
-function tileColor(v, i) { const T = IL.T; return v === T.BOSS ? '#7a2030' : v === T.GATE ? '#e8553f' : v === T.SAFE ? '#4fd17a' : v === T.PED ? (run.opened[i] ? '#555' : '#f2d14b') : '#5c5470'; }
+function tileColor(v, i) { const T = IL.T; return v === T.BOSS ? '#b03048' : v === T.GATE ? '#ff6a4d' : v === T.SAFE ? '#4fd17a' : v === T.PED ? (run.opened[i] ? '#666' : '#f2d14b') : '#9a8fc0'; }
 let miniKey = '';
 function drawMini(fl, bits) { // 自分のまわりだけ（タップで全体）
-  const k = 2, vw = mini.width / k, vh = mini.height / k, ox = Math.round(run.x - vw / 2), oy = Math.round(run.y - vh / 2);
+  const k = 3, vw = mini.width / k, vh = mini.height / k, ox = Math.round(run.x - vw / 2), oy = Math.round(run.y - vh / 2);
   const key = run.floor + ':' + run.x + ':' + run.y + ':' + ui.bags.length; if (key === miniKey) return; miniKey = key;
-  mg.clearRect(0, 0, mini.width, mini.height);
+  mg.fillStyle = 'rgba(10,8,16,.75)'; mg.fillRect(0, 0, mini.width, mini.height);
   for (let y = 0; y < vh; y++) for (let x = 0; x < vw; x++) { const tx = ox + x, ty = oy + y; if (tx < 0 || ty < 0 || tx >= fl.W || ty >= fl.H) continue; const i = ty * fl.W + tx; if (!bits[i]) continue; const v = fl.t[i]; if (v === IL.T.WALL) continue; mg.fillStyle = tileColor(v, i); mg.fillRect(x * k, y * k, k, k); }
   const op = pr.bagsOpen || {}; mg.fillStyle = '#ffb347'; for (const b of ui.bags) if (!op[b.id] && bits[b.y * fl.W + b.x]) { const x = (b.x - ox) * k, y = (b.y - oy) * k; if (x >= 0 && y >= 0 && x < mini.width && y < mini.height) mg.fillRect(x - 1, y - 1, k + 2, k + 2); }
   mg.fillStyle = '#fff'; mg.fillRect((run.x - ox) * k - 1, (run.y - oy) * k - 1, k + 2, k + 2);
@@ -438,7 +439,7 @@ function interact() {
   X(['it']); afterAct();
   if (!run.prompt && !run.battle && b) toast('このバッグはもう開けた');
 }
-cv.addEventListener('click', e => { // 画面の回復草をタップ
+cv.addEventListener('pointerup', e => { // 画面の回復草・バッグをタップ
   if (!run || ui.scr || run.battle || run.prompt || run.over || !ui.cam) return;
   const r = cv.getBoundingClientRect(), x = Math.floor(((e.clientX - r.left) * cv.width / r.width - ui.cam.cx) / ui.cam.TS), y = Math.floor(((e.clientY - r.top) * cv.height / r.height - ui.cam.cy) / ui.cam.TS);
   const fl = IL.genFloor(run.floor), i = y * fl.W + x;
@@ -795,7 +796,13 @@ function endGiveUp() { // あきらめる：ふつうに倒れたのと同じ
   show(`<div class="win" style="max-width:460px"><h2>あきらめた</h2>${lost.length ? '<div class="bagdrop"><img src="' + BAG.toDataURL() + '" alt=""></div>' : ''}<p>盤面の欠片をこの場所に落とした。</p>${lost.length ? '<div class="lootlist">' + lost.map(p => partHTML(p)).join('') + '</div>' : ''}<button class="btn pri" data-a="dead">タイトルへ</button></div>`);
 }
 document.addEventListener('change', e => { const s = e.target.closest('select[data-f]'); if (!s) return; ui.filt[s.dataset.f] = s.value; boardScreen(); });
-$('#mini').addEventListener('click', () => { if (run && !ui.scr) fullMap(); });
+$('#mini').addEventListener('pointerup', () => { if (run && !ui.scr) fullMap(); });
+/* スマホ：長押しの拡大鏡・メニューを出さない／全画面 */
+['#view', '#pad', '#hud'].forEach(q => $(q).addEventListener('touchstart', e => { if (!e.target.closest('input,select,textarea,a')) e.preventDefault(); }, { passive: false }));
+addEventListener('contextmenu', e => e.preventDefault());
+const IOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const STANDALONE = matchMedia('(display-mode: fullscreen), (display-mode: standalone)').matches || navigator.standalone;
+addEventListener('pointerdown', () => { if (IOS || STANDALONE || document.fullscreenElement || !matchMedia('(pointer:coarse)').matches) return; const el = document.documentElement; (el.requestFullscreen || el.webkitRequestFullscreen || (() => {})).call(el).catch?.(() => {}); }, { capture: true });
 
 /* ---------- キーとパッド ---------- */
 const KEYDIR = { ArrowUp: 0, KeyW: 0, ArrowRight: 1, KeyD: 1, ArrowDown: 2, KeyS: 2, ArrowLeft: 3, KeyA: 3 };

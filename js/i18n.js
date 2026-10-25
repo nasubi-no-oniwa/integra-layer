@@ -264,6 +264,8 @@ const D = {
 '星屑': ['Stardust', '星屑', '별가루'], '流星': ['Meteor', '流星', '유성'], '彗星': ['Comet', '彗星', '혜성'], '星雲': ['Nebula', '星雲', '성운'], '銀河': ['Galaxy', '銀河', '은하'], '超新星': ['Supernova', '超新星', '초신성'], '宇宙開闢': ['Big Bang', '宇宙開闢', '우주개벽'],
 
 // ---- v11 で増えた文字 ----
+'📱 Safariの「共有」→「ホーム画面に追加」から開くと、上の帯なしの全画面で遊べます': ['📱 In Safari, tap Share → "Add to Home Screen" to play in full screen without the browser bar', '📱 在Safari點「分享」→「加入主畫面」，就能全螢幕遊玩', '📱 Safari의 「공유」→「홈 화면에 추가」로 열면 전체 화면으로 즐길 수 있어요'],
+
 '「同じ種族の凸と凹が向き合うと欠片がつながる。つながるほど強くなるし、2つつながれば技が使えるよ。別の種族とはつながらないから気をつけな」': ['"When a bump meets a notch of the same kind, shards link. More links make you stronger, and 2 linked unlock a skill. Different kinds won\'t link, so watch out."', '「同種族的凸與凹相對時碎片會相連。連得越多越強，2個相連就能使用技能。不同種族不會相連，要注意喔。」', '「같은 종족의 볼록과 오목이 마주하면 조각이 이어져. 많이 이을수록 강해지고, 2개가 이어지면 기술을 쓸 수 있어. 다른 종족과는 안 이어지니 조심해.」'],
 
 '・同じ種族どうしの凸と凹だけがつながる（別の種族とはつながらない。万能はどの種族ともつながる）。たくさんつながるほど能力が上がり、2個以上つながると技が使える（25個で「神」）。': ['• Only shards of the same kind link bump-to-notch (different kinds never link; Joker links with any kind). More links = higher stats; link 2+ to unlock a skill (25 = "Divine").', '・只有同種族的凸與凹會相連（不同種族不相連，萬能可與任何種族相連）。相連越多能力越高，2個以上相連就能使用技能（25個為「神」）。', '・같은 종족끼리의 볼록과 오목만 이어진다 (다른 종족과는 이어지지 않음. 만능은 어떤 종족과도 이어진다). 많이 이어질수록 능력이 오르고, 2개 이상 이어지면 기술 사용 가능 (25개로 「신」).'],

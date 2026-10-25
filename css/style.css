@@ -210,3 +210,16 @@ body.noshake .shake,body.noshake .foe.hitfx canvas{animation:none}
 .front{max-width:460px;margin:4px auto 6px;padding:6px 10px;border:2px solid #8a6d2a;border-radius:8px;background:linear-gradient(90deg,rgba(242,209,75,.12),rgba(242,209,75,.03));font-size:13px}
 .front b{color:var(--accent);font-size:16px}
 .online{font-size:13px;color:#9be8a8;margin:2px 0 6px}.online b{color:#c8ffd2;font-size:15px}
+/* スマホ（横向き）を見やすく */
+html,body,*{-webkit-touch-callout:none}
+#view,#pad,#hud{touch-action:none}
+.hud-bar{height:18px;display:flex;align-items:center}.hud-bar span{line-height:18px;font-size:12px;white-space:nowrap}
+.iosh{max-width:420px;margin:8px auto 0;font-size:12px}
+@media (max-height:500px){
+  #mini{border-width:1px}
+  .hud-r{min-width:140px;padding:4px 8px}.hud-floor b{font-size:17px}.hud-floor small{font-size:11px}.hud-small{font-size:11px}
+  .dpad{width:120px;height:120px}.dpad button{width:40px;height:40px;font-size:14px;border-radius:8px}
+  .dpad .up{left:40px}.dpad .down{left:40px}.dpad .left{top:40px}.dpad .right{top:40px}
+  .abtn{gap:8px}.abtn button{width:44px;height:44px;font-size:16px}.abtn .big{width:64px;height:64px;font-size:13px}
+  #pad{padding:0 10px max(8px,env(safe-area-inset-bottom)) max(10px,env(safe-area-inset-left))}
+}
