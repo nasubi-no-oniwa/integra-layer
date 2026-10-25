@@ -209,3 +209,4 @@ body.noshake .shake,body.noshake .foe.hitfx canvas{animation:none}
 @media (max-width:640px){.board{--s:48px;--g:6px}}
 .front{max-width:460px;margin:4px auto 6px;padding:6px 10px;border:2px solid #8a6d2a;border-radius:8px;background:linear-gradient(90deg,rgba(242,209,75,.12),rgba(242,209,75,.03));font-size:13px}
 .front b{color:var(--accent);font-size:16px}
+.online{font-size:13px;color:#9be8a8;margin:2px 0 6px}.online b{color:#c8ffd2;font-size:15px}

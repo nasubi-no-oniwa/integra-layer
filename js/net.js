@@ -115,6 +115,11 @@ Net.liveWatch = (floor, x, y, cb) => { // 自分のいる区画とまわり8区�
   }
   Net.liveKey = floor + ':' + cx + '_' + cy;
 };
+/* いま遊んでいる人（3分以内に合図があった人を数える） */
+let onRef = null;
+let onLast = { f: -1, t: 0 };
+Net.presence = floor => { if (!ldb) return; const nw = Date.now(); if ((floor | 0) === onLast.f && nw - onLast.t < 50000) return; onLast = { f: floor | 0, t: nw }; try { if (!onRef) { onRef = ldb.ref('on/' + Net.luid); onRef.onDisconnect().remove(); } onRef.set({ t: firebase.database.ServerValue.TIMESTAMP, f: floor | 0 }).catch(() => {}); } catch (e) {} };
+Net.watchOnline = cb => { if (!ldb) return; ldb.ref('on').on('value', s => { const v = s.val() || {}, now = Net.now(); let n = 0, inT = 0; for (const k in v) if (now - (v[k].t || 0) < 180000) { n++; if (v[k].f) inT++; } cb(n, inT); }); };
 Net.liveStop = () => { liveSubs.forEach(f => f()); liveSubs = []; Net.liveKey = null; };
 Net.liveLeave = () => { Net.liveStop(); if (liveRef) { liveRef.remove().catch(() => {}); liveRef = null; } };
 })();

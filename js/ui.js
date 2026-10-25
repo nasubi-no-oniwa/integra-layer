@@ -129,6 +129,7 @@ function shareX(kind, f, name) {
 function infoHTML() {
   let h = ''; const st = ui.stream;
   if (st && st.on) h += `<a class="stream" href="${/^https?:\/\//.test(st.url || '') ? esc(st.url) : '#'}" target="_blank" rel="noopener">🔴 配信中${st.txt ? '　<span class="nt">' + esc(st.txt) + '</span>' : ''}</a>`;
+  if (ui.online) h += `<div class="online">● いま <b>${ui.online}</b> 人が遊んでいます${ui.onlineIn ? '（塔の中に ' + ui.onlineIn + ' 人）' : ''}</div>`;
   const fs = ui.firsts || {}, top = Math.max(0, ...Object.keys(fs).map(Number).filter(f => fs[f] && !fs[f].ng));
   if (top) { const v = fs[top], co = Object.values(v.co || {}).length; h += `<div class="front">🏆 最前線　<b>${top}階</b>のボスを <span class="nt">${esc(v.n || '無名')}</span>${co ? ' ＋' + co : ''}が初めて倒した <span class="mute small">（${ago(v.t)}）</span></div>`; }
   const nw = ui.news || {}; const ids = Object.keys(nw).sort((a, b) => (nw[b].t || 0) - (nw[a].t || 0)).slice(0, 3);
@@ -136,7 +137,7 @@ function infoHTML() {
   return h;
 }
 function title() {
-  if (S.run && S.run.over) S.run = null; run = S.run; ui.scr = 'title'; $('#hud').hidden = true; $('#pad').hidden = true; save(); drawIdle();
+  if (S.run && S.run.over) S.run = null; run = S.run; ui.scr = 'title'; if (Net.on) Net.presence(0); $('#hud').hidden = true; $('#pad').hidden = true; save(); drawIdle();
   const st = IL.playerStats(pr);
   show(`<div class="win title">
     <div class="logo">INTEGRA LAYER<small>インテグラ・レイヤー</small></div>
@@ -327,7 +328,7 @@ function resize() {
   dirty = true;
 }
 addEventListener('resize', resize);
-function enterRun(r) { run = r; ui.scr = null; ui.ghosts = []; miniKey = ''; watchLive(true); hideScreen(); $('#hud').hidden = false; $('#pad').hidden = false; dirty = true; hud(); save(); tut('start'); }
+function enterRun(r) { run = r; Net.presence(r.floor); ui.scr = null; ui.ghosts = []; miniKey = ''; watchLive(true); hideScreen(); $('#hud').hidden = false; $('#pad').hidden = false; dirty = true; hud(); save(); tut('start'); }
 function hud() {
   if (!run) return; const st = IL.playerStats(pr);
   $('#h-floor').textContent = run.floor; $('#h-biome').textContent = IL.biomeOf(run.floor).name;
@@ -842,7 +843,9 @@ async function boot() {
   let pid = null; try { pid = localStorage.getItem('il_pid'); } catch (e) {}
   if (!pid) { pid = Net.uid || ('local-' + Math.random().toString(36).slice(2, 12)); try { localStorage.setItem('il_pid', pid); } catch (e) {} }
   Net.pid = pid; loadState(pid);
-  if (Net.on) { Net.watchHidden(h => { ui.hidden = h; if (ui.scr === 'plaza') drawBoard(); }); Net.watchInfo((k, v) => { ui[k] = v; if (ui.scr === 'title') title(); }); Net.watchFirsts(onFirsts); collectSales(); setInterval(() => { flushJournal(); }, 60000); }
+  if (Net.on) { Net.watchHidden(h => { ui.hidden = h; if (ui.scr === 'plaza') drawBoard(); }); Net.watchInfo((k, v) => { ui[k] = v; if (ui.scr === 'title') title(); }); Net.watchFirsts(onFirsts);
+    const beat = () => Net.presence(run && !run.over ? run.floor : 0); beat(); setInterval(beat, 60000);
+    Net.watchOnline((n, inT) => { const ch = n !== ui.online || inT !== ui.onlineIn; ui.online = n; ui.onlineIn = inT; if (ch && ui.scr === 'title') { const el = document.querySelector('.online'); if (el) el.outerHTML = `<div class="online">● いま <b>${n}</b> 人が遊んでいます${inT ? '（塔の中に ' + inT + ' 人）' : ''}</div>`; else title(); } }); collectSales(); setInterval(() => { flushJournal(); }, 60000); }
   const go = () => { dirty = true; if (run && !run.over) { enterRun(run); fetchDrops(); if (run.battle) battle(); else if (run.prompt) prompt(); } else title(); };
   if (sheet.complete && sheet.naturalWidth) go(); else sheet.onload = go;
 }

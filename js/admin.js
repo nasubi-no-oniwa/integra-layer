@@ -19,6 +19,8 @@ async function init() {
     : `<p class="ng">まだ管理者ではありません。</p><p>あなたのID：<code>${esc(uid)}</code></p>
        <p class="mute">Firebase コンソール →「Realtime Database」→「データ」で、いちばん上の行の「＋」を押し、<br>キーに <b>admins</b> を入れ、その中に キー＝上のID、値＝<b>true</b> を追加してから、このページを読みなおしてください。<br>（ゲームを遊ぶのと同じブラウザでこのページを開くと、ゲームの自分と同じIDになります）</p>`;
   if (!isAdmin) return;
+  try { const la = firebase.initializeApp(CFG.live, 'live'); await la.auth().signInAnonymously(); la.database().ref('on').on('value', s => { const v = s.val() || {}, now = Date.now(); let n = 0, inT = 0; const fl = {}; for (const k in v) if (now - (v[k].t || 0) < 180000) { n++; if (v[k].f) { inT++; fl[v[k].f] = (fl[v[k].f] || 0) + 1; } }
+    $('#online').innerHTML = `いま遊んでいる人：<b>${n}人</b>（塔の中 ${inT}人）` + (inT ? '<br><span class="mute">' + Object.keys(fl).sort((a, b) => b - a).map(f => f + '階 ' + fl[f] + '人').join('　') + '</span>' : ''); }); } catch (e) {}
   watchStream(); watchNews(); await loadPlayers(); loadFirsts(); watchBoard(); stat();
 }
 

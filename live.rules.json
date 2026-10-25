@@ -12,6 +12,13 @@
           }
         }
       }
+    },
+    "on": {
+      ".read": "auth != null",
+      "$u": {
+        ".write": "auth != null && auth.uid === $u",
+        ".validate": "!newData.exists() || (newData.child('t').val() === now && newData.child('f').isNumber())"
+      }
     }
   }
 }
