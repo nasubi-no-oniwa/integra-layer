@@ -650,12 +650,25 @@ function drawParticles(now, cx, cy, fl, bits, bi, x0, y0, x1, y1) {
   g.restore();
 }
 let miniKey = '';
+/* 地図の目印：ボス部屋・行商人（その場所が地図に描けているときだけ） */
+function mapMarks(fl, bits) {
+  const out = [], T = IL.T; let gate = -1;
+  for (let i = 0; i < fl.t.length; i++) if (fl.t[i] === T.GATE && bits[i]) { gate = i; break; }
+  const bc = IL.bossCenter(fl); if (!run.bossDown && (bits[bc] || gate >= 0)) out.push({ i: bits[bc] ? bc : gate, c: '255,70,90', kind: 'boss' });
+  if (run.merchant) { const mi = run.merchant.y * fl.W + run.merchant.x; if (bits[mi]) out.push({ i: mi, c: '255,210,80', kind: 'shop' }); }
+  return out;
+}
 function drawMini(fl, bits) { // 自分のまわりだけ（タップで全体）
   const k = 3, vw = mini.width / k, vh = mini.height / k, ox = Math.round(run.x - vw / 2), oy = Math.round(run.y - vh / 2);
-  const key = run.floor + ':' + run.x + ':' + run.y + ':' + ui.bags.length; if (key === miniKey) return; miniKey = key;
+  const marks = mapMarks(fl, bits), key = run.floor + ':' + run.x + ':' + run.y + ':' + ui.bags.length + (marks.length ? ':' + Math.floor(performance.now() / 90) : ''); if (key === miniKey) return; miniKey = key;
   mg.fillStyle = 'rgba(10,8,16,.75)'; mg.fillRect(0, 0, mini.width, mini.height);
   for (let y = 0; y < vh; y++) for (let x = 0; x < vw; x++) { const tx = ox + x, ty = oy + y; if (tx < 0 || ty < 0 || tx >= fl.W || ty >= fl.H) continue; const i = ty * fl.W + tx; if (!bits[i]) continue; const v = fl.t[i]; if (v === IL.T.WALL) continue; mg.fillStyle = tileColor(v, i); mg.fillRect(x * k, y * k, k, k); }
   const op = pr.bagsOpen || {}; mg.fillStyle = '#ffb347'; for (const b of ui.bags) if (!op[b.id] && bits[b.y * fl.W + b.x]) { const x = (b.x - ox) * k, y = (b.y - oy) * k; if (x >= 0 && y >= 0 && x < mini.width && y < mini.height) mg.fillRect(x - 1, y - 1, k + 2, k + 2); }
+  const ph = 0.5 + 0.5 * Math.sin(performance.now() / 260);
+  for (const m of marks) { let x = (m.i % fl.W - ox) * k + k / 2, y = (((m.i / fl.W) | 0) - oy) * k + k / 2;
+    const off = x < 0 || y < 0 || x > mini.width || y > mini.height; x = Math.max(4, Math.min(mini.width - 4, x)); y = Math.max(4, Math.min(mini.height - 4, y)); // 枠の外なら、その方向のふちに出す
+    const r = (off ? 4 : 6) + ph * 4, g = mg.createRadialGradient(x, y, 0, x, y, r + 4); g.addColorStop(0, `rgba(${m.c},.95)`); g.addColorStop(0.45, `rgba(${m.c},.5)`); g.addColorStop(1, `rgba(${m.c},0)`);
+    mg.fillStyle = g; mg.fillRect(x - r - 4, y - r - 4, (r + 4) * 2, (r + 4) * 2); mg.fillStyle = `rgb(${m.c})`; mg.fillRect(x - 2, y - 2, 4, 4); }
   mg.fillStyle = '#fff'; mg.fillRect((run.x - ox) * k - 1, (run.y - oy) * k - 1, k + 2, k + 2);
 }
 function fullMap() {
@@ -666,7 +679,8 @@ function fullMap() {
   const op = pr.bagsOpen || {}; m.fillStyle = '#ffb347'; for (const b of ui.bags) if (!op[b.id] && bits[b.y * fl.W + b.x]) m.fillRect(b.x * k - 2, b.y * k - 2, k + 4, k + 4);
   m.fillStyle = '#fff'; m.fillRect(run.x * k - 3, run.y * k - 3, k + 6, k + 6);
   ui.scr = 'map';
-  show(`<div class="win"><button class="btn sm close" data-a="back">とじる</button><h2>${run.floor}階の地図（${Math.round(100 * n / tot)}％）</h2><img class="mapfull" src="${c.toDataURL()}"><p class="small mute">赤＝ボス部屋の入口（中のボスに触れると戦う）　緑＝安全地帯　黄＝まだ開けていない台座　橙＝落ちているバッグ</p></div>`);
+  const mk = mapMarks(fl, bits).map(m => `<i class="mglow ${m.kind}" style="left:${(100 * ((m.i % fl.W) + 0.5) / fl.W).toFixed(2)}%;top:${(100 * (((m.i / fl.W) | 0) + 0.5) / fl.H).toFixed(2)}%"><b>${m.kind === 'boss' ? 'ボス' : '行商人'}</b></i>`).join('');
+  show(`<div class="win"><button class="btn sm close" data-a="back">とじる</button><h2>${run.floor}階の地図（${Math.round(100 * n / tot)}％）</h2><div class="mapwrap"><img class="mapfull" src="${c.toDataURL()}">${mk}</div><p class="small mute">光る赤＝ボス部屋　光る金＝行商人　赤＝ボス部屋の入口（中のボスに触れると戦う）　緑＝安全地帯　黄＝まだ開けていない台座　橙＝落ちているバッグ</p></div>`);
 }
 function afterAct() {
   // できごと

@@ -380,3 +380,8 @@ body.dragging,body.dragging *{cursor:grabbing!important;user-select:none}
   .guard{gap:8px}.guard .sw{width:34px;height:19px}.guard .sw i{width:13px;height:13px}.guard.on .sw i{left:18px}.guard small{font-size:10px}
   .total{font-size:12px}.total b{font-size:15px}
 }
+.mapwrap{position:relative;width:fit-content;max-width:100%;margin:0 auto}.mapwrap .mapfull{margin:0}
+.mglow{position:absolute;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;pointer-events:none;animation:mglow 1.1s ease-in-out infinite}
+.mglow.boss{background:#ff4a5a;box-shadow:0 0 10px 4px rgba(255,70,90,.8)}.mglow.shop{background:#ffd250;box-shadow:0 0 10px 4px rgba(255,210,80,.8)}
+.mglow b{position:absolute;left:50%;top:-20px;transform:translateX(-50%);font-size:11px;white-space:nowrap;color:#fff;text-shadow:0 0 3px #000,0 1px 2px #000}
+@keyframes mglow{50%{transform:scale(1.6);opacity:.75}}
