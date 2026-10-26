@@ -543,14 +543,39 @@ async function doEntrust() {
   show(`<div class="win" style="max-width:520px"><h2>欠片を託した</h2><div class="bagdrop"><img src="${BAG.toDataURL()}" alt=""></div><p>${loc} にバッグを置いた。だれかが見つけてくれるはず。</p>
     <div class="row"><button class="btn" data-a="copyloc" data-loc="${esc(loc + 'にバッグを置きました' + (note ? '「' + note + '」' : ''))}">場所をコピー</button><button class="btn" data-a="locpost" data-loc="${esc(loc + 'にバッグを置きました' + (note ? '「' + note + '」' : ''))}">掲示板に書く</button><button class="btn pri" data-a="dead">タイトルへ</button></div></div>`);
 }
+/* ボス部屋の前：ボスの情報と見通し（表示だけ。ルールには関係しない） */
+function bossCard() {
+  const f = run.floor, e = IL.makeEnemy(f, IL.bossType(f), f % 5 === 0 ? 2 : 1, null), st = IL.playerStats(pr);
+  const spn = sp => sp ? `<b style="color:${IL.SP_COLOR[sp]}">${IL.SP_NAME[sp]}</b>` : '—';
+  let best = null;
+  for (const sp of IL.SPECIES) { const sk = st.skills[sp]; if (!sk) continue; let m = IL.B.tierPct[sk.tier] * IL.B.coef[sp], note = '';
+    if (sp !== 'star' && e.weak === sp) { m *= 2; note = '弱点'; } else if (sp !== 'star' && e.res === sp) { m *= 0.5; note = '半減'; }
+    if (!best || m > best.m) best = { m, nm: IL.SKILLS[sp][sk.tier], note, sp }; }
+  const hitN = m => Math.max(1, Math.ceil(e.hp / Math.max(1, IL.dmgCalc(st.atk, m, e.def))));
+  const take = Math.max(1, Math.round(IL.dmgCalc(e.atk, 1, st.def))), endure = Math.max(1, Math.ceil(run.hp / take));
+  const first = st.spd >= e.spd ? 'あなた' : 'ボス';
+  const atkN = hitN(1), skN = best ? hitN(best.m) : null;
+  const tough = (skN || atkN) >= endure;
+  return `<div class="bossinfo"><div class="spr" data-tile="${e.tile}" data-big="1"></div><div>
+    <div class="bn">${esc(e.name)}${e.kind >= 2 ? ' <span class="small gold">大ボス</span>' : ''}</div>
+    <div class="bstats"><span>体力 <b>${e.hp}</b></span><span>攻撃 <b>${e.atk}</b></span><span>守り <b>${e.def}</b></span><span>素早さ <b>${e.spd}</b></span></div>
+    <div class="bstats"><span>弱点 ${spn(e.weak)}</span><span>半減 ${f <= 3 ? '—' : spn(e.res)}</span></div></div></div>
+    <div class="bplan small"><div>あなた：体力 ${run.hp} / ${st.hp}　攻撃 ${st.atk}　守り ${st.def}　素早さ ${st.spd}</div>
+    <div>・ふつうの攻撃なら 約${atkN}発${best ? `、いちばん効く技「${best.nm}」${best.note ? '（' + best.note + '）' : ''}なら 約${skN}発` : ''}で倒せる</div>
+    <div>・ボスの攻撃は1発 約${take}。今の体力で 約${endure}発 耐えられる</div>
+    <div>・先に動くのは <b>${first}</b></div>
+    <div class="${tough ? 'ng' : 'ok'}">${tough ? '⚠ このままだと厳しそう。盤面の付け替えや回復薬を考えよう' : 'いけそう。ただし会心や大技には注意'}</div>
+    <div class="mute">数字は目安（会心・やけど・大技などで変わる）</div></div>`;
+}
 /* ---------- 声かけ（ボス部屋・安全地帯・行商人） ---------- */
 function prompt() {
   const p = run.prompt; ui.scr = 'prompt';
   if (p.kind === 'gate') {
     const last = run.floor >= 100;
-    show(`<div class="win" style="max-width:460px"><h2>ボス</h2>${pr.cleared[run.floor]
+    show(`<div class="win" style="max-width:520px"><h2>ボス</h2>${bossCard()}${pr.cleared[run.floor]
       ? `<p>階段が開いています。階段を進みますか？ボスと戦いますか？</p><p class="small mute">ボスからしか出ない欠片や、レアな欠片がある。</p><div class="row">${last ? '' : '<button class="btn pri" data-a="stairs">階段を進む</button>'}<button class="btn warn" data-a="boss">ボスと戦う</button><button class="btn" data-a="cancel">やめる</button></div>`
       : `<p>ボスと戦いますか？　戦いが始まったら逃げられない。</p><p class="small mute">ボスはこの階の敵より格段に強い。負けると盤面の欠片がすべて消える。</p><div class="row"><button class="btn warn" data-a="boss">ボスと戦う</button><button class="btn" data-a="cancel">やめる</button></div>`}</div>`, 'clear');
+    document.querySelectorAll('.bossinfo .spr').forEach(d => d.appendChild(spriteCanvas(+d.dataset.tile, innerHeight < 520 ? 4 : 5, Math.min(9, Math.floor((run.floor - 1) / 10)))));
   } else if (p.kind === 'safe') {
     show(`<div class="win" style="max-width:460px"><h2>安全地帯</h2><p>ここから帰ることができる。帰れば、拾った欠片はすべて持ち帰れる。</p><div class="row"><button class="btn pri" data-a="return">帰る</button><button class="btn" data-a="cancel">続ける</button></div></div>`, 'clear');
   } else if (p.kind === 'merchant') {

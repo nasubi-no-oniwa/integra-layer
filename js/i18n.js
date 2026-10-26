@@ -4,6 +4,11 @@
 'use strict';
 // [英語, 繁体字中国語, 韓国語]
 const D = {
+'このままだと厳しそう。盤面の付け替えや回復薬を考えよう': ['This looks tough. Consider changing your board or using potions', '這樣可能很吃力。考慮更換盤面或使用回復藥', '이대로는 힘들어 보인다. 판 교체나 회복약을 생각하자'],
+'いけそう。ただし会心や大技には注意': ['Looks doable — but watch out for crits and big attacks', '應該可以。但要小心會心和大招', '해볼 만하다. 단, 회심과 큰 기술에 주의'],
+'数字は目安（会心・やけど・大技などで変わる）': ['Numbers are estimates (crits, burns and big attacks change them)', '數字僅供參考（會因會心、燒傷、大招而變）', '숫자는 대략치 (회심·화상·큰 기술로 달라짐)'],
+'今の体力で': ['with your current HP', '以目前體力', '지금 체력으로'], 'ボスの攻撃は1発': ['Boss hits for about', '頭目每擊約', '보스의 공격은 1회'], '耐えられる': ['hits survivable', '可承受', '버틸 수 있다'],
+'先に動くのは': ['Moves first:', '先行動的是', '먼저 움직이는 쪽'], 'ふつうの攻撃なら': ['Normal attacks:', '普通攻擊', '일반 공격이면'], 'いちばん効く技': ['best skill', '最有效的技能', '가장 효과적인 기술'], 'で倒せる': [' to defeat', '可擊倒', '로 쓰러뜨릴 수 있다'], '大ボス': ['Great Boss', '大頭目', '대보스'], 'あなた：': ['You:', '你：', '나:'], 'あなた': ['You', '你', '나'],
 'プリセット（今の盤面を保存して、すぐ切り替え）': ['Presets (save your board, switch instantly)', '預設（保存目前盤面，一鍵切換）', '프리셋 (지금 판을 저장하고 바로 전환)'],
 'なくなった欠片': ['missing shards', '已不在的碎片', '없어진 조각'], 'は空きのまま': [' left empty', '保持空位', '은 빈칸으로'],
 'に切り替えた': [' loaded', '已切換', '(으)로 전환했다'], 'に保存した': [' saved', '已保存', '에 저장했다'],
