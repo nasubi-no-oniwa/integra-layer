@@ -169,6 +169,7 @@ function title() {
     ${infoHTML()}
     <p class="story">倒れた誰かの欠片が、きみの盤面でつながる。\n全員で、100階の塔を上れ。</p>
     <div class="statline"><span>Lv ${pr.lv}</span><span>最前線 ${pr.maxFloor}階</span><span class="gold">${pr.gold} G</span><span>回復薬 ${pr.potions.length}</span><span>チケット ${pr.tickets}</span></div>
+    ${IL.tailwind(pr, S.gclear) > 1 ? `<div class="tailw">🍃 追い風：経験値 ×2.5（最前線 ${IL.frontOf(S.gclear)}階まで追いつこう）</div>` : ''}
     <div class="menu">
       <button class="btn pri" data-a="floors">塔に入る</button>
       <button class="btn" data-a="board">盤面とかばん</button>
@@ -643,7 +644,8 @@ function prompt() {
   const p = run.prompt; ui.scr = 'prompt';
   if (p.kind === 'gate') {
     const last = run.floor >= 100;
-    show(`<div class="win" style="max-width:520px"><h2>ボス</h2>${bossCard()}${pr.cleared[run.floor]
+    const askName = !opt.name && !(ui.firsts && ui.firsts[run.floor]) && !pr.cleared[run.floor];
+    show(`<div class="win" style="max-width:520px"><h2>ボス</h2>${bossCard()}${askName ? '<div class="askname"><p class="small">このボスはまだだれも倒していない。<b class="gold">最初に倒すと、名前が塔に刻まれる。</b>名前を入れておこう（あとで変えられない）</p><input id="bname" maxlength="12" placeholder="名前（12文字まで）"></div>' : ''}${pr.cleared[run.floor]
       ? `<p>階段が開いています。階段を進みますか？ボスと戦いますか？</p><p class="small mute">ボスからしか出ない欠片や、レアな欠片がある。</p><div class="row">${last ? '' : '<button class="btn pri" data-a="stairs">階段を進む</button>'}<button class="btn warn" data-a="boss">ボスと戦う</button><button class="btn" data-a="cancel">やめる</button></div>`
       : `<p>ボスと戦いますか？　戦いが始まったら逃げられない。</p><p class="small mute">ボスはこの階の敵より格段に強い。負けると盤面の欠片がすべて消える。</p><div class="row"><button class="btn warn" data-a="boss">ボスと戦う</button><button class="btn" data-a="cancel">やめる</button></div>`}</div>`, 'clear');
     document.querySelectorAll('.bossinfo .spr').forEach(d => d.appendChild(spriteCanvas(+d.dataset.tile, innerHeight < 520 ? 3 : 4, Math.min(9, Math.floor((run.floor - 1) / 10)), true)));
@@ -703,7 +705,7 @@ function battleResult() {
   if (bt.over === 'win') {
     const r = bt.reward; const parts = r.parts.map(p => partHTML(p)).join('');
     let extra = ''; if (bt.bossReward) { if (bt.bossReward.first) extra += `<p class="gold">初撃破ボーナス！</p><div class="lootlist">${bt.bossReward.first.map(p => partHTML(p)).join('')}</div>`; if (bt.bossReward.respec) extra += '<p>振りなおしの札を手に入れた</p>'; if (bt.bossReward.chest) extra += '<p class="gold">ボスの落とし物は、となりの宝箱に入っている。</p>'; }
-    return `<p>勝った！ 経験値 ${r.exp}・${r.gold} G${r.ups ? `<b class="gold">　レベルが ${pr.lv} に上がった！（ポイント+${r.ups * 3}）</b>` : ''}</p>${parts ? '<div class="lootlist">' + parts + '</div>' : ''}${extra}<div class="row"><button class="btn pri" data-a="bclose">続ける</button>${ui.godName ? '<button class="btn sm" data-a="sharegod">𝕏 神技をつぶやく</button>' : ''}${bt.kind === 'boss' ? '<button class="btn sm" data-a="sharex">𝕏 でつぶやく</button>' : ''}</div>`;
+    return `<p>勝った！ 経験値 ${r.exp}${r.tw > 1 ? '<span class="tw">（追い風×2.5）</span>' : ''}・${r.gold} G${r.ups ? `<b class="gold">　レベルが ${pr.lv} に上がった！（ポイント+${r.ups * 3}）</b>` : ''}</p>${parts ? '<div class="lootlist">' + parts + '</div>' : ''}${extra}<div class="row"><button class="btn pri" data-a="bclose">続ける</button>${ui.godName ? '<button class="btn sm" data-a="sharegod">𝕏 神技をつぶやく</button>' : ''}${bt.kind === 'boss' ? '<button class="btn sm" data-a="sharex">𝕏 でつぶやく</button>' : ''}</div>`;
   }
   if (bt.over === 'flee') return '<button class="btn pri" data-a="bclose">続ける</button>';
   if (bt.over === 'lose') {
@@ -941,7 +943,7 @@ document.addEventListener('click', async e => {
     case 'mapsell': return sellMap();
 
     case 'stairs': X(['stairs']); sfx('ok'); enterRun(run); return fetchDrops();
-    case 'boss': X(['boss']); return afterAct();
+    case 'boss': { const ni = $('#bname'); if (ni) { const v = (ni.value || '').trim().slice(0, 12); if (v && banned(v)) { toast('使えない言葉が入っています'); return; } if (v) { opt.name = v; saveOpt(); syncProfile(); } } X(['boss']); return afterAct(); }
     case 'cancel': X(['cancel']); hideScreen(); dirty = true; save(); return;
     case 'eat': X(['eat']); hideScreen(); sfx('ok', 0.4); return afterAct();
     case 'return': X(['leave']); sfx('win', 0.5); return endScreen();

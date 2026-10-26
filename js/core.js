@@ -4,7 +4,7 @@
 'use strict';
 const IL = {};
 IL.VER = 1;
-IL.ENGINE = '15'; // ルールの版（記録に書く。変えたら engine/ に前の版を残す）
+IL.ENGINE = '16'; // ルールの版（記録に書く。変えたら engine/ に前の版を残す）
 
 /* ---------- 乱数 ---------- */
 function hashStr(s) { let h = 2166136261 >>> 0; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
@@ -142,6 +142,10 @@ function boardArr(pr) { return pr.board.map(id => id == null ? null : pr.bag.fin
 IL.boardArr = boardArr;
 function playerStats(pr) { const b = baseStats(pr), an = analyzeBoard(boardArr(pr)); const o = {}; for (const k of IL.STATS) o[k] = b[k] + an.add[k]; o.skills = an.skills; return o; }
 IL.playerStats = playerStats; IL.baseStats = baseStats;
+/* 追い風（版16）：自分が倒したいちばん上の階が、みんなの最前線より5階以上下なら、経験値2.5倍 */
+IL.frontOf = gclear => { let m = 0; for (const f in gclear || {}) if (gclear[f]) m = Math.max(m, +f); return Math.min(100, m + 1); };
+IL.ownTop = pr => { let m = 0; for (const f in pr.cleared || {}) if (pr.cleared[f]) m = Math.max(m, +f); return Math.min(100, m + 1); };
+IL.tailwind = (pr, gclear) => IL.frontOf(gclear) - IL.ownTop(pr) >= 5 ? 2.5 : 1;
 function gainExp(pr, n) { let ups = 0; pr.exp += n; while (pr.lv < B.maxLv && pr.exp >= IL.NEED[pr.lv]) { pr.exp -= IL.NEED[pr.lv]; pr.lv++; pr.freePts += B.ptsPerLv; ups++; } if (pr.lv >= B.maxLv) pr.exp = 0; return ups; }
 IL.gainExp = gainExp;
 function newPart(pr, rng, o) { const p = makePart(rng, Object.assign({ id: pr.nextId++ }, o)); return p; }
@@ -461,8 +465,9 @@ function endBattle(pr, run) {
       for (const s of m.stock) { if (s.kind === 'potion') for (let i = 0; i < s.n; i++) pr.potions.push({ floor: s.floor }); else if (s.kind === 'ticket') pr.tickets += s.n; else if (s.kind === 'part') { const p = Object.assign({}, s.part, { id: pr.nextId++, src: 'shop' }); pr.bag.push(p); parts.push(p); } }
       m.stock = []; run.merchant = null;
     }
+    const tw = IL.tailwind(pr, run.gclear); if (tw > 1) exp = Math.round(exp * tw);
     pr.gold += gold; const ups = gainExp(pr, exp);
-    bt.reward = { exp, gold, parts, ups };
+    bt.reward = { exp, gold, parts, ups, tw };
     if (ups) { const st = playerStats(pr); run.hp = Math.min(st.hp, run.hp + Math.round(st.hp * 0.2)); }
   } else if (bt.over === 'flee') {
     const ids = new Set(bt.foes.map(f => f.uid)); for (const e of run.enemies) if (ids.has(e.uid)) e.cool = 4;
