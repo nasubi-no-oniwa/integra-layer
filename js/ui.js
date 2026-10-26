@@ -234,7 +234,7 @@ function help() {
 ・だれかのバッグは、となりで「調べる」と開ける。1つのバッグから5個まで、1回だけ拾える。中身は減らない。
 ・メニューの「欠片を託す」で、選んだ欠片をバッグに入れて、だれかのために置いていける（倒れるのと同じ）。
 ・行商人とは戦えるが、とても強い。負けるとかばんの中身が消える。
-・操作：矢印キー／WASDで移動、スペース／Zで調べる、Xでメニュー。スマホは十字キー（押したまま指をすべらせると向きが変わる）か、行きたい場所をタップするとそこまで歩く。<br>・「探索」ボタン（キーボードはE）で、まだ行っていない所へ自動で歩く。ふつうの敵は「おまかせ」で自動で戦う（設定で変えられる）。</p></div>`);
+・操作：矢印キー／WASDで移動、スペース／Zで調べる、Xでメニュー。スマホは画面のどこでも指をすべらせた向きへ歩く（ぷにコン。設定で十字キーにもできる）か、行きたい場所をタップするとそこまで歩く。<br>・「探索」ボタン（キーボードはE）で、まだ行っていない所へ自動で歩く。ふつうの敵は「おまかせ」で自動で戦う（設定で変えられる）。</p></div>`);
 }
 
 /* ---------- 設定 ---------- */
@@ -248,6 +248,7 @@ function settings(from) {
     <div class="setrow"><span>演出</span><span><button class="btn sm ${opt.fx !== 'low' ? 'pri' : ''}" data-a="fxn">標準</button><button class="btn sm ${opt.fx === 'low' ? 'pri' : ''}" data-a="fxl">少なめ</button></span></div>
     <div class="setrow"><span>画面のゆれ</span><span><button class="btn sm ${opt.shake !== false ? 'pri' : ''}" data-a="shk1">あり</button><button class="btn sm ${opt.shake === false ? 'pri' : ''}" data-a="shk0">なし</button></span></div>
     <div class="setrow"><span>ふつうの敵はおまかせで戦う</span><span><button class="btn sm ${opt.auto !== false ? 'pri' : ''}" data-a="auto1">する</button><button class="btn sm ${opt.auto === false ? 'pri' : ''}" data-a="auto0">しない</button></span></div>
+    <div class="setrow"><span>スマホの移動</span><span><button class="btn sm ${opt.ctrl !== 'dpad' ? 'pri' : ''}" data-a="ctrl0">ぷにコン</button><button class="btn sm ${opt.ctrl === 'dpad' ? 'pri' : ''}" data-a="ctrl1">十字キー</button></span></div>
     <div class="setrow"><span>戦闘の速さ</span><span><button class="btn sm ${opt.bspd !== 'fast' ? 'pri' : ''}" data-a="bsp0">ふつう</button><button class="btn sm ${opt.bspd === 'fast' ? 'pri' : ''}" data-a="bsp1">速い</button></span></div>
     <div class="setrow"><span>レベルが上がったら自動で振る</span><span class="row" style="gap:4px">${[['off', 'しない'], ['atk', '攻撃'], ['hp', '体力'], ['def', '守り'], ['bal', 'バランス']].map(([k, n]) => `<button class="btn sm ${(opt.autoPt || 'off') === k ? 'pri' : ''}" data-a="apt" data-k="${k}">${n}</button>`).join('')}</span></div>
     <div class="setrow"><span>言葉</span><select data-setlang="1" class="inp">${langs}</select></div>
@@ -256,7 +257,7 @@ function settings(from) {
 document.addEventListener('input', e => { const k = e.target.dataset && e.target.dataset.set; if (!k) return; opt[k] = (+e.target.value) / 100; opt.sound = true; saveOpt(); if (k === 'bgm' && MUS.el) MUS.el.volume = bgmVol(); if (k === 'bgm' && !MUS.el) { MUS.cur = null; musicTick(); } });
 document.addEventListener('change', e => { if (e.target.dataset && e.target.dataset.setlang) { L10N.lang = opt.lang = e.target.value; saveOpt(); location.reload(); } });
 function fxLow() { return opt.fx === 'low'; }
-function applyOpt() { document.body.classList.toggle('fastbt', opt.bspd === 'fast'); if (window.FX) FX.on = FX.ok && !fxLow() && !FX.auto; document.body.classList.toggle('lowfx', fxLow()); document.body.classList.toggle('noshake', opt.shake === false); }
+function applyOpt() { document.body.classList.toggle('fastbt', opt.bspd === 'fast'); document.body.classList.toggle('puni', opt.ctrl !== 'dpad'); if (window.FX) FX.on = FX.ok && !fxLow() && !FX.auto; document.body.classList.toggle('lowfx', fxLow()); document.body.classList.toggle('noshake', opt.shake === false); }
 
 /* ---------- はじめの案内（行商人がしゃべる。くどくならないように1回ずつ） ---------- */
 const TUT = {
@@ -274,7 +275,7 @@ const TUT = {
 /* はじめての人向け：塔に入る前の4枚の説明 */
 const INTRO = [
   { t: '目的', h: 'みんなで、100階の塔のてっぺんへ', p: '塔は全部で100階。各階のいちばん奥にいるボスを倒すと、次の階へ進める。<br>ボスを世界で最初に倒した人の名前は、塔に刻まれる。', pic: 'goal' },
-  { t: 'やること', h: '歩いて、拾って、はめて、ボスへ', p: '① 塔を歩いて、光る台座のとなりで「調べる」→ 欠片が手に入る<br>② 欠片を盤面にはめると強くなる（メニュー →「盤面とかばん」）<br>③ 強くなったらボス部屋へ<small>十字キーか、行きたい所をタップで歩く。「探索」ボタンで自動でも歩ける。ふつうの敵とは自動で戦う。</small>', pic: 'flow' },
+  { t: 'やること', h: '歩いて、拾って、はめて、ボスへ', p: '① 塔を歩いて、光る台座のとなりで「調べる」→ 欠片が手に入る<br>② 欠片を盤面にはめると強くなる（メニュー →「盤面とかばん」）<br>③ 強くなったらボス部屋へ<small>画面を指でなぞった向きへ歩く（ぷにコン）。行きたい所をタップしても歩ける。「探索」ボタンで自動でも歩ける。ふつうの敵とは自動で戦う。</small>', pic: 'flow' },
   { t: '強くなる', h: '同じ色の凸と凹をかみ合わせる', p: '同じ種族（色）の欠片の出っぱり（凸）とへこみ（凹）を向かい合わせると「つながる」。<br>つながるほど能力が上がり、2つ以上つながると技が使える。<small>迷ったら、盤面の「おまかせで組む」を押せばOK。</small>', pic: 'link' },
   { t: 'みんなの力', h: '倒れても、だれかの力になる', p: '倒れると、盤面の欠片はバッグになってその場に残り、ほかの人が拾える。あなたも、だれかのバッグで強くなれる。<br>もちろん自分ひとりでも強くなれる：台座・ガチャ・合成所・ボスのお金。<small>レベルとお金は倒れても残る。ボスに負けたときだけは、盤面の欠片が全部消える。</small>', pic: 'bag' },
 ];
@@ -818,6 +819,7 @@ function interact() {
   if (!run.prompt && !run.battle && b) toast('このバッグはもう開けた');
 }
 cv.addEventListener('pointerup', e => { // 画面の回復草・バッグをタップ
+  if (PUNI.on) return;
   if (!run || ui.scr || run.battle || run.prompt || run.over || !ui.cam) return;
   const r = cv.getBoundingClientRect(), x = Math.floor(((e.clientX - r.left) * cv.width / r.width - ui.cam.cx) / ui.cam.TS), y = Math.floor(((e.clientY - r.top) * cv.height / r.height - ui.cam.cy) / ui.cam.TS);
   const fl = IL.genFloor(run.floor), i = y * fl.W + x;
@@ -829,6 +831,28 @@ cv.addEventListener('pointerup', e => { // 画面の回復草・バッグをタ�
   walkTo(x, y, false);
 });
 const tapStart = { x: 0, y: 0 }; cv.addEventListener('pointerdown', e => { tapStart.x = e.clientX; tapStart.y = e.clientY; if (walk) stopWalk(); stopExplore(); });
+/* ぷにコン：画面のどこでも、指を置いた所がスティックになる。すべらせた向きへ歩き続ける（タップだけならその場所まで歩く） */
+const PUNI = { id: null, on: false, x: 0, y: 0, el: null };
+function puniEl() { if (!PUNI.el) { PUNI.el = document.createElement('div'); PUNI.el.id = 'puni'; PUNI.el.innerHTML = '<i></i>'; $('#app').appendChild(PUNI.el); } return PUNI.el; }
+cv.addEventListener('pointerdown', e => {
+  if (opt.ctrl === 'dpad' || e.pointerType === 'mouse' || PUNI.id != null || !run || ui.scr || run.battle) return;
+  PUNI.id = e.pointerId; PUNI.on = false; PUNI.x = e.clientX; PUNI.y = e.clientY; try { cv.setPointerCapture(e.pointerId); } catch (_) {}
+});
+cv.addEventListener('pointermove', e => {
+  if (e.pointerId !== PUNI.id) return; const R = 46; let dx = e.clientX - PUNI.x, dy = e.clientY - PUNI.y; const d = Math.hypot(dx, dy);
+  if (!PUNI.on) { if (d < 14) return; PUNI.on = true; const el = puniEl(), a = $('#app').getBoundingClientRect(); el.style.left = (PUNI.x - a.left) + 'px'; el.style.top = (PUNI.y - a.top) + 'px'; el.hidden = false; el.classList.add('show'); }
+  if (d > R) { PUNI.x += dx * (1 - R / d); PUNI.y += dy * (1 - R / d); dx = e.clientX - PUNI.x; dy = e.clientY - PUNI.y; const a = $('#app').getBoundingClientRect(); PUNI.el.style.left = (PUNI.x - a.left) + 'px'; PUNI.el.style.top = (PUNI.y - a.top) + 'px'; }
+  PUNI.el.firstChild.style.transform = `translate(${dx}px,${dy}px)`;
+  if (Math.hypot(dx, dy) < 12) { if (hold != null) stopHold(); return; }
+  // 斜めのときは、今の向きを少し優先して、がたつかないように
+  let dir = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 1 : 3) : (dy > 0 ? 2 : 0);
+  if (hold != null && hold !== dir) { const h = hold === 1 || hold === 3, ax = Math.abs(dx), ay = Math.abs(dy); if (h ? ax * 1.25 > ay : ay * 1.25 > ax) dir = hold; }
+  if (hold == null || ui.scr || run.battle || run.prompt) { if (!ui.scr && run && !run.battle && !run.prompt) startHold(dir); } else if (dir !== hold) hold = dir;
+});
+function puniEnd(e) { if (e && e.pointerId !== PUNI.id) return; const was = PUNI.on; PUNI.id = null; PUNI.on = false; if (PUNI.el) PUNI.el.classList.remove('show'); if (was) stopHold(); }
+['pointerup', 'pointercancel', 'lostpointercapture'].forEach(ev => cv.addEventListener(ev, puniEnd));
+// 戦い・画面が開いたら、指を置いたままでもスティックを消す
+setInterval(() => { if (PUNI.id != null && (ui.scr || !run || run.battle || run.prompt)) { PUNI.id = null; PUNI.on = false; if (PUNI.el) PUNI.el.classList.remove('show'); stopHold(); } }, 100);
 /* タップした所まで歩く（見えている床だけを通る。敵・案内・戦いがあれば止まる） */
 let walk = null;
 function stopWalk() { if (walk) { clearTimeout(walk.timer); walk = null; dirty = true; } }
@@ -1219,7 +1243,7 @@ document.addEventListener('click', async e => {
     case 'floors': sfx('click', 0.3); ui.fok = null; if (!opt.intro && !pr.cleared[1]) return intro(0, 'floors'); return floors();
     case 'inext': sfx('click', 0.3); return intro(ui.introI + 1);
     case 'iprev': sfx('click', 0.3); return intro(ui.introI - 1);
-    case 'idone': sfx('click', 0.3); opt.intro = 1; saveOpt(); if (ui.introFrom === 'help') return help(); if (pr.maxFloor <= 1 && !pr.cleared[1]) { X(['start', 1]); sfx('ok', 0.4); enterRun(run); fetchDrops(); return; } return floors();
+    case 'idone': sfx('click', 0.3); opt.intro = 1; saveOpt(); if (ui.introFrom === 'help') return help(); if (!pr.cleared[1]) { X(['start', 1]); sfx('ok', 0.4); enterRun(run); fetchDrops(); return; } return floors();
     case 'intro': sfx('click', 0.3); return intro(0, 'help');
     case 'help': return help();
     case 'sound': opt.sound = !opt.sound; saveOpt(); return run ? runMenu() : title();
@@ -1228,6 +1252,8 @@ document.addEventListener('click', async e => {
     case 'setback': return ui.setFrom === 'run' && run ? runMenu() : title();
     case 'fxn': opt.fx = 'normal'; saveOpt(); applyOpt(); return settings();
     case 'auto1': opt.auto = true; saveOpt(); return settings();
+    case 'ctrl0': opt.ctrl = 'puni'; saveOpt(); applyOpt(); return settings();
+    case 'ctrl1': opt.ctrl = 'dpad'; saveOpt(); applyOpt(); return settings();
     case 'auto0': opt.auto = false; saveOpt(); return settings();
     case 'bsp0': opt.bspd = 'normal'; saveOpt(); applyOpt(); return settings();
     case 'bsp1': opt.bspd = 'fast'; saveOpt(); applyOpt(); return settings();

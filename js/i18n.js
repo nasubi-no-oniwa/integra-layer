@@ -4,6 +4,7 @@
 'use strict';
 // [英語, 繁体字中国語, 韓国語]
 const D = {
+"スマホの移動": ["Phone movement", "手機移動方式", "스마트폰 이동"], "ぷにコン": ["Virtual stick", "虛擬搖桿", "가상 스틱"], "十字キー": ["D-pad", "十字鍵", "십자키"],
 "本当にこの階へ行く？": ["Really go to this floor?", "真的要去這一層嗎？", "정말 이 층으로 갈까?"],
 "階は、あなたがまだボスを倒していない階（": [" is far above the floor you haven't cleared yet (", "層，比你還沒打倒頭目的樓層（", "층은 아직 보스를 쓰러뜨리지 못한 층("],
 "）より ": [") — by ", "）高了 ", ")보다 "], " 階も上です。": [" floors.", " 層。", " 층이나 위입니다."],
@@ -23,7 +24,7 @@ const D = {
 "① 塔を歩いて、光る台座のとなりで「調べる」→ 欠片が手に入る": ["① Walk the tower and \"Search\" next to a glowing pedestal → get shards", "① 在塔中行走，在發光的台座旁「調查」→ 獲得碎片", "① 탑을 걸으며 빛나는 받침대 옆에서 「조사」 → 조각을 얻는다"],
 "② 欠片を盤面にはめると強くなる（メニュー →「盤面とかばん」）": ["② Fit shards onto your board to get stronger (Menu → \"Board & Bag\")", "② 把碎片放到盤面上就會變強（選單 →「盤面與背包」）", "② 조각을 판에 끼우면 강해진다 (메뉴 → 「판과 가방」)"],
 "③ 強くなったらボス部屋へ": ["③ Once strong, head to the boss room", "③ 變強後前往頭目房間", "③ 강해지면 보스 방으로"],
-"十字キーか、行きたい所をタップで歩く。「探索」ボタンで自動でも歩ける。ふつうの敵とは自動で戦う。": ["Walk with the D-pad or tap where you want to go. The \"Explore\" button walks for you. Normal enemies are fought automatically.", "用十字鍵或點擊想去的地方移動。「探索」按鈕可以自動行走。普通敵人會自動戰鬥。", "십자키나 가고 싶은 곳을 탭해서 걷는다. 「탐색」 버튼으로 자동으로도 걷는다. 일반 적과는 자동으로 싸운다."],
+"画面を指でなぞった向きへ歩く（ぷにコン）。行きたい所をタップしても歩ける。「探索」ボタンで自動でも歩ける。ふつうの敵とは自動で戦う。": ["Drag anywhere on the screen to walk (virtual stick), or tap where you want to go. The \"Explore\" button walks for you. Normal enemies are fought automatically.", "在畫面上滑動手指就能朝那個方向走（虛擬搖桿），也可以點擊想去的地方。「探索」按鈕可以自動行走。普通敵人會自動戰鬥。", "화면을 손가락으로 밀면 그 방향으로 걷는다(가상 스틱). 가고 싶은 곳을 탭해도 걷는다. 「탐색」 버튼으로 자동으로도 걷는다. 일반 적과는 자동으로 싸운다."],
 "同じ色の凸と凹をかみ合わせる": ["Fit bumps and dents of the same color", "讓同色的凸與凹咬合", "같은 색의 볼록과 오목을 맞물린다"],
 "同じ種族（色）の欠片の出っぱり（凸）とへこみ（凹）を向かい合わせると「つながる」。": ["When a bump and a dent of shards of the same kind (color) face each other, they \"link\".", "同種族（顏色）碎片的凸起與凹陷相對時，就會「相連」。", "같은 종족(색) 조각의 볼록과 오목이 마주 보면 「연결」된다."],
 "つながるほど能力が上がり、2つ以上つながると技が使える。": ["More links mean higher stats, and 2+ linked shards unlock skills.", "相連越多能力越高，2個以上相連就能使用技能。", "많이 연결될수록 능력이 오르고, 2개 이상 연결되면 기술을 쓸 수 있다."],
@@ -121,7 +122,7 @@ const D = {
 '・ボスを倒すと次の階へ。帰れるのは「安全地帯」と「ボスのあとの帰還ポータル」だけ。': ['• Beat the boss to go up. You can only return home from a Safe Zone or the portal after a boss.', '・擊敗頭目就能前往下一層。只能從「安全地帶」或「頭目後的歸還傳送門」回去。', '・보스를 쓰러뜨리면 다음 층으로. 귀환은 「안전지대」와 「보스 후 귀환 포털」에서만.'],
 '・倒れると、盤面の欠片を落とす（ガチャの欠片は残る）。ボスにやられると盤面の欠片が全部消える。': ['• If you fall, you drop the shards on your board (gacha shards stay). Losing to a boss destroys every shard on your board.', '・倒下時會掉落盤面上的碎片（扭蛋碎片保留）。被頭目打倒則盤面碎片全部消失。', '・쓰러지면 판의 조각을 떨어뜨린다 (뽑기 조각은 남음). 보스에게 지면 판의 조각이 전부 사라진다.'],
 '・行商人とは戦えるが、とても強い。負けるとかばんの中身が消える。': ['• You can fight the merchant, but he is very strong. Lose and your bag is emptied.', '・可以和行商人戰鬥，但他非常強。輸了背包會被清空。', '・행상인과 싸울 수 있지만 매우 강하다. 지면 가방이 비워진다.'],
-'・操作：矢印キー／WASDで移動、スペース／Zで調べる、Xでメニュー。スマホは十字キー（押したまま指をすべらせると向きが変わる）か、行きたい場所をタップするとそこまで歩く。': ['• Controls: Arrows/WASD to move, Space/Z to search, X for menu. On phones, use the D-pad (slide your finger to change direction) or tap a spot to walk there.', '・操作：方向鍵／WASD移動，空白鍵／Z調查，X開選單。手機使用畫面按鈕。', '・조작: 방향키/WASD 이동, 스페이스/Z 조사, X 메뉴. 스마트폰은 화면 버튼.'],
+'・操作：矢印キー／WASDで移動、スペース／Zで調べる、Xでメニュー。スマホは画面のどこでも指をすべらせた向きへ歩く（ぷにコン。設定で十字キーにもできる）か、行きたい場所をタップするとそこまで歩く。': ['• Controls: Arrows/WASD to move, Space/Z to search, X for menu. On phones, slide your finger anywhere to walk that way (virtual stick; D-pad available in Settings) or tap a spot to walk there.', '・操作：方向鍵／WASD移動，空白鍵／Z調查，X開選單。手機在畫面任意處滑動手指即可移動（虛擬搖桿，可在設定改為十字鍵），也可點擊想去的地方。', '・조작: 방향키/WASD 이동, 스페이스/Z 조사, X 메뉴. 스마트폰은 화면 어디서든 손가락을 밀면 그 방향으로 걷는다(가상 스틱, 설정에서 십자키로 변경 가능). 가고 싶은 곳을 탭해도 된다.'],
 // ---- 盤面 ----
 'マスか欠片を選ぶ。欠片を選んでからマスを押すと置ける。置いた欠片をもう一度押すと回る。': ['Pick a cell or a shard. Pick a shard, then a cell, to place it. Tap a placed shard again to rotate it.', '選擇格子或碎片。先選碎片再按格子即可放置。再按一次已放置的碎片會旋轉。', '칸이나 조각을 고른다. 조각을 고른 뒤 칸을 누르면 놓인다. 놓은 조각을 다시 누르면 회전.'],
 '同じ種族を2個以上つなげると技が使える': ['Link 2+ shards of the same kind to unlock a skill', '同種族2個以上相連即可使用技能', '같은 종족을 2개 이상 이으면 기술 사용 가능'],
