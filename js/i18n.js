@@ -4,6 +4,10 @@
 'use strict';
 // [英語, 繁体字中国語, 韓国語]
 const D = {
+'中心にする属性を2つまで選ぶ。その属性をできるだけ多くつなげて技を強くし、残りのマスは強い欠片で埋める（万能の欠片も使う）。': ['Pick up to 2 elements to focus on. It links as many shards of those elements as possible to power up your skills, then fills the rest with your strongest shards (Wild shards included).', '選擇最多2個作為核心的屬性。會盡量連結該屬性的碎片來強化技能，剩下的格子用強力碎片填滿（也會使用萬能碎片）。', '중심이 될 속성을 2개까지 고른다. 그 속성의 조각을 최대한 이어서 기술을 강하게 하고, 남은 칸은 강한 조각으로 채운다 (만능 조각도 사용).'],
+'🪄 おまかせで組む': ['🪄 Auto-build', '🪄 自動組合', '🪄 자동 배치'], 'おまかせで組む': ['Auto-build', '自動組合', '자동 배치'], 'この盤面にしますか？': ['Use this board?', '要使用這個盤面嗎？', '이 판으로 할까?'],
+'この盤面にする': ['Use this board', '使用這個盤面', '이 판으로 하기'], 'もう一度考える': ['Try again', '再想一次', '다시 생각하기'], 'おまかせで組んだ': ['Board auto-built', '已自動組合', '자동으로 배치했다'],
+'かばんに欠片がない': ['No shards in your bag', '背包裡沒有碎片', '가방에 조각이 없다'], '技（前）': ['Skills (before)', '技能（前）', '기술 (전)'], '技（後）': ['Skills (after)', '技能（後）', '기술 (후)'],
 '保存': ['Save', '保存', '저장'], '弱点 ': ['Weak ', '弱點 ', '약점 '], '半減 ': ['Resist ', '減半 ', '반감 '], '上書きする？': ['Overwrite?', '要覆蓋嗎？', '덮어쓸까?'],
 '体力が少ないので、おまかせを止めた': ['HP is low, so auto-battle stopped', '體力偏低，已停止自動戰鬥', '체력이 적어서 자동 전투를 멈췄다'], '体力が少ないので、探索を止めた': ['HP is low, so exploring stopped', '體力偏低，已停止探索', '체력이 적어서 탐색을 멈췄다'],
 'この階は歩きつくした': ['This floor is fully explored', '這層已經走遍了', '이 층은 다 돌아봤다'], '落ちたバッグを見つけた': ['Found a dropped bag', '發現掉落的背包', '떨어진 가방을 발견했다'], '台座を見つけた': ['Found a pedestal', '發現台座', '받침대를 발견했다'],

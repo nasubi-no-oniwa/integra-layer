@@ -124,12 +124,36 @@ const EMB = { // 種族の紋章（色が見分けにくくても分かるよう
   none: '<circle cx="8" cy="8" r="4.5"/>',
   joker: '<path d="M8 1 15 8 8 15 1 8z"/>',
 };
-function partHTML(p, cls, lk) { // lk: つながっている辺（0上 1右 2下 3左）
-  const c = IL.SP_COLOR[p.sp];
-  const sides = ['t', 'r', 'b', 'l'];
-  let e = ''; for (let s = 0; s < 4; s++) { const v = IL.edgeAt(p, s); if (v) e += `<i class="e ${sides[s]} ${v === 1 ? 'v' : 'c'}${lk && lk[s] ? ' lk' : ''}"></i>`; }
+/* 欠片の形（ジグソー）。1マス=100。つながった辺は外へ6のばして、相手と合わせ目で接する（盤面のすき間は12） */
+let PART_UID = 0;
+function jigPath(p, lk, onBoard) {
+  const x0 = lk && lk[3] ? -6 : 0, x1 = lk && lk[1] ? 106 : 100, y0 = lk && lk[0] ? -6 : 0, y1 = lk && lk[2] ? 106 : 100;
+  // 各辺：始点・終点・こぶの中心・進む向き(d)・外向き(n)
+  const S = [
+    { a: [x0, y0], b: [x1, y0], c: [50, y0], d: [1, 0], n: [0, -1] },
+    { a: [x1, y0], b: [x1, y1], c: [x1, 50], d: [0, 1], n: [1, 0] },
+    { a: [x1, y1], b: [x0, y1], c: [50, y1], d: [-1, 0], n: [0, 1] },
+    { a: [x0, y1], b: [x0, y0], c: [x0, 50], d: [0, -1], n: [-1, 0] },
+  ];
+  const f = v => Math.round(v * 100) / 100, P = (q) => f(q[0]) + ' ' + f(q[1]);
+  let path = 'M ' + P(S[0].a);
+  for (let s = 0; s < 4; s++) {
+    const { b, c, d, n } = S[s], v = IL.edgeAt(p, s);
+    if (v === 1 || v === 2) {
+      const sg = v === 1 ? 1 : -1, k = v === 2 ? 1 : (lk && lk[s]) ? 1 : onBoard ? 0.55 : 0.75;
+      const w = 9 * k, h = 4 * k * sg, r = 12 * k;
+      const pt = (t, u) => [c[0] + d[0] * t + n[0] * u, c[1] + d[1] * t + n[1] * u];
+      path += ' L ' + P(pt(-w, 0)) + ' L ' + P(pt(-w, h)) + ` A ${f(r)} ${f(r)} 0 1 ${sg > 0 ? 1 : 0} ` + P(pt(w, h)) + ' L ' + P(pt(w, 0));
+    }
+    path += ' L ' + P(b);
+  }
+  return path + ' Z';
+}
+function partHTML(p, cls, lk) { // lk: つながっている辺（0上 1右 2下 3左）。lk があれば盤面の上
+  const c = IL.SP_COLOR[p.sp], id = 'jg' + (++PART_UID);
   const rk = p.stats.map(s => s.r).join('');
-  return `<div class="part r${p.rar} ${cls || ''}" style="--c:${c}">${e}<svg viewBox="0 0 16 16">${EMB[p.sp] || ''}</svg><span class="rk">${rk}</span>${p.gacha ? '<span class="gc">★</span>' : ''}</div>`;
+  const svg = `<svg class="jig" viewBox="-30 -30 160 160" aria-hidden="true"><defs><linearGradient id="${id}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".38"/><stop offset=".45" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".22"/></linearGradient></defs><path class="jf" d="${jigPath(p, lk, !!lk)}" fill="${c}"/><path class="jh" d="${jigPath(p, lk, !!lk)}" fill="url(#${id})"/><path class="js" d="${jigPath(p, lk, !!lk)}"/></svg>`;
+  return `<div class="part r${p.rar} ${cls || ''}" style="--c:${c}">${svg}<svg class="emb" viewBox="0 0 16 16">${EMB[p.sp] || ''}</svg><span class="rk">${rk}</span>${p.gacha ? '<span class="gc">★</span>' : ''}</div>`;
 }
 function partText(p) {
   const st = p.stats.map(s => `${IL.STAT_NAME[s.k]}${s.r} +${IL.partStat(p, s)}`).join('　');
@@ -292,7 +316,7 @@ function boardScreen(from) {
       <div class="row" style="margin-top:8px"><button class="btn sm" data-a="rot" ${selP ? '' : 'disabled'}>回す</button><button class="btn sm" data-a="unequip" ${ui.sel != null && ba[ui.sel] ? '' : 'disabled'}>外す</button><button class="btn sm warn" data-a="discard" ${ui.bagSel != null && !onB.has(ui.bagSel) ? '' : 'disabled'}>捨てる</button></div>
       </div>
       <div class="side"><div class="stats">${stats}</div><div class="skills">${sk}</div>
-      <div class="detail">${selP ? partText(selP) : 'マスか欠片を選ぶ。欠片を選んでからマスを押すと置ける。置いた欠片をもう一度押すと回る。'}</div>${presetHTML()}</div></div>
+      <div class="detail">${selP ? partText(selP) : 'マスか欠片を選ぶ。欠片を選んでからマスを押すと置ける。置いた欠片をもう一度押すと回る。'}</div><button class="btn sm pri autob" data-a="autob">🪄 おまかせで組む</button>${presetHTML()}</div></div>
     <div class="bagcol"><div class="spchips">${['all', ...IL.SPECIES, ...['none', 'joker'].filter(x => ui.filt.sp === x || pr.bag.some(q => q.sp === x))].map(sp => `<button class="spc ${ui.filt.sp === sp ? 'on' : ''}" data-a="fsp" data-k="${sp}" style="--c:${sp === 'all' ? '#8a80a8' : IL.SP_COLOR[sp]}" title="${sp === 'all' ? 'すべて' : IL.SP_NAME[sp]}">${sp === 'all' ? '全' : IL.SP_NAME[sp].slice(0, 1)}</button>`).join('')}</div><div class="row bagtools"><select data-f="rar">${rOpt}</select><select data-f="sort">${soOpt}</select><span class="mute small">${pr.bag.length}個</span>
       ${mul ? `<span class="mtools"><button class="btn sm" data-a="mall">表示中をすべて選ぶ</button><button class="btn sm warn" data-a="mdisc" ${mul.size ? '' : 'disabled'}>${ui.mconf ? '本当に捨てる？（' + mul.size + '個）' : mul.size + '個を捨てる'}</button><button class="btn sm" data-a="mend">やめる</button></span>` : '<button class="btn sm" data-a="multi">まとめて捨てる</button>'}</div>
     ${mul ? '<p class="small mute" style="margin:4px 0">捨てる欠片をタップして選ぶ（盤面に置いている欠片は選べない）</p>' : ''}
@@ -347,6 +371,64 @@ function presetHTML() {
 }
 function presetSave(k) { const ps = presets(); if (ps[k] && ui.pconf !== k) { ui.pconf = k; return boardScreen(); }
   ui.pconf = null; ps[k] = { cells: pr.board.map(id => { if (id == null) return null; const p = pr.bag.find(q => q.id === id); return p ? { id, rot: p.rot } : null; }) }; saveOpt(); sfx('ok', 0.4); toast('プリセット' + (k + 1) + 'に保存した'); boardScreen(); }
+function applyBoard(want) { // want: 25マス分の {id, rot} か null
+  for (let i = 0; i < 25; i++) if (pr.board[i] != null && (!want[i] || want[i].id !== pr.board[i])) X(['place', i, null]);
+  for (let i = 0; i < 25; i++) { const c = want[i]; if (!c) continue; if (pr.board[i] !== c.id) X(['place', i, c.id]); const p = pr.bag.find(q => q.id === c.id); for (let n = 0; n < 4 && p && p.rot !== c.rot; n++) X(['rot', c.id]); }
+}
+/* おまかせで組む：選んだ属性（2つまで）をできるだけつなげて技の段階を上げ、残りを強い欠片で埋める */
+const AUTO_SP = ['fire', 'rock', 'forest', 'wind', 'star'];
+function autoStats(arr) { const b = IL.baseStats(pr), an = IL.analyzeBoard(arr), o = {}; for (const k of IL.STATS) o[k] = b[k] + an.add[k]; o.skills = an.skills; o.an = an; return o; }
+function autoScore(arr, chosen) {
+  const st = autoStats(arr); let v = 0;
+  for (const sp of chosen) { const k = st.skills[sp]; if (k) v += k.tier * 100000 + k.count * 3000; }
+  return v + st.atk * 3 + st.def * 2 + st.hp / 2 + st.spd + st.luck * 0.3;
+}
+function autoBuild(chosen) {
+  const t0 = performance.now(), cs = new Set(chosen);
+  const mine = pr.bag.filter(p => cs.has(p.sp) || p.sp === 'joker').sort((a, b) => IL.partScore(b) - IL.partScore(a)).slice(0, 40);
+  const other = pr.bag.filter(p => !cs.has(p.sp) && p.sp !== 'joker').sort((a, b) => IL.partScore(b) - IL.partScore(a)).slice(0, 30);
+  const pool = mine.concat(other); if (!pool.length) return null;
+  const mk = (p, rot) => p ? Object.assign({}, p, { rot }) : null;
+  // はじめ：選んだ属性を中央からうず巻きに置き、残りを強い順に。向きは各マスで一番よいものを選ぶ
+  const order = [12, 7, 13, 17, 11, 6, 8, 18, 16, 2, 14, 22, 10, 1, 3, 9, 19, 23, 21, 15, 5, 0, 4, 24, 20];
+  let board = new Array(25).fill(null); const used = new Set(); let k = 0;
+  for (const p of mine.concat(other)) { if (k >= 25) break; const c = order[k++]; let best = null, bs = -Infinity;
+    for (let r = 0; r < 4; r++) { board[c] = mk(p, r); const sc = autoScore(board, chosen); if (sc > bs) { bs = sc; best = r; } } board[c] = mk(p, best); used.add(p.id); }
+  let cur = autoScore(board, chosen), it = 0;
+  // 山登り：入れかえ・回す・別の欠片と取りかえ（スマホでも1秒以内）
+  while (performance.now() - t0 < 700 && it < 6000) { it++;
+    const nb = board.slice(), r = Math.random(), i = (Math.random() * 25) | 0;
+    if (r < 0.4) { const j = (Math.random() * 25) | 0; const tmp = nb[i]; nb[i] = nb[j]; nb[j] = tmp; }
+    else if (r < 0.75) { if (!nb[i]) continue; nb[i] = mk(nb[i], (nb[i].rot + 1 + ((Math.random() * 3) | 0)) % 4); }
+    else { const u = new Set(nb.filter(Boolean).map(p => p.id)), c = pool.filter(q => !u.has(q.id)); if (!c.length) continue; const q = c[(Math.random() * c.length) | 0]; nb[i] = mk(q, (Math.random() * 4) | 0); }
+    const sc = autoScore(nb, chosen); if (sc >= cur) { cur = sc; board = nb; } }
+  return board;
+}
+function autoScreen() {
+  ui.scr = 'autob'; ui.autoSel = ui.autoSel || [];
+  const chips = AUTO_SP.map(sp => { const n = pr.bag.filter(p => p.sp === sp).length; return `<button class="spc big ${ui.autoSel.includes(sp) ? 'on' : ''}" data-a="autosp" data-k="${sp}" style="--c:${IL.SP_COLOR[sp]}" ${n ? '' : 'disabled'}>${IL.SP_NAME[sp]}<small>${n}個</small></button>`; }).join('');
+  show(`<div class="win autowin" style="max-width:520px"><button class="btn sm close" data-a="autoback">もどる</button><h2>おまかせで組む</h2>
+    <p class="small mute">中心にする属性を2つまで選ぶ。その属性をできるだけ多くつなげて技を強くし、残りのマスは強い欠片で埋める（万能の欠片も使う）。</p>
+    <div class="autochips">${chips}</div>
+    <div class="row" style="justify-content:center"><button class="btn pri" data-a="autogo" ${ui.autoSel.length ? '' : 'disabled'}>組む</button></div></div>`);
+}
+function boardMini(arr, an) {
+  const lks = Array.from({ length: 25 }, () => [0, 0, 0, 0]);
+  for (const [a, b] of an.links) { if (b === a + 1) { lks[a][1] = 1; lks[b][3] = 1; } else { lks[a][2] = 1; lks[b][0] = 1; } }
+  let h = ''; for (let i = 0; i < 25; i++) { const p = arr[i], gi = an.groupOf[i], big = gi >= 0 && an.groups[gi].cells.length > 1; h += `<div class="cell ${big ? 'lk' : ''}">${p ? partHTML(p, '', lks[i]) : ''}</div>`; }
+  return `<div class="board mini">${h}</div>`;
+}
+function autoConfirm() {
+  const plan = ui.autoPlan, before = IL.playerStats(pr), after = autoStats(plan);
+  const rows = IL.STATS.map(k => { const d = after[k] - before[k]; return `<div><span>${IL.STAT_NAME[k]}</span><b>${before[k]} → ${after[k]}</b><i class="${d > 0 ? 'up' : d < 0 ? 'dn' : ''}">${d > 0 ? '+' + d : d < 0 ? d : '±0'}</i></div>`; }).join('');
+  const skl = sts => AUTO_SP.filter(sp => sts.skills[sp]).map(sp => `<span class="sk1" style="--c:${IL.SP_COLOR[sp]}">${IL.SKILLS[sp][sts.skills[sp].tier]}<small>${IL.SP_NAME[sp]}×${sts.skills[sp].count}・段階${sts.skills[sp].tier}</small></span>`).join('') || '<span class="mute">なし</span>';
+  ui.scr = 'autoc';
+  show(`<div class="win autowin autoc" style="max-width:820px"><h2>この盤面にしますか？</h2>
+    <div class="acwrap"><div>${boardMini(plan, after.an)}</div>
+    <div class="acside"><div class="acstats">${rows}</div>
+      <div class="acsk"><div class="small mute">技（前）</div><div>${skl(before)}</div><div class="small mute">技（後）</div><div>${skl(after)}</div></div>
+      <div class="row"><button class="btn pri" data-a="autook">この盤面にする</button><button class="btn" data-a="autoback">やめる</button><button class="btn sm" data-a="autoagain">もう一度考える</button></div></div></div></div>`);
+}
 function presetLoad(k) {
   const ps = presets()[k]; if (!ps) return; const before = IL.playerStats(pr), has = new Set(pr.bag.map(p => p.id)); let miss = 0;
   const want = ps.cells.map(c => { if (!c) return null; if (!has.has(c.id)) { miss++; return null; } return c; });
@@ -1010,6 +1092,11 @@ document.addEventListener('click', async e => {
     case 'mend': ui.multi = null; ui.mconf = false; return boardScreen();
     case 'mall': if (ui.multi) { const all = ui.lastList.every(id => ui.multi.has(id)); ui.lastList.forEach(id => all ? ui.multi.delete(id) : ui.multi.add(id)); ui.mconf = false; } return boardScreen();
     case 'mdisc': if (ui.multi && ui.multi.size) { if (!ui.mconf) { ui.mconf = true; return boardScreen(); } let n = 0; for (const id of ui.multi) if (!pr.board.includes(id) && pr.bag.some(p => p.id === id)) { X(['disc', id]); n++; } ui.multi = null; ui.mconf = false; save(); sfx('ok', 0.4); toast(n + '個を捨てた'); } return boardScreen();
+    case 'autob': ui.autoSel = ui.autoSel || []; return autoScreen();
+    case 'autosp': { const sp = t.dataset.k, a = ui.autoSel; const i = a.indexOf(sp); if (i >= 0) a.splice(i, 1); else { a.push(sp); if (a.length > 2) a.shift(); } sfx('click', 0.2); return autoScreen(); }
+    case 'autogo': case 'autoagain': { if (!ui.autoSel || !ui.autoSel.length) return; const b = autoBuild(ui.autoSel); if (!b) { toast('かばんに欠片がない'); return autoScreen(); } ui.autoPlan = b; sfx('select', 0.4); return autoConfirm(); }
+    case 'autook': { const before = IL.playerStats(pr); applyBoard(ui.autoPlan.map(p => p ? { id: p.id, rot: p.rot } : null)); ui.sel = null; ui.bagSel = null; save(); sfx('place'); boardScreen(); statDiff(before); toast('おまかせで組んだ'); return; }
+    case 'autoback': return boardScreen();
     case 'psave': return presetSave(+t.dataset.k);
     case 'pload': return presetLoad(+t.dataset.k);
     case 'synall': ui.synAll = !ui.synAll; ui.synthMat = null; return synth();
