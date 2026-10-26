@@ -164,12 +164,13 @@ function infoHTML() {
 function title() {
   if (S.run && S.run.over) S.run = null; run = S.run; ui.scr = 'title'; if (Net.on) Net.presence(0); $('#hud').hidden = true; $('#pad').hidden = true; save(); drawIdle();
   const st = IL.playerStats(pr);
-  show(`<div class="win title">
+  show(`<div class="win title"><div class="tleft">
     <div class="logo">INTEGRA LAYER<small>インテグラ・レイヤー</small></div>
     ${infoHTML()}
     <p class="story">倒れた誰かの欠片が、きみの盤面でつながる。\n全員で、100階の塔を上れ。</p>
     <div class="statline"><span>Lv ${pr.lv}</span><span>最前線 ${pr.maxFloor}階</span><span class="gold">${pr.gold} G</span><span>回復薬 ${pr.potions.length}</span><span>チケット ${pr.tickets}</span></div>
     ${IL.tailwind(pr, S.gclear) > 1 ? `<div class="tailw">🍃 追い風：経験値 ×2.5（最前線 ${IL.frontOf(S.gclear)}階まで追いつこう）</div>` : ''}
+    <p class="small mute tonline">${Net.on ? 'オンライン　<span class="nt">' + esc(opt.name || '名無し') + '</span>' : 'オフライン（この端末だけ）'}</p></div>
     <div class="menu">
       <button class="btn pri" data-a="floors">塔に入る</button>
       <button class="btn" data-a="board">盤面とかばん</button>
@@ -177,10 +178,9 @@ function title() {
       <button class="btn" data-a="synth">合成</button>
       <button class="btn" data-a="points">能力${pr.freePts ? '<span class="badge">' + pr.freePts + '</span>' : ''}</button>
       <button class="btn" data-a="plaza">広場（掲示板）</button>
-      ${Net.on ? '<button class="btn" data-a="maptop">地図屋（地図の売り買い）</button>' : ''}
-      <div class="row" style="justify-content:center"><button class="btn sm" data-a="profile">名前と引き継ぎ</button><button class="btn sm" data-a="help">遊び方</button><button class="btn sm" data-a="settings">⚙ 設定</button><button class="btn sm" data-a="lang">🌐 ${L10N.LANGS[L10N.lang]}</button>${ui.firsts && ui.firsts[100] ? '<button class="btn sm" data-a="ending">エンディング</button>' : ''}</div>
+      ${Net.on ? '<button class="btn" data-a="maptop">地図屋</button>' : ''}
+      <div class="row tsub" style="justify-content:center"><button class="btn sm" data-a="profile">名前と引き継ぎ</button><button class="btn sm" data-a="help">遊び方</button><button class="btn sm" data-a="settings">⚙ 設定</button><button class="btn sm" data-a="lang">🌐 ${L10N.LANGS[L10N.lang]}</button>${ui.firsts && ui.firsts[100] ? '<button class="btn sm" data-a="ending">エンディング</button>' : ''}</div>
       ${DEV ? '<button class="btn sm warn" data-a="devreset">【開発用】データをリセット</button>' : ''}
-      <p class="small mute">${Net.on ? 'オンライン　<span class="nt">' + esc(opt.name || '名無し') + '</span>' : 'オフライン（この端末だけ）'}</p>
     </div></div>
     ${IOS && !STANDALONE ? '<p class="small mute iosh">📱 Safariの「共有」→「ホーム画面に追加」から開くと、上の帯なしの全画面で遊べます</p>' : ''}
     <a class="credit" href="https://maou.audio/" target="_blank" rel="noopener">音楽：魔王魂</a>`);
@@ -204,7 +204,7 @@ function help() {
 ・だれかのバッグは、となりで「調べる」と開ける。1つのバッグから5個まで、1回だけ拾える。中身は減らない。
 ・メニューの「欠片を託す」で、選んだ欠片をバッグに入れて、だれかのために置いていける（倒れるのと同じ）。
 ・行商人とは戦えるが、とても強い。負けるとかばんの中身が消える。
-・操作：矢印キー／WASDで移動、スペース／Zで調べる、Xでメニュー。スマホは十字キー（押したまま指をすべらせると向きが変わる）か、行きたい場所をタップするとそこまで歩く。</p></div>`);
+・操作：矢印キー／WASDで移動、スペース／Zで調べる、Xでメニュー。スマホは十字キー（押したまま指をすべらせると向きが変わる）か、行きたい場所をタップするとそこまで歩く。<br>・「探索」ボタン（キーボードはE）で、まだ行っていない所へ自動で歩く。ふつうの敵は「おまかせ」で自動で戦う（設定で変えられる）。</p></div>`);
 }
 
 /* ---------- 設定 ---------- */
@@ -217,13 +217,16 @@ function settings(from) {
     <div class="setrow"><span>効果音の音量</span>${sl('se', opt.se == null ? 0.7 : opt.se)}</div>
     <div class="setrow"><span>演出</span><span><button class="btn sm ${opt.fx !== 'low' ? 'pri' : ''}" data-a="fxn">標準</button><button class="btn sm ${opt.fx === 'low' ? 'pri' : ''}" data-a="fxl">少なめ</button></span></div>
     <div class="setrow"><span>画面のゆれ</span><span><button class="btn sm ${opt.shake !== false ? 'pri' : ''}" data-a="shk1">あり</button><button class="btn sm ${opt.shake === false ? 'pri' : ''}" data-a="shk0">なし</button></span></div>
+    <div class="setrow"><span>ふつうの敵はおまかせで戦う</span><span><button class="btn sm ${opt.auto !== false ? 'pri' : ''}" data-a="auto1">する</button><button class="btn sm ${opt.auto === false ? 'pri' : ''}" data-a="auto0">しない</button></span></div>
+    <div class="setrow"><span>戦闘の速さ</span><span><button class="btn sm ${opt.bspd !== 'fast' ? 'pri' : ''}" data-a="bsp0">ふつう</button><button class="btn sm ${opt.bspd === 'fast' ? 'pri' : ''}" data-a="bsp1">速い</button></span></div>
+    <div class="setrow"><span>レベルが上がったら自動で振る</span><span class="row" style="gap:4px">${[['off', 'しない'], ['atk', '攻撃'], ['hp', '体力'], ['def', '守り'], ['bal', 'バランス']].map(([k, n]) => `<button class="btn sm ${(opt.autoPt || 'off') === k ? 'pri' : ''}" data-a="apt" data-k="${k}">${n}</button>`).join('')}</span></div>
     <div class="setrow"><span>言葉</span><select data-setlang="1" class="inp">${langs}</select></div>
     <div class="setrow"><span>はじめの案内</span><button class="btn sm" data-a="tutreset">もう一度見る</button></div></div>`);
 }
 document.addEventListener('input', e => { const k = e.target.dataset && e.target.dataset.set; if (!k) return; opt[k] = (+e.target.value) / 100; opt.sound = true; saveOpt(); if (k === 'bgm' && MUS.el) MUS.el.volume = bgmVol(); if (k === 'bgm' && !MUS.el) { MUS.cur = null; musicTick(); } });
 document.addEventListener('change', e => { if (e.target.dataset && e.target.dataset.setlang) { L10N.lang = opt.lang = e.target.value; saveOpt(); location.reload(); } });
 function fxLow() { return opt.fx === 'low'; }
-function applyOpt() { if (window.FX) FX.on = FX.ok && !fxLow() && !FX.auto; document.body.classList.toggle('lowfx', fxLow()); document.body.classList.toggle('noshake', opt.shake === false); }
+function applyOpt() { document.body.classList.toggle('fastbt', opt.bspd === 'fast'); if (window.FX) FX.on = FX.ok && !fxLow() && !FX.auto; document.body.classList.toggle('lowfx', fxLow()); document.body.classList.toggle('noshake', opt.shake === false); }
 
 /* ---------- はじめの案内（行商人がしゃべる。くどくならないように1回ずつ） ---------- */
 const TUT = {
@@ -367,8 +370,9 @@ function points() {
   ui.scr = 'points'; const b = IL.baseStats(pr), st = IL.playerStats(pr);
   const rows = IL.STATS.map(k => `<div class="row" style="justify-content:space-between;background:var(--panel2);padding:8px;border-radius:8px"><span>${IL.STAT_NAME[k]}　<b>${st[k]}</b> <span class="mute small">（レベル ${b[k] - IL.B.perPt[k] * pr.pts[k]}＋ポイント ${IL.B.perPt[k] * pr.pts[k]}＋盤面 ${st[k] - b[k]}）</span></span><button class="btn sm" data-pt="${k}" ${pr.freePts ? '' : 'disabled'}>＋${IL.B.perPt[k]}</button></div>`).join('');
   const need = pr.lv < 100 ? IL.NEED[pr.lv] : 0;
-  show(`<div class="win"><button class="btn sm close" data-a="title">もどる</button><h2>能力</h2>
+  show(`<div class="win ptwin"><button class="btn sm close" data-a="title">もどる</button><h2>能力</h2>
     <p>Lv ${pr.lv}　経験値 ${pr.exp} / ${need}　<span class="gold">残りポイント ${pr.freePts}</span></p>
+    <div class="row"><button class="btn pri" data-a="ptauto" ${pr.freePts ? '' : 'disabled'}>おまかせで振る（${{ atk: '攻撃', hp: '体力', def: '守り' }[opt.autoPt] || 'バランス'}）</button><span class="small mute">レベルが上がったら自動で振る：</span>${[['off', 'しない'], ['atk', '攻撃'], ['hp', '体力'], ['def', '守り'], ['bal', 'バランス']].map(([k, n]) => `<button class="btn sm ${(opt.autoPt || 'off') === k ? 'pri' : ''}" data-a="apt" data-k="${k}">${n}</button>`).join('')}</div>
     <div class="grid">${rows}</div>
     <p class="small mute">運は会心・レアの出やすさ・合成の成功率に効く。素早さは戦いで先に動けるかに効く。</p>
     <button class="btn" data-a="respec" ${pr.respec ? '' : 'disabled'}>振りなおす（振りなおしの札 ${pr.respec}枚）</button></div>`);
@@ -564,7 +568,7 @@ function afterAct() {
   }
   run.events = [];
   hud(); dirty = true; save();
-  if (run.battle) { ui.target = 0; ui.sub = null; battle(); if (run.battle.foes[0].kind) sfx('boss', 0.6); tut('battle'); }
+  if (run.battle) { ui.target = 0; ui.sub = null; battle(); if (run.battle.foes[0].kind) sfx('boss', 0.6); tut('battle'); if (run.battle.kind === 'normal' && opt.auto !== false) autoBattle(); }
   else if (run.prompt) { prompt(); if (run.prompt && run.prompt.kind === 'gate') tut('boss'); }
   else if (ui.bags.length && bagNear(6) && !(pr.bagsOpen || {})[bagNear(6).id]) tut('bag');
 }
@@ -592,7 +596,7 @@ cv.addEventListener('pointerup', e => { // 画面の回復草・バッグをタ�
   if (bg || IL.herbAvail(fl, run, i)) return walkTo(x, y, true, bg ? () => { if (!ui.scr && bagNear() === bg && !(pr.bagsOpen || {})[bg.id]) bagScreen(bg); } : () => { if (IL.herbNear(fl, run, i)) { X(['hb', i]); afterAct(); } });
   walkTo(x, y, false);
 });
-const tapStart = { x: 0, y: 0 }; cv.addEventListener('pointerdown', e => { tapStart.x = e.clientX; tapStart.y = e.clientY; if (walk) stopWalk(); });
+const tapStart = { x: 0, y: 0 }; cv.addEventListener('pointerdown', e => { tapStart.x = e.clientX; tapStart.y = e.clientY; if (walk) stopWalk(); stopExplore(); });
 /* タップした所まで歩く（見えている床だけを通る。敵・案内・戦いがあれば止まる） */
 let walk = null;
 function stopWalk() { if (walk) { clearTimeout(walk.timer); walk = null; dirty = true; } }
@@ -618,6 +622,56 @@ function walkTo(tx, ty, adj, done) {
   step();
 }
 
+/* おまかせ戦闘（ふつうの敵だけ）：勝つまで「たたかう」。体力が3割を切ったら止めて自分で選ぶ */
+const AUTO = { on: false, stop: false };
+function autoBattle() {
+  if (AUTO.on) return; AUTO.on = true; AUTO.stop = false; battle();
+  const tick = () => {
+    const bt = run && run.battle; if (!bt) { AUTO.on = false; return; }
+    if (bt.over) { AUTO.on = false;
+      if (bt.over === 'win') { const r = bt.reward; X(['bx']); hideScreen(); dirty = true; hud(); save();
+        toast('勝った！ 経験値 ' + r.exp + (r.tw > 1 ? '（追い風）' : '') + '・' + r.gold + ' G' + (r.parts.length ? '・' + r.parts.map(p => IL.SP_NAME[p.sp] + 'の欠片（' + IL.RAR_NAME[p.rar] + '）').join('、') : ''));
+        if (r.ups) toast('レベルが ' + pr.lv + ' に上がった！'); autoPts(); if (EXP.on) setTimeout(exploreStep, 250); }
+      return; }
+    const st = IL.playerStats(pr);
+    if (AUTO.stop || run.hp < st.hp * 0.3) { AUTO.on = false; stopExplore(); battle(); if (!AUTO.stop) toast('体力が少ないので、おまかせを止めた'); return; }
+    bcmd({ c: 'atk', t: 0 }); setTimeout(tick, opt.bspd === 'fast' ? 220 : 420);
+  };
+  setTimeout(tick, opt.bspd === 'fast' ? 200 : 380);
+}
+/* レベルが上がったら自動で能力ポイントを振る */
+function autoPts(mode) { const m = mode || opt.autoPt; if (!m || m === 'off' || !pr || !pr.freePts) return; let k = 0;
+  while (pr.freePts > 0 && k++ < 300) X(['pt', m === 'bal' ? ['atk', 'hp', 'def'][(pr.lv * 3 + pr.freePts) % 3] : m]); save(); hud(); }
+/* 自動探索：まだ見ていない所へ歩きつづける */
+const EXP = { on: false, timer: null, seen: null };
+function stopExplore() { if (!EXP.on) return; EXP.on = false; clearTimeout(EXP.timer); const b = $('#b-exp'); if (b) b.classList.remove('act'); }
+function toggleExplore() { if (EXP.on) { stopExplore(); return; } if (!run || ui.scr || run.battle || run.prompt) return; stopWalk(); EXP.on = true; EXP.seen = interesting(); const b = $('#b-exp'); if (b) b.classList.add('act'); exploreStep(); }
+function interesting() { const fl = IL.genFloor(run.floor), bits = IL.mapBits(pr, run), out = new Set(), op = pr.bagsOpen || {};
+  for (let i = 0; i < fl.t.length; i++) if (bits[i] && fl.t[i] === IL.T.PED && !run.opened[i]) out.add('p' + i);
+  for (const b of ui.bags) if (!op[b.id] && bits[b.y * fl.W + b.x]) out.add('b' + b.id); return out; }
+function exploreTarget(allowSafe) {
+  const fl = IL.genFloor(run.floor), bits = IL.mapBits(pr, run), W = fl.W, N = W * fl.H, start = run.y * W + run.x, T = IL.T;
+  const mi = run.merchant ? run.merchant.y * W + run.merchant.x : -1;
+  const ok = j => { const v = fl.t[j], x = j % W, y = (j / W) | 0; return bits[j] && IL.walkable(fl, x, y) && v !== T.GATE && v !== T.BOSS && (allowSafe || v !== T.SAFE) && j !== mi; };
+  const prev = new Int32Array(N).fill(-1); prev[start] = start; const q = [start];
+  for (let h = 0; h < q.length; h++) { const i = q[h];
+    if (i !== start) for (const o of [-W, 1, W, -1]) { const j = i + o; if (j >= 0 && j < N && !bits[j] && !((o === 1 && j % W === 0) || (o === -1 && i % W === 0))) { let c = i; while (prev[c] !== start) c = prev[c]; return c; } }
+    for (const [o, okx] of [[-W, true], [1, i % W < W - 1], [W, true], [-1, i % W > 0]]) { const j = i + o; if (!okx || j < 0 || j >= N || prev[j] >= 0 || !ok(j)) continue; prev[j] = i; q.push(j); } }
+  return -1;
+}
+function exploreStep() {
+  clearTimeout(EXP.timer); if (!EXP.on || !run) return stopExplore();
+  if (run.battle) return; // おまかせ戦闘が終わると、また呼ばれる
+  if (ui.scr || run.prompt || run.over) return stopExplore();
+  const st = IL.playerStats(pr); if (run.hp < st.hp * 0.4) { stopExplore(); return toast('体力が少ないので、探索を止めた'); }
+  const now = interesting(); for (const k of now) if (!EXP.seen.has(k)) { stopExplore(); return toast(k[0] === 'p' ? '台座を見つけた' : '落ちたバッグを見つけた'); }
+  EXP.seen = now;
+  let n = exploreTarget(false); if (n < 0) n = exploreTarget(true);
+  if (n < 0) { stopExplore(); return toast('この階は歩きつくした'); }
+  const W = IL.genFloor(run.floor).W, d = n - (run.y * W + run.x); act(d === -W ? 0 : d === 1 ? 1 : d === W ? 2 : 3);
+  if (run.battle && !AUTO.on) return; // ボスなどおまかせしない戦い
+  EXP.timer = setTimeout(exploreStep, opt.bspd === 'fast' ? 90 : 120);
+}
 /* ---------- 落ちたバッグ ---------- */
 function ago(t) { const m = Math.max(0, Math.floor((Net.now() - (t || 0)) / 60000)); return m < 1 ? 'たった今' : m < 60 ? m + '分前' : m < 1440 ? Math.floor(m / 60) + '時間前' : Math.floor(m / 1440) + '日前'; }
 function bagScreen(b) {
@@ -728,7 +782,7 @@ function battle() {
       const keys = Object.keys(grp).sort((a, b) => IL.potionEff(+b, run.floor) - IL.potionEff(+a, run.floor) || b - a);
       const list = keys.map(f => `<button class="btn" data-it="${grp[f][0]}"><span>${f}階の回復薬 ×${grp[f].length}</span><span class="small mute">効き目 ${Math.round(IL.potionEff(+f, run.floor) * 100)}%</span></button>`).join('') || '<p class="mute small">回復薬を持っていない</p>';
       bottom = `<div class="sublist">${list}</div><button class="btn sm" data-a="subback" style="margin-top:6px">もどる</button>`;
-    } else bottom = `<div class="cmds"><button class="btn pri" data-c="atk">たたかう</button><button class="btn" data-c="skill">技</button><button class="btn" data-c="def">ぼうぎょ</button><button class="btn" data-c="item">どうぐ</button><button class="btn" data-c="flee" ${bt.kind !== 'normal' ? 'disabled' : ''}>にげる</button></div>`;
+    } else if (AUTO.on) bottom = `<div class="cmds"><button class="btn warn" data-a="astop">おまかせを止める</button></div>`; else bottom = `<div class="cmds"><button class="btn pri" data-c="atk">たたかう</button><button class="btn" data-c="skill">技</button><button class="btn" data-c="def">ぼうぎょ</button><button class="btn" data-c="item">どうぐ</button><button class="btn" data-c="flee" ${bt.kind !== 'normal' ? 'disabled' : ''}>にげる</button></div>`;
   } else bottom = battleResult();
   const BBG = ['#22402a', '#4a3a1e', '#1e3a4a', '#4a1e1e', '#2a3f55', '#2f4a1e', '#33363d', '#2a1e44', '#3a1e4a', '#4a4a5a'];
   show(`<div class="win battle" style="--bb:${BBG[bi]}"><div class="bwrap"><div class="bl"><div class="foes">${foes}</div>
@@ -774,7 +828,7 @@ function battleFx(fhp, hpB, nl) { // ダメージの数字・光・技の演出
     else if (!fxLow()) { const fx = document.createElement('div'); fx.className = 'sfx'; fx.style.setProperty('--c', '#fff'); fx.style.setProperty('--m', 'url(' + new URL('img/fx/hit.png', location.href).href + ')'); fx.style.width = fx.style.height = '110px'; fx.style.margin = '-55px 0 0 -55px'; el.appendChild(fx); setTimeout(() => fx.remove(), 650); } });
   const meBar = document.querySelector('.bar.me'); if (meBar && run.hp !== hpB) { const n = document.createElement('div'); n.className = 'dmg me' + (run.hp > hpB ? ' heal' : ''); n.textContent = (run.hp > hpB ? '+' : '-') + Math.abs(run.hp - hpB); meBar.parentElement.style.position = 'relative'; meBar.parentElement.appendChild(n); setTimeout(() => n.remove(), 950); }
 }
-function godFx(name) { ui.godName = name; const d = document.createElement('div'); d.className = 'god'; d.textContent = name; $('#app').appendChild(d); setTimeout(() => d.remove(), 1700); }
+function godFx(name) { ui.godName = name; const d = document.createElement('div'); d.className = 'god'; d.textContent = name; $('#app').appendChild(d); setTimeout(() => d.remove(), opt.bspd === 'fast' ? 850 : 1700); }
 function runMenu() {
   ui.scr = 'menu';
   show(`<div class="win" style="max-width:420px"><button class="btn sm close" data-a="back">とじる</button><h2>メニュー</h2><div class="grid">
@@ -931,6 +985,14 @@ document.addEventListener('click', async e => {
     case 'settings2': return settings('run');
     case 'setback': return ui.setFrom === 'run' && run ? runMenu() : title();
     case 'fxn': opt.fx = 'normal'; saveOpt(); applyOpt(); return settings();
+    case 'auto1': opt.auto = true; saveOpt(); return settings();
+    case 'auto0': opt.auto = false; saveOpt(); return settings();
+    case 'bsp0': opt.bspd = 'normal'; saveOpt(); applyOpt(); return settings();
+    case 'bsp1': opt.bspd = 'fast'; saveOpt(); applyOpt(); return settings();
+    case 'apt': opt.autoPt = t.dataset.k; saveOpt(); autoPts(); return ui.scr === 'points' ? points() : settings();
+    case 'ptauto': autoPts(opt.autoPt && opt.autoPt !== 'off' ? opt.autoPt : 'bal'); sfx('select', 0.4); return points();
+    case 'astop': AUTO.stop = true; return;
+    case 'bexp': return toggleExplore();
     case 'fxl': opt.fx = 'low'; saveOpt(); applyOpt(); return settings();
     case 'shk1': opt.shake = true; saveOpt(); applyOpt(); return settings();
     case 'shk0': opt.shake = false; saveOpt(); applyOpt(); return settings();
@@ -1017,13 +1079,14 @@ addEventListener('pointerdown', () => { if (IOS || STANDALONE || document.fullsc
 /* ---------- キーとパッド ---------- */
 const KEYDIR = { ArrowUp: 0, KeyW: 0, ArrowRight: 1, KeyD: 1, ArrowDown: 2, KeyS: 2, ArrowLeft: 3, KeyA: 3 };
 let hold = null, holdTimer = null;
-function startHold(dir) { stopHold(); stopWalk(); hold = dir; act(dir); holdTimer = setTimeout(function rep() { if (hold == null) return; act(hold); holdTimer = setTimeout(rep, 125); }, 230); }
+function startHold(dir) { stopHold(); stopWalk(); stopExplore(); hold = dir; act(dir); holdTimer = setTimeout(function rep() { if (hold == null) return; act(hold); holdTimer = setTimeout(rep, 125); }, 230); }
 function stopHold() { hold = null; clearTimeout(holdTimer); holdTimer = null; document.querySelectorAll('.dpad button.on').forEach(b => b.classList.remove('on')); }
 addEventListener('keydown', e => {
   if (e.repeat && KEYDIR[e.code] != null) { e.preventDefault(); return; }
   if (KEYDIR[e.code] != null && run && !ui.scr) { e.preventDefault(); startHold(KEYDIR[e.code]); return; }
   if ((e.code === 'Space' || e.code === 'KeyZ' || e.code === 'Enter') && run && !ui.scr) { e.preventDefault(); interact(); return; }
   if ((e.code === 'KeyX' || e.code === 'Escape') && run && !run.battle) { e.preventDefault(); if (ui.scr && ui.scr !== 'prompt') { hideScreen(); dirty = true; } else if (!ui.scr) runMenu(); return; }
+  if (e.code === 'KeyE' && run && !ui.scr) { e.preventDefault(); toggleExplore(); return; }
   if (e.code === 'KeyB' && run && !ui.scr) { ui.sel = null; ui.bagSel = null; boardScreen('run'); }
 });
 addEventListener('keyup', e => { if (KEYDIR[e.code] === hold) stopHold(); });
@@ -1039,7 +1102,8 @@ addEventListener('keyup', e => { if (KEYDIR[e.code] === hold) stopHold(); });
 /* スマホでは touchstart を止めているので click が来ない → pointerup で受ける */
 function padBtn(b, fn) { b.addEventListener('pointerdown', e => { e.preventDefault(); b.classList.add('on'); }); b.addEventListener('pointerleave', () => b.classList.remove('on')); b.addEventListener('pointerup', e => { e.preventDefault(); const was = b.classList.contains('on'); b.classList.remove('on'); if (was) fn(); }); }
 padBtn($('#b-act'), () => { stopWalk(); interact(); });
-padBtn($('#b-menu'), () => { stopWalk(); if (run && !ui.scr) runMenu(); });
+padBtn($('#b-menu'), () => { stopWalk(); stopExplore(); if (run && !ui.scr) runMenu(); });
+padBtn($('#b-exp'), () => { stopWalk(); toggleExplore(); });
 document.addEventListener('dblclick', e => e.preventDefault(), { passive: false });
 let lastTouch = 0; document.addEventListener('touchend', e => { const n = Date.now(); if (n - lastTouch < 300) e.preventDefault(); lastTouch = n; }, { passive: false });
 document.addEventListener('gesturestart', e => e.preventDefault());
