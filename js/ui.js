@@ -199,7 +199,7 @@ function title() {
       <button class="btn pri" data-a="floors">塔に入る</button>
       <button class="btn" data-a="board">盤面とかばん</button>
       <button class="btn" data-a="gacha">今日のガチャ${gachaReady() ? '<span class="badge">!</span>' : ''}</button>
-      <button class="btn" data-a="synth">合成</button>
+      <button class="btn" data-a="synth">合成所</button>
       <button class="btn" data-a="points">能力${pr.freePts ? '<span class="badge">' + pr.freePts + '</span>' : ''}</button>
       <button class="btn" data-a="plaza">広場（掲示板）</button>
       ${Net.on ? '<button class="btn" data-a="maptop">地図屋</button>' : ''}
@@ -461,21 +461,47 @@ function points() {
 }
 
 /* ---------- 合成 ---------- */
-function synth() {
+function synth() { // 合成所
   ui.scr = 'synth';
   const base = pr.bag.find(p => p.id === ui.synthBase), mat = pr.bag.find(p => p.id === ui.synthMat);
+  if (!base) ui.synthBase = null; if (!mat) ui.synthMat = null;
   const onB = new Set(pr.board.filter(x => x != null));
   let list = base ? pr.bag.filter(p => IL.canSynth(base, p) && (ui.synAll || !onB.has(p.id))) : pr.bag.filter(p => p.stats.some(s => s.r !== 'A') && pr.bag.some(q => IL.canSynth(p, q)));
   list.sort((a, b) => IL.partScore(b) - IL.partScore(a));
-  const items = list.map(p => `<div class="bagitem ${p.id === ui.synthMat ? 'sel' : ''}" data-syn="${p.id}">${partHTML(p)}<small>${onB.has(p.id) ? '<b class="gold">盤面</b> ' : ''}${IL.RAR_NAME[p.rar]} ${p.floor}階</small></div>`).join('') || '<div class="mute small">合成できる組み合わせがない</div>';
-  const rate = Math.round(IL.synthRate(pr) * 100);
-  show(`<div class="win"><button class="btn sm close" data-a="title">もどる</button><h2>合成</h2>
-    <p class="small mute">同じ種族・同じレアリティの2個で合成。成功すると能力のどれか1つのランクが上がる（材料は消える）。失敗すると<b style="color:#ff8a8a">両方消える</b>。成功率 ${rate}％</p>
-    <div class="row"><div>${base ? partHTML(base) : '<div class="cell" style="--s:56px"></div>'}<div class="small mute">強くする方</div></div><div style="font-size:24px">＋</div><div>${mat ? partHTML(mat) : '<div class="cell" style="--s:56px"></div>'}<div class="small mute">材料</div></div>
-      <button class="btn pri" data-a="dosynth" ${base && mat ? '' : 'disabled'}>合成する</button>${base ? '<button class="btn sm" data-a="synreset">選びなおす</button>' : ''}</div>
-    ${base ? `<div class="row small" style="margin:6px 0"><button class="btn sm" data-a="synall">${ui.synAll ? '☑' : '☐'} 盤面に置いている欠片も材料に出す</button><span class="mute">${ui.synAll ? '' : '（いまは出していない）'}</span></div>` : ''}
-    <div class="detail">${base ? partText(base) : '強くしたい欠片を選ぶ'}${mat ? '<br><br>材料：' + partText(mat) : ''}</div>
-    <div class="bag">${items}</div></div>`);
+  const items = list.map(p => `<div class="bagitem ${p.id === ui.synthMat || p.id === ui.synthBase ? 'sel' : ''}" data-syn="${p.id}">${partHTML(p)}<small>${onB.has(p.id) ? '<b class="gold">盤面</b> ' : ''}${IL.RAR_NAME[p.rar]} ${p.floor}階</small></div>`).join('')
+    || `<div class="mute small" style="padding:8px">${base ? '同じ種族・同じレアリティの欠片がない' : '合成できる組み合わせがない（同じ種族・同じレアリティの欠片が2つ必要）'}</div>`;
+  const tk = ui.synTk = Math.max(0, Math.min(IL.B.synTkMax, ui.synTk | 0)), guard = ui.synGuard = !!ui.synGuard;
+  const rate = Math.round(IL.synthRate(pr, tk) * 100), cost = base ? IL.synthCost(base, tk, guard) : 0, short = cost > pr.gold;
+  const tkP = base ? IL.B.synTk[base.rar] : null, gdP = base ? IL.B.synGuard[base.rar] : null;
+  const up = base ? base.stats.filter(st => st.r !== 'A').map(st => IL.STAT_NAME[st.k] + ' ' + st.r + '→' + (st.r === 'C' ? 'B' : 'A')) : [];
+  const res = ui.synRes; ui.synRes = null;
+  const say = res ? (res.ok ? 'よし、うまくいった！' : res.kept ? '補強が効いたね。強くする方は無事だ。' : 'すまないね…こればかりは運だ。')
+    : !base ? '強くしたい欠片を出してみな。' : !mat ? '同じ種族・同じレアリティの欠片を材料にするんだ。' : rate >= 70 ? 'これならまず大丈夫だ。' : rate >= 45 ? '五分より少し上ってところだね。' : 'うーん、分の悪い賭けだよ。';
+  const slot = (p, lab, a) => `<button class="synslot ${p ? 'has' : ''}" data-a="${a}" ${p ? '' : 'disabled'}>${p ? partHTML(p) : '<span class="q">？</span>'}<small>${lab}</small></button>`;
+  show(`<div class="win synwin"><button class="btn sm close" data-a="title">もどる</button>
+    <div class="synhead"><div class="spr shop" data-tile="87"></div><div class="bubble">${say}</div><h2>合成所</h2></div>
+    <div class="synmain">
+      <div class="syncol">
+        <div class="synpair">${slot(base, '強くする方', 'synclr')}<span class="plus">＋</span>${slot(mat, '材料', 'synclrm')}</div>
+        ${res ? `<div class="synres ${res.ok ? 'ok' : 'ng'}">${res.ok ? '成功！ ' + IL.STAT_NAME[res.stat] + 'が ' + res.rank + ' になった' : res.kept ? '失敗… 補強で強くする方は残った' : '失敗… 2つとも消えた'}</div>`
+          : `<div class="small synup">${base ? (up.length ? '成功すると、どれか1つが上がる：<b>' + up.join('　') + '</b>' : 'これ以上強くできない') : '下の手順で選ぶ<br>① 強くする欠片　② 材料'}</div>`}
+      </div>
+      <div class="syncol rate">
+        <div class="rbig"><span>成功率</span><b>${rate}<small>％</small></b></div>
+        <div class="rbar"><i style="width:${rate}%"></i></div>
+        <div class="tkrow"><span class="lab">確率チケット<small>${tkP != null ? '1枚 +5％・' + tkP + 'G' : '1枚 +5％'}</small></span>
+          <span class="step"><button class="btn sm" data-a="tkm" ${tk ? '' : 'disabled'}>−</button><b>${tk}</b><button class="btn sm" data-a="tkp" ${tk < IL.B.synTkMax ? '' : 'disabled'}>＋</button></span></div>
+        <div class="tkq"><button class="btn sm ${tk === 0 ? 'pri' : ''}" data-a="tks" data-k="0">なし</button><button class="btn sm ${tk === 5 ? 'pri' : ''}" data-a="tks" data-k="5">5枚</button><button class="btn sm ${tk === 10 ? 'pri' : ''}" data-a="tks" data-k="10">最大10枚</button></div>
+        <button class="guard ${guard ? 'on' : ''}" data-a="tgd"><span class="sw"><i></i></span><span>補強する<small>失敗しても強くする方は残る${gdP != null ? '・' + gdP + 'G' : ''}</small></span></button>
+        <div class="total"><span>合計 <b class="${short ? 'ng' : 'gold'}">${cost} G</b></span><span class="mute">所持 ${pr.gold} G</span></div>
+        <button class="btn pri big" data-a="dosynth" ${base && mat && !short ? '' : 'disabled'}>${short ? 'お金が足りない' : '合成する'}</button>
+      </div>
+      <div class="syncol pick">
+        <div class="small mute">${base ? '② 材料を選ぶ' : '① 強くする欠片を選ぶ'}${base ? `　<button class="btn sm" data-a="synall">${ui.synAll ? '☑' : '☐'} 盤面の欠片も出す</button>` : ''}</div>
+        <div class="bag">${items}</div>
+      </div>
+    </div></div>`);
+  document.querySelectorAll('.synwin .spr').forEach(d => d.appendChild(spriteCanvas(+d.dataset.tile, innerHeight < 520 ? 2 : 3)));
 }
 
 /* ---------- ガチャ ---------- */
@@ -1044,7 +1070,7 @@ document.addEventListener('click', async e => {
   if (d.bag != null && ui.multi) { const id = +d.bag; if (pr.board.includes(id)) return; ui.multi.has(id) ? ui.multi.delete(id) : ui.multi.add(id); ui.mconf = false; sfx('click', 0.2); return boardScreen(); }
   if (d.bag != null) { const before = IL.playerStats(pr); setTimeout(() => statDiff(before), 0); const id = +d.bag; ui.bagSel = ui.bagSel === id ? null : id; if (ui.sel != null && ui.bagSel != null && pr.board[ui.sel] == null) { X(['place', ui.sel, id]); ui.bagSel = null; sfx('place'); save(); } else sfx('click', 0.3); return boardScreen(); }
   if (d.pt) { X(['pt', d.pt]); sfx('select', 0.4); save(); return points(); }
-  if (d.syn != null) { const id = +d.syn; if (ui.synthBase == null) ui.synthBase = id; else ui.synthMat = ui.synthMat === id ? null : id; sfx('click', 0.3); return synth(); }
+  if (d.syn != null) { const id = +d.syn; if (ui.synthBase == null) ui.synthBase = id; else if (id === ui.synthBase) { ui.synthBase = null; ui.synthMat = null; } else ui.synthMat = ui.synthMat === id ? null : id; sfx('click', 0.3); return synth(); }
   if (d.gp != null) { const p = X(['gpick', +d.gp]);  if (p) { sfx(p.rar >= 2 ? 'god' : 'ok', 0.5); save(); } return gacha(); }
   if (d.buy != null) { const r = X(['buy', +d.buy]); sfx(r === 'ok' ? 'coin' : 'ng', 0.5); save(); hud(); return shop(); }
   if (d.tg != null && +d.tg >= 0) { ui.target = +d.tg; return battle(); }
@@ -1106,7 +1132,13 @@ document.addEventListener('click', async e => {
     case 'reroll': if (pr.tickets > 0) { X(['groll', todayKey(), 1]); save(); } return gacha();
     case 'synth': ui.synthBase = null; ui.synthMat = null; return synth();
     case 'synreset': ui.synthBase = null; ui.synthMat = null; return synth();
-    case 'dosynth': { const r = X(['syn', ui.synthBase, ui.synthMat]); if (r && r !== true) { if (r.ok) { sfx('god', 0.5); toast('成功！ ' + IL.STAT_NAME[r.stat] + 'が ' + r.rank + ' になった'); ui.synthMat = null; } else { sfx('fail', 0.5); toast('失敗…　2つとも消えてしまった'); ui.synthBase = null; ui.synthMat = null; } save(); } return synth(); }
+    case 'dosynth': { const r = X(['syn', ui.synthBase, ui.synthMat, ui.synTk | 0, !!ui.synGuard]); if (r && r !== true) { ui.synRes = r; if (r.ok) { sfx('god', 0.5); ui.synthMat = null; } else { sfx('fail', 0.5); ui.synthMat = null; if (!r.kept) ui.synthBase = null; } save(); } return synth(); }
+    case 'tkm': ui.synTk = (ui.synTk | 0) - 1; sfx('click', 0.2); return synth();
+    case 'tkp': ui.synTk = (ui.synTk | 0) + 1; sfx('click', 0.2); return synth();
+    case 'tks': ui.synTk = +t.dataset.k; sfx('click', 0.2); return synth();
+    case 'tgd': ui.synGuard = !ui.synGuard; sfx('click', 0.3); return synth();
+    case 'synclr': ui.synthBase = null; ui.synthMat = null; return synth();
+    case 'synclrm': ui.synthMat = null; return synth();
     case 'points': return points();
     case 'respec': if (pr.respec > 0) { X(['respec']); sfx('ok'); save(); } return points();
     case 'back': hideScreen(); dirty = true; return;

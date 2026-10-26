@@ -4,6 +4,14 @@
 'use strict';
 // [英語, 繁体字中国語, 韓国語]
 const D = {
+'強くしたい欠片を出してみな。': ['Show me the shard you want to strengthen.', '拿出你想強化的碎片吧。', '강화하고 싶은 조각을 내 봐.'], '同じ種族・同じレアリティの欠片を材料にするんだ。': ['Use a shard of the same kind and rarity as material.', '用同種族、同稀有度的碎片當材料。', '같은 종족·같은 희귀도의 조각을 재료로 써.'],
+'これならまず大丈夫だ。': ['This should work out fine.', '這樣應該沒問題。', '이 정도면 괜찮을 거야.'], '五分より少し上ってところだね。': ['A bit better than a coin flip.', '比五五波好一點。', '반반보다 조금 나은 정도네.'], 'うーん、分の悪い賭けだよ。': ['Hmm, that is a risky bet.', '嗯，這是場不利的賭局。', '음, 불리한 도박이야.'],
+'よし、うまくいった！': ['Yes, it worked!', '好，成功了！', '좋아, 성공했다!'], '補強が効いたね。強くする方は無事だ。': ['The reinforcement held. Your main shard is safe.', '補強起作用了，主碎片沒事。', '보강이 효과가 있었어. 강화할 조각은 무사해.'], 'すまないね…こればかりは運だ。': ['Sorry... that is just luck.', '抱歉……這只能看運氣。', '미안하군… 이건 운이야.'],
+'合成所': ['Fusion Shop', '合成所', '합성소'], '確率チケット': ['Chance tickets', '機率券', '확률 티켓'], '補強する': ['Reinforce', '補強', '보강하기'], '失敗しても強くする方は残る': ['Main shard survives a failure', '失敗也會保留主碎片', '실패해도 강화할 조각은 남는다'],
+'成功すると、どれか1つが上がる：': ['On success, one of these goes up: ', '成功時其中一項提升：', '성공하면 하나가 오른다: '], 'これ以上強くできない': ['Cannot be strengthened further', '無法再強化', '더 이상 강화할 수 없다'], '下の手順で選ぶ': ['Choose in this order', '依下列步驟選擇', '아래 순서로 고르기'],
+'① 強くする欠片': ['① Shard to strengthen', '① 要強化的碎片', '① 강화할 조각'], '② 材料': ['② Material', '② 材料', '② 재료'], '① 強くする欠片を選ぶ': ['① Choose the shard to strengthen', '① 選擇要強化的碎片', '① 강화할 조각 선택'], '② 材料を選ぶ': ['② Choose the material', '② 選擇材料', '② 재료 선택'],
+'盤面の欠片も出す': ['Show board shards', '也顯示盤面碎片', '판 조각도 표시'], 'お金が足りない': ['Not enough gold', '金錢不足', '돈이 부족하다'], '最大10枚': ['Max 10', '最多10張', '최대 10장'], '失敗… 補強で強くする方は残った': ['Failed... reinforcement saved your main shard', '失敗……補強保住了主碎片', '실패… 보강으로 강화할 조각은 남았다'], '失敗… 2つとも消えた': ['Failed... both shards were lost', '失敗……兩個都消失了', '실패… 둘 다 사라졌다'],
+'同じ種族・同じレアリティの欠片がない': ['No shard of the same kind and rarity', '沒有同種族、同稀有度的碎片', '같은 종족·희귀도의 조각이 없다'],
 '中心にする属性を2つまで選ぶ。その属性をできるだけ多くつなげて技を強くし、残りのマスは強い欠片で埋める（万能の欠片も使う）。': ['Pick up to 2 elements to focus on. It links as many shards of those elements as possible to power up your skills, then fills the rest with your strongest shards (Wild shards included).', '選擇最多2個作為核心的屬性。會盡量連結該屬性的碎片來強化技能，剩下的格子用強力碎片填滿（也會使用萬能碎片）。', '중심이 될 속성을 2개까지 고른다. 그 속성의 조각을 최대한 이어서 기술을 강하게 하고, 남은 칸은 강한 조각으로 채운다 (만능 조각도 사용).'],
 '🪄 おまかせで組む': ['🪄 Auto-build', '🪄 自動組合', '🪄 자동 배치'], 'おまかせで組む': ['Auto-build', '自動組合', '자동 배치'], 'この盤面にしますか？': ['Use this board?', '要使用這個盤面嗎？', '이 판으로 할까?'],
 'この盤面にする': ['Use this board', '使用這個盤面', '이 판으로 하기'], 'もう一度考える': ['Try again', '再想一次', '다시 생각하기'], 'おまかせで組んだ': ['Board auto-built', '已自動組合', '자동으로 배치했다'],

@@ -4,7 +4,7 @@
 'use strict';
 const IL = {};
 IL.VER = 1;
-IL.ENGINE = '16'; // ルールの版（記録に書く。変えたら engine/ に前の版を残す）
+IL.ENGINE = '17'; // ルールの版（記録に書く。変えたら engine/ に前の版を残す）
 
 /* ---------- 乱数 ---------- */
 function hashStr(s) { let h = 2166136261 >>> 0; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
@@ -28,7 +28,7 @@ const B = IL.B = {
   bossHp: 8, bossAt: 2.0, bigHp: 11, bigAt: 2.4, depth: 0.3, chargeMul: 2.5,
   expBase: 8, expPer: 3, bossExp: 10, bigExp: 15,
   potion: 0.5, potionPrice: 5, ticketPrice: 60, partPrice: [15, 80, 300, 300],
-  synthRate: 0.2,
+  synthRate: 0.2, synTk: [30, 100, 250, 250], synGuard: [150, 500, 1200, 1200], synTkMax: 10, // 版17：合成所（確率チケット1枚+5％・補強で強くする方が残る）
   tierPct: [0, 1.2, 1.5, 1.9, 2.4, 3.0, 3.8, 5.0], // 版15：いちばん上を5倍までに（版14までは 9倍）
   coef: { fire: 1.0, wind: 0.6, rock: 0.7, forest: 0.6, star: 1.0 },
   guard: [0, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.5],
@@ -524,15 +524,18 @@ IL.swapCells = (pr, a, b) => { const t = pr.board[a]; pr.board[a] = pr.board[b];
 IL.rotatePart = (pr, id) => { const p = pr.bag.find(q => q.id === id); if (p) p.rot = (p.rot + 1) % 4; };
 IL.discard = (pr, id) => { if (pr.board.includes(id)) return false; pr.bag = pr.bag.filter(p => p.id !== id); return true; };
 IL.canSynth = (a, b) => a && b && a.id !== b.id && a.sp === b.sp && a.rar === b.rar && a.stats.some(s => s.r !== 'A');
-IL.synthRate = pr => Math.min(0.6, B.synthRate + playerStats(pr).luck / (playerStats(pr).luck + 4000) * 0.2);
-IL.synth = (pr, rng, baseId, matId) => {
+IL.synthRate = (pr, tk) => Math.min(0.95, B.synthRate + 0.05 * Math.max(0, Math.min(B.synTkMax, tk | 0))); // 運は関係しない
+IL.synthCost = (p, tk, guard) => p ? Math.max(0, Math.min(B.synTkMax, tk | 0)) * B.synTk[p.rar] + (guard ? B.synGuard[p.rar] : 0) : 0;
+IL.synth = (pr, rng, baseId, matId, tk, guard) => {
   const a = pr.bag.find(p => p.id === baseId), b = pr.bag.find(p => p.id === matId);
   if (!IL.canSynth(a, b)) return null;
-  const ok = rng.chance(IL.synthRate(pr));
-  const rm = ok ? [matId] : [baseId, matId];
+  tk = Math.max(0, Math.min(B.synTkMax, tk | 0)); guard = !!guard; const cost = IL.synthCost(a, tk, guard);
+  if (pr.gold < cost) return null; pr.gold -= cost;
+  const ok = rng.chance(IL.synthRate(pr, tk));
+  const rm = ok || guard ? [matId] : [baseId, matId];
   pr.bag = pr.bag.filter(p => !rm.includes(p.id)); pr.board = pr.board.map(id => rm.includes(id) ? null : id);
-  if (ok) { const up = a.stats.filter(s => s.r !== 'A'); const s = up[rng.int(up.length)]; s.r = s.r === 'C' ? 'B' : 'A'; return { ok: true, stat: s.k, rank: s.r }; }
-  return { ok: false };
+  if (ok) { const up = a.stats.filter(s => s.r !== 'A'); const s = up[rng.int(up.length)]; s.r = s.r === 'C' ? 'B' : 'A'; return { ok: true, stat: s.k, rank: s.r, cost }; }
+  return { ok: false, kept: guard, cost };
 };
 /* ガチャ（1日1回、3個から1個） */
 IL.gachaFloor = pr => pr.maxFloor;
@@ -628,7 +631,7 @@ IL.exec = (S, op) => {
     case 'disc': IL.discard(pr, op[1]); break;
     case 'pt': IL.allocPoint(pr, op[1]); break;
     case 'respec': IL.respec(pr); break;
-    case 'syn': { const n = (pr.stats.sy = (pr.stats.sy || 0) + 1); res = IL.synth(pr, new RNG(hashStr(S.uid + ':syn:' + n)), op[1], op[2]); break; }
+    case 'syn': { const n = (pr.stats.sy = (pr.stats.sy || 0) + 1); res = IL.synth(pr, new RNG(hashStr(S.uid + ':syn:' + n)), op[1], op[2], op[3], op[4]); break; }
     case 'groll': { const day = String(op[1]); if (op[2]) { if (pr.tickets <= 0) return null; pr.tickets--; } else if (pr.gacha && pr.gacha.day === day) return null; const n = (pr.stats.gr = (pr.stats.gr || 0) + 1); IL.rollGacha(pr, day, new RNG(hashStr(S.uid + ':gacha:' + day + ':' + n))); break; }
     case 'gpick': res = IL.pickGacha(pr, op[1] | 0); break;
     case 'mapsell': if (pr.gold < 100) return null; pr.gold -= 100; break;
