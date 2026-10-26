@@ -434,3 +434,22 @@ body.lowfx .lootfx .rays{display:none}body.lowfx .killfx b{animation-duration:.6
 .fastbt .critfx,.fastbt .critfx b{animation-duration:.7s}
 .skill .bless{margin-left:6px;font-size:11px;color:#ffe9b0;background:rgba(242,209,75,.14);border:1px solid rgba(242,209,75,.4);border-radius:999px;padding:0 6px;white-space:nowrap}
 .guard.trip{margin:0 0 6px;width:100%}.floors button small{display:block;font-size:9px;line-height:1;color:var(--accent);margin-top:1px}
+
+/* タイトル：キービジュアルを見せる（左上にロゴと状況、右にメニュー） */
+.ov:has(.title){background:transparent}
+.ov .win.title{position:absolute;inset:0;max-width:none!important;width:auto;max-height:none;border:0!important;border-image:none!important;background:none!important;box-shadow:none!important;padding:0!important;overflow:visible;display:block}
+.ov .win.title .tleft{position:absolute;left:max(2.5%,env(safe-area-inset-left));top:max(3%,env(safe-area-inset-top));width:min(46%,560px);display:flex;flex-direction:column;align-items:center;gap:6px;max-height:94%;overflow:auto}
+.ov .win.title .logo{font-size:clamp(30px,5.4vw,64px)!important;color:#ffe58a;text-shadow:0 2px 0 #7a4a0c,0 4px 0 #4a2a06,0 0 18px rgba(255,190,60,.8),0 6px 20px rgba(0,0,0,.8)}
+.ov .win.title .logo small{color:#fff;text-shadow:0 0 8px #8a4dff,0 2px 4px #000}
+.ov .win.title .story{color:#fff;text-shadow:0 1px 3px #000,0 0 10px #000}
+.ov .win.title .statline,.ov .win.title .tonline{background:rgba(10,7,20,.62);border-radius:999px;padding:4px 12px;color:#e8e0f5}
+.ov .win.title .menu{position:absolute;right:max(2.5%,env(safe-area-inset-right));top:50%;transform:translateY(-50%);width:min(40%,440px);max-height:92%;overflow:auto;margin:0!important;max-width:none;background:rgba(12,9,24,.62);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border:1px solid rgba(242,209,75,.45);border-radius:14px;padding:12px;box-shadow:0 10px 40px rgba(0,0,0,.5)}
+.ov .win.title .tleft>:not(.logo){background:rgba(12,9,24,.68);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);border-radius:10px}
+.ov .win.title .logo{white-space:nowrap}
+@media (max-height:520px) and (orientation:landscape){
+  .ov .win.title .tleft{width:35%;gap:4px;align-items:stretch}.ov .win.title .story{display:none}
+  .ov .win.title .logo{font-size:clamp(20px,3.6vw,30px)!important;text-align:center}.ov .win.title .logo small{font-size:10px}
+  .ov .win.title .statline{font-size:11px;border-radius:10px}.ov .win.title .tname{margin:0}.ov .win.title .tname input{width:100%;min-width:0}
+  .ov .win.title .tname .row{flex-wrap:nowrap}.ov .win.title .front,.ov .win.title .news,.ov .win.title .tailw{font-size:10px}
+  .ov .win.title .menu{width:42%;padding:8px}
+}

@@ -581,7 +581,17 @@ function hud() {
 function drawIdle() { g.fillStyle = '#14111c'; g.fillRect(0, 0, cv.width, cv.height); }
 const TB = { on: false, shards: [] };
 function drawTitleBg() { TB.on = true; if (!TB.shards.length) for (let i = 0; i < 26; i++) TB.shards.push({ x: Math.random(), y: Math.random(), s: 6 + Math.random() * 14, v: 0.00004 + Math.random() * 0.00008, c: Object.values(IL.SP_COLOR)[i % 7], r: Math.random() * 6 }); }
+const KV = new Image(); KV.src = 'img/kv.jpg?v=1'; // キービジュアル（タイトルの背景）
 function titleAnim(now) {
+  if (KV.complete && KV.naturalWidth) { // 絵をゆっくり寄せる＋光の粒
+    const W = cv.width, H = cv.height, z = 1.04 + 0.04 * Math.sin(now / 9000), r = Math.max(W / KV.naturalWidth, H / KV.naturalHeight) * z;
+    const dw = KV.naturalWidth * r, dh = KV.naturalHeight * r, dx = (W - dw) / 2 + Math.sin(now / 13000) * W * 0.01, dy = (H - dh) / 2;
+    g.imageSmoothingEnabled = true; g.drawImage(KV, dx, dy, dw, dh); g.imageSmoothingEnabled = false;
+    const sh = g.createLinearGradient(0, 0, W, 0); sh.addColorStop(0, 'rgba(8,5,18,.15)'); sh.addColorStop(0.55, 'rgba(8,5,18,0)'); sh.addColorStop(1, 'rgba(8,5,18,.55)'); g.fillStyle = sh; g.fillRect(0, 0, W, H);
+    const sb = g.createLinearGradient(0, H * 0.7, 0, H); sb.addColorStop(0, 'rgba(8,5,18,0)'); sb.addColorStop(1, 'rgba(8,5,18,.5)'); g.fillStyle = sb; g.fillRect(0, H * 0.7, W, H * 0.3);
+    if (!fxLow()) { g.save(); g.globalCompositeOperation = 'lighter'; for (let i = 0; i < 46; i++) { const sp = 0.3 + (i * 0.618 % 1) * 0.7, x = ((i * 97.3) % 1) * W + Math.sin(now / 1500 + i) * 12, y = H - ((now / 1000 * sp * 40 + i * 53) % (H + 40)) + 20, a = 0.25 + 0.35 * Math.sin(now / 400 + i * 2); const rr = 1.5 + (i % 3);
+      g.fillStyle = ['rgba(255,200,120,', 'rgba(150,220,255,', 'rgba(220,170,255,'][i % 3] + Math.max(0, a).toFixed(2) + ')'; g.beginPath(); g.arc(x, y, rr * (cv.width / 900), 0, 7); g.fill(); } g.restore(); }
+    return; }
   const W = cv.width, H = cv.height; const gr = g.createLinearGradient(0, 0, 0, H); gr.addColorStop(0, '#0b0814'); gr.addColorStop(1, '#1c1430'); g.fillStyle = gr; g.fillRect(0, 0, W, H);
   g.fillStyle = 'rgba(255,255,255,.5)'; for (let i = 0; i < 60; i++) { const x = (i * 97.3 % 1) * W, y = ((i * 57.7) % 1) * H * 0.7, tw = 0.5 + 0.5 * Math.sin(now / 700 + i); g.globalAlpha = 0.2 + 0.5 * tw; g.fillRect(x, y, 2, 2); } g.globalAlpha = 1;
   // 塔の影
@@ -591,7 +601,7 @@ function titleAnim(now) {
 }
 function render(now) {
   requestAnimationFrame(render);
-  if (!run) { if (guideTxt) { guideTxt = ''; $('#guide').hidden = true; document.body.classList.remove('guidemenu'); } if (TB.on && ui.scr !== 'ending') { titleAnim(now); if (window.FX) FX.frame(cv, { bloom: 1.1, vig: 0.45, th: 0.55 }); } else if (window.FX) FX.hide(); return; }
+  if (!run) { if (guideTxt) { guideTxt = ''; $('#guide').hidden = true; document.body.classList.remove('guidemenu'); } if (TB.on && ui.scr !== 'ending') { titleAnim(now); if (window.FX) FX.frame(cv, KV.complete && KV.naturalWidth ? { bloom: 0.35, vig: 0.3, th: 0.82 } : { bloom: 1.1, vig: 0.45, th: 0.55 }); } else if (window.FX) FX.hide(); return; }
   if (!sheet.complete) return;
   let ax = run.x, ay = run.y;
   if (anim) { const t = Math.min(1, (now - anim.t0) / 110); ax = anim.x0 + (run.x - anim.x0) * t; ay = anim.y0 + (run.y - anim.y0) * t; if (t >= 1) anim = null; dirty = true; }
