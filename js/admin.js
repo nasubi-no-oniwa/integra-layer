@@ -37,7 +37,7 @@ async function init() {
   if (!isAdmin) return;
   try { const la = firebase.initializeApp(CFG.live, 'live'); await la.auth().signInAnonymously(); la.database().ref('on').on('value', s => { const v = s.val() || {}, now = Date.now(); let n = 0, inT = 0; const fl = {}; for (const k in v) if (now - (v[k].t || 0) < 180000) { n++; if (v[k].f) { inT++; fl[v[k].f] = (fl[v[k].f] || 0) + 1; } }
     $('#online').innerHTML = `いま遊んでいる人：<b>${n}人</b>（塔の中 ${inT}人）` + (inT ? '<br><span class="mute">' + Object.keys(fl).sort((a, b) => b - a).map(f => f + '階 ' + fl[f] + '人').join('　') + '</span>' : ''); }); } catch (e) {}
-  watchStream(); watchNews(); await loadPlayers(); loadFirsts(); watchBoard(); stat();
+  watchStream(); watchNews(); loadAn().catch(() => {}); await loadPlayers(); loadFirsts(); watchBoard(); stat();
 }
 
 /* 前のルールの版（engine/list.json に書いた版を読みこむ） */
@@ -50,6 +50,39 @@ async function stat() {
   const top = Math.max(0, ...Object.keys(f).map(Number));
   $('#stat').innerHTML = `最前線：<b>${Math.min(100, top + 1)}階</b>（${top}階まで初撃破ずみ）　プレイヤー：<b>${Object.keys(p).length}人</b>　掲示板：<b>${Object.keys(b).length}件</b>`;
 }
+
+/* 遊んだ人の記録 */
+async function loadAn() {
+  $('#an').innerHTML = '<p class="mute">読みこみ中…</p>';
+  const all = (await db.ref('an').once('value')).val() || {}, ids = Object.keys(all), N = ids.length, now = Date.now();
+  if (!N) { $('#an').innerHTML = '<p class="mute">まだ記録がない</p>'; return; }
+  const m = id => all[id].m || {}, has = k => ids.filter(id => m(id)[k]).length;
+  const pct = (a, b) => b ? Math.round(100 * a / b) : 0;
+  // 進み具合（どこまで行ったか）
+  const steps = [['来た', N], ['塔に入った', has('run')], ['1階のボスを倒した', has('b1')]];
+  for (let f = 2; f <= 15; f++) { const n = has('b' + f); if (!n && f > 3) break; steps.push([f + '階のボスを倒した', n]); }
+  const fun = steps.map(([lab, n]) => `<span>${lab}</span><div class="bar"><i style="width:${pct(n, N)}%"></i></div><span><b>${n}</b>人（${pct(n, N)}％）</span>`).join('');
+  // 時間・回数
+  const secs = ids.map(id => all[id].s || 0).sort((a, b) => a - b), med = secs[Math.floor(secs.length / 2)] || 0;
+  const back = ids.filter(id => (all[id].n || 0) >= 2).length, sp = ids.filter(id => all[id].dev === 'sp').length;
+  const act24 = ids.filter(id => now - (all[id].l || 0) < 86400000).length;
+  const mm = s => s < 60 ? Math.round(s) + '秒' : s < 3600 ? Math.round(s / 60) + '分' : (s / 3600).toFixed(1) + '時間';
+  // やめた場所（24時間来ていない人の最後の場所）
+  const gone = ids.filter(id => now - (all[id].l || 0) >= 86400000), where = {};
+  for (const id of gone) { const a = all[id], k = !m(id).run ? 'タイトルだけで帰った' : (a.lf ? a.lf + '階' : 'タイトル'); where[k] = (where[k] || 0) + 1; }
+  const whereRows = Object.entries(where).sort((a, b) => b[1] - a[1]).map(([k, v]) => `<tr><td>${esc(k)}</td><td>${v}人</td></tr>`).join('') || '<tr><td class="mute">まだいない</td></tr>';
+  // 倒れた場所
+  const dead = {}; for (const id of ids) { const d = all[id].d || {}; for (const f in d) dead[f] = (dead[f] || 0) + d[f]; }
+  const deadRows = Object.entries(dead).sort((a, b) => b[1] - a[1]).slice(0, 12).map(([f, v]) => `<tr><td>${f}階</td><td>${v}回</td></tr>`).join('') || '<tr><td class="mute">まだない</td></tr>';
+  // 機能の使われ方
+  const FN = { synth: '合成所', mapshop: '地図屋', preset: 'プリセット', autoboard: 'おまかせで組む', explore: '自動探索', autobattle: 'おまかせ戦闘', gacha: 'ガチャ', bag: 'バッグを開けた', multidisc: 'まとめて捨てる' };
+  const useRows = Object.keys(FN).map(k => { let p = 0, t = 0; for (const id of ids) { const v = (all[id].u || {})[k] || 0; if (v) { p++; t += v; } } return [FN[k], p, t]; }).sort((a, b) => b[1] - a[1])
+    .map(([n, p, t]) => `<tr><td>${n}</td><td>${p}人（${pct(p, N)}％）</td><td class="mute">${t}回</td></tr>`).join('');
+  $('#an').innerHTML = `<div class="kpis"><div>来た人<b>${N}</b></div><div>この24時間に来た<b>${act24}</b></div><div>2回以上来た<b>${pct(back, N)}％</b></div><div>遊んだ時間（真ん中の人）<b>${mm(med)}</b></div><div>スマホ<b>${pct(sp, N)}％</b></div></div>
+    <h3>どこまで進んだか</h3><div class="fun">${fun}</div>
+    <div class="angrid"><div><h3>やめた場所（24時間来ていない人）</h3><table>${whereRows}</table></div><div><h3>倒れた場所（多い順）</h3><table>${deadRows}</table></div><div><h3>使われている機能</h3><table>${useRows}</table></div></div>`;
+}
+$('#an-load').onclick = () => loadAn().catch(e => { $('#an').innerHTML = '<p class="ng">読みこめなかった：' + esc(e.message) + '</p>'; });
 
 /* 配信中 */
 function watchStream() {

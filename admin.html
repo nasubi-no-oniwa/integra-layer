@@ -28,6 +28,8 @@ table{width:100%;border-collapse:collapse;font-size:13px} td,th{border-bottom:1p
 .be.v.lk{z-index:3}.be.t.v.lk{top:-36%;height:38%}.be.b.v.lk{bottom:-36%;height:38%}.be.l.v.lk{left:-36%;width:38%}.be.r.v.lk{right:-36%;width:38%}
 .row.tg{margin:0 0 10px}section>h2{cursor:pointer;user-select:none;display:flex;align-items:center;gap:8px;margin:0}section>h2::before{content:'▼';font-size:11px;color:var(--mute);transition:transform .15s}section.shut>h2::before{transform:rotate(-90deg)}section:not(.shut)>h2{margin-bottom:8px}section.shut>:not(h2){display:none!important}
 #news{max-height:260px;overflow:auto}
+.fun{display:grid;grid-template-columns:auto 1fr auto;gap:4px 10px;align-items:center;font-size:13px}.fun .bar{height:14px;background:#2a2438;border-radius:4px;overflow:hidden}.fun .bar i{display:block;height:100%;background:linear-gradient(90deg,#7c5cd6,#b39cff)}
+.angrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px}.angrid h3{font-size:14px;margin:6px 0;color:var(--ink)}.kpis{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}.kpis div{background:#2a2438;border-radius:8px;padding:6px 10px;font-size:12px;color:var(--mute)}.kpis b{display:block;font-size:18px;color:var(--ink)}
 </style>
 </head>
 <body>
@@ -35,6 +37,7 @@ table{width:100%;border-collapse:collapse;font-size:13px} td,th{border-bottom:1p
 <div class="row tg"><button id="openall">全部ひらく</button><button id="closeall">全部とじる</button></div>
 <section id="me"><p class="mute">つないでいます…</p></section>
 <section><h2>状況</h2><div id="online" class="ok">—</div><div id="stat" class="mute">—</div></section>
+<section><h2>遊んだ人の記録（どこでやめたか）</h2><div class="row" style="margin-bottom:6px"><button id="an-load">読みこむ</button><span class="mute small">記録は v49 から。見るたびに「読みこむ」を押す</span></div><div id="an"></div></section>
 <section><h2>配信中の表示</h2>
   <div class="row"><label><input type="checkbox" id="st-on"> 配信中にする</label></div>
   <div class="row" style="margin-top:6px"><input id="st-name" maxlength="20" placeholder="配信者の名前" style="min-width:140px"><input id="st-url" placeholder="配信のURL（YouTube など）" style="flex:1;min-width:240px"><input id="st-txt" placeholder="ひとこと（例：30階に挑戦中）" style="flex:1;min-width:200px"><button class="pri" id="st-save">保存</button></div>
@@ -73,8 +76,8 @@ table{width:100%;border-collapse:collapse;font-size:13px} td,th{border-bottom:1p
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
-<script src="js/firebase-config.js?v=31"></script>
-<script src="js/core.js?v=31"></script>
-<script src="js/admin.js?v=31"></script>
+<script src="js/firebase-config.js?v=32"></script>
+<script src="js/core.js?v=32"></script>
+<script src="js/admin.js?v=32"></script>
 </body>
 </html>
