@@ -357,7 +357,7 @@ function enterRun(r) { run = r; Net.presence(r.floor); ui.scr = null; ui.ghosts 
 function hud() {
   if (!run) return; const st = IL.playerStats(pr);
   $('#h-floor').textContent = run.floor; $('#h-biome').textContent = IL.biomeOf(run.floor).name;
-  $('#h-hp').textContent = run.hp + ' / ' + st.hp; $('#h-hpbar').style.width = Math.max(0, 100 * run.hp / st.hp) + '%';
+  const hr = Math.max(0, Math.min(1, run.hp / st.hp)), hb = $('#h-hpbar'); $('#h-hp').textContent = run.hp + ' / ' + st.hp; hb.style.width = 100 * hr + '%'; $('#h-hplag').style.width = 100 * hr + '%'; hb.className = hr <= 0.25 ? 'low' : hr <= 0.5 ? 'mid' : '';
   $('#h-lv').textContent = 'Lv ' + pr.lv; $('#h-gold').textContent = pr.gold + ' G';
 }
 function drawIdle() { g.fillStyle = '#14111c'; g.fillRect(0, 0, cv.width, cv.height); }
@@ -651,7 +651,7 @@ function battle() {
   } else bottom = battleResult();
   const BBG = ['#22402a', '#4a3a1e', '#1e3a4a', '#4a1e1e', '#2a3f55', '#2f4a1e', '#33363d', '#2a1e44', '#3a1e4a', '#4a4a5a'];
   show(`<div class="win battle" style="--bb:${BBG[bi]}"><div class="bwrap"><div class="bl"><div class="foes">${foes}</div>
-    <div class="row" style="gap:10px"><span>体力 ${run.hp} / ${st.hp}</span><div class="bar me" style="flex:1"><i style="width:${100 * run.hp / st.hp}%"></i></div></div></div>
+    <div class="row" style="gap:10px"><span>体力 ${run.hp} / ${st.hp}</span><div class="bar me ${run.hp / st.hp <= 0.25 ? 'low' : run.hp / st.hp <= 0.5 ? 'mid' : ''}" style="flex:1"><i style="width:${100 * run.hp / st.hp}%"></i></div></div></div>
     <div class="br"><div class="log" id="blog">${log}</div>${bottom}</div></div></div>`);
   const small = innerHeight < 520;
   document.querySelectorAll('.spr').forEach(d => d.appendChild(spriteCanvas(+d.dataset.tile, d.dataset.big === '1' ? (small ? 4 : 6) : (small ? 3 : 4), bi)));
