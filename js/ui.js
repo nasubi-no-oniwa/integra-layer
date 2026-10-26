@@ -466,12 +466,11 @@ function walkTo(tx, ty, adj, done) {
     for (const [o, ok] of [[-W, true], [1, i % W < W - 1], [W, true], [-1, i % W > 0]]) { const j = i + o; if (!ok || j < 0 || j >= W * fl.H || prev[j] >= 0 || !bits[j]) continue; const x = j % W, y = (j / W) | 0; if ((!IL.walkable(fl, x, y) || stopTile(j)) && !(goal(j) && !adj)) continue; prev[j] = i; q.push(j); } }
   if (hit < 0) return toast('そこへは行けない');
   const path = []; for (let c = hit; c !== start; c = prev[c]) path.push(c); path.reverse();
-  walk = { path, done, target: path[path.length - 1], near: new Set(run.enemies.filter(en => Math.abs(en.x - run.x) + Math.abs(en.y - run.y) <= 3)) }; dirty = true;
+  walk = { path, done, target: path[path.length - 1] }; dirty = true;
   const step = () => { if (!walk || !run) return; if (ui.scr || run.battle || run.prompt || run.over) return stopWalk();
     const n = walk.path.shift(), d = n - (run.y * W + run.x), dir = d === -W ? 0 : d === 1 ? 1 : d === W ? 2 : d === -1 ? 3 : -1;
     if (dir < 0) return stopWalk(); const before = run.y * W + run.x; act(dir);
     if (run.y * W + run.x === before || ui.scr || run.battle || run.prompt) return stopWalk();
-    if (run.enemies.some(en => !en.cool && !walk.near.has(en) && Math.abs(en.x - run.x) + Math.abs(en.y - run.y) <= 3)) return stopWalk(); // 敵が近づいたら止まる
     if (!walk.path.length) { const f = walk.done; stopWalk(); if (f) f(); return; }
     walk.timer = setTimeout(step, 125); };
   step();
