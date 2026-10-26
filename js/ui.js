@@ -219,7 +219,7 @@ function floors() {
   let b = ''; for (let f = 1; f <= 100; f++) { const cl = pr.cleared[f], fr = f === pr.maxFloor, ok = bt ? cl && pr.gold >= IL.bossTripCost(f) : f <= pr.maxFloor;
     b += `<button data-f="${f}" class="${cl ? 'cl' : ''} ${fr ? 'fr' : ''}" ${ok ? '' : 'disabled'}>${f}${bt && cl ? `<small>${IL.bossTripCost(f)}G</small>` : ''}</button>`; }
   show(`<div class="win"><button class="btn sm close" data-a="title">もどる</button><h2>どの階から始める？</h2>
-    <button class="guard trip ${bt ? 'on' : ''}" data-a="btrip"><span class="sw"><i></i></span><span>ボス部屋の前から始める<small>ボスを倒したことのある階だけ・階×20G（所持 ${pr.gold} G）</small></span></button>
+    <button class="guard trip ${bt ? 'on' : ''}" data-a="btrip"><span class="sw"><i></i></span><span>ボス部屋の前から始める<small>ボスを倒したことのある階だけ・階×20G（最低60G）（所持 ${pr.gold} G）</small></span></button>
     <p class="small mute">${bt ? '選んだ階のボス部屋の入口の前から始まる。宝箱の中身はふつうと同じ。' : '緑＝ボスを倒した階　金＝最前線（' + pr.maxFloor + '階）。10階ごとに景色が変わる。'}</p>
     <div class="floors">${b}</div>${Net.on ? '<p class="small mute" style="margin-top:8px">地図を買う：</p><div class="row"><select id="mapf">' + Array.from({ length: pr.maxFloor }, (_, i) => `<option value="${i + 1}">${i + 1}階</option>`).join('') + '</select><button class="btn sm" data-a="mapopen">地図の店へ</button></div>' : ''}</div>`);
 }

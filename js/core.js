@@ -4,7 +4,7 @@
 'use strict';
 const IL = {};
 IL.VER = 1;
-IL.ENGINE = '21'; // ルールの版（記録に書く。変えたら engine/ に前の版を残す）
+IL.ENGINE = '22'; // ルールの版（記録に書く。変えたら engine/ に前の版を残す）
 
 /* ---------- 乱数 ---------- */
 function hashStr(s) { let h = 2166136261 >>> 0; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
@@ -296,7 +296,7 @@ IL.DIRS = DIRS;
 IL.bossFront = fl => { const W = fl.W, bc = IL.bossCenter(fl); let best = -1, bd = 1e9;
   for (let i = 0; i < fl.t.length; i++) if (fl.t[i] === T_GATE) for (const o of [1, -1, W, -W]) { const j = i + o; if (fl.t[j] === T_FLOOR) { const d = Math.abs(j % W - bc % W) + Math.abs(((j / W) | 0) - ((bc / W) | 0)); if (d < bd) { bd = d; best = j; } } }
   return best; };
-IL.bossTripCost = f => f * 20;
+IL.bossTripCost = f => Math.max(60, f * 20); // 版22：ボスのお金（20G）の3倍より安くしない
 function startRun(pr, floor, seed, front) {
   const fl = genFloor(floor), rng = new RNG(seed);
   const st = playerStats(pr), bf = front ? IL.bossFront(fl) : -1;
