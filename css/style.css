@@ -496,4 +496,6 @@ body.lowfx .lootfx .rays{display:none}body.lowfx .killfx b{animation-duration:.6
 #puni.show{opacity:1}
 #puni i{position:absolute;left:50%;top:50%;width:46px;height:46px;margin:-23px 0 0 -23px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff,#c9b8ff 45%,#7b5cff);box-shadow:0 0 12px rgba(160,130,255,.8),inset 0 -3px 6px rgba(0,0,0,.25)}
 body.puni #pad .dpad{display:none}
+body.puni #pad{justify-content:flex-end}
+@media (hover:hover) and (pointer:fine){body.puni #pad{justify-content:space-between}}
 @media (hover:hover) and (pointer:fine){body.puni #pad .dpad{display:block}}

@@ -270,6 +270,8 @@ const TUT = {
   boardscr: '「ここが盤面さ。かばんの欠片をタップ（またはドラッグ）して盤面に置きな。同じ色の凸と凹を向かい合わせるとつながる。迷ったら『おまかせで組む』でいいよ」',
   synth: '「合成所じゃ、同じ種族・同じレア度の欠片を1つ材料にして、元の欠片の能力を1つ上げられる（C→B→A）。成功は運しだい。チケットで成功しやすく、補強なら失敗しても元の欠片は残るよ」',
   clear1: '「やったね、1階突破だ！ これで2階へ行ける。この先もボスを倒して上へ上へ。きつくなったら台座・だれかのバッグ・ガチャ・合成で盤面を育てな」',
+  loseb: '「ボスにやられたか…ボスに負けると、盤面の欠片はぜんぶ消えちまう。でもレベルとお金は残る。欠片を集めなおして、盤面を組んでから、また挑みな」',
+  losem: '「行商人に挑んだのかい？ 負けるとかばんの中身はなくなるけど、盤面とレベルとお金は残る。腕を上げてから、また来な」',
   lose: '「倒れちまったか。でも大丈夫、レベルとお金は残る。盤面の欠片はバッグになって、だれかの役に立つ。タイトルの『塔に入る』から何度でも挑めるよ」',
 };
 /* はじめての人向け：塔に入る前の4枚の説明 */
@@ -801,7 +803,7 @@ function afterAct() {
   }
   run.events = [];
   hud(); dirty = true; save();
-  if (run.battle) { ui.target = 0; ui.sub = null; battle(); if (run.battle.foes[0].kind) { sfx('boss', 0.6); if (run.battle.foes[0].kind <= 2) bossIntro(run.battle.foes[0]); } tut('battle'); if (run.battle.kind === 'normal' && opt.auto !== false) autoBattle(); }
+  if (run.battle) { ui.target = 0; ui.sub = null; battle(); if (run.battle.foes[0].kind) { sfx('boss', 0.6); if (run.battle.foes[0].kind <= 2 && run.battle.kind !== 'merchant') bossIntro(run.battle.foes[0]); } tut('battle'); if (run.battle.kind === 'normal' && opt.auto !== false) autoBattle(); }
   else if (run.prompt) { prompt(); if (run.prompt && run.prompt.kind === 'gate') tut('boss'); }
   else if (ui.bags.length && bagNear(6) && !(pr.bagsOpen || {})[bagNear(6).id]) tut('bag');
 }
@@ -819,7 +821,7 @@ function interact() {
   if (!run.prompt && !run.battle && b) toast('このバッグはもう開けた');
 }
 cv.addEventListener('pointerup', e => { // 画面の回復草・バッグをタップ
-  if (PUNI.on) return;
+  if (PUNI.on || e.pointerId === PUNI.dead) { PUNI.dead = null; return; }
   if (!run || ui.scr || run.battle || run.prompt || run.over || !ui.cam) return;
   const r = cv.getBoundingClientRect(), x = Math.floor(((e.clientX - r.left) * cv.width / r.width - ui.cam.cx) / ui.cam.TS), y = Math.floor(((e.clientY - r.top) * cv.height / r.height - ui.cam.cy) / ui.cam.TS);
   const fl = IL.genFloor(run.floor), i = y * fl.W + x;
@@ -832,7 +834,7 @@ cv.addEventListener('pointerup', e => { // 画面の回復草・バッグをタ�
 });
 const tapStart = { x: 0, y: 0 }; cv.addEventListener('pointerdown', e => { tapStart.x = e.clientX; tapStart.y = e.clientY; if (walk) stopWalk(); stopExplore(); });
 /* ぷにコン：画面のどこでも、指を置いた所がスティックになる。すべらせた向きへ歩き続ける（タップだけならその場所まで歩く） */
-const PUNI = { id: null, on: false, x: 0, y: 0, el: null };
+const PUNI = { id: null, on: false, x: 0, y: 0, el: null, dead: null };
 function puniEl() { if (!PUNI.el) { PUNI.el = document.createElement('div'); PUNI.el.id = 'puni'; PUNI.el.innerHTML = '<i></i>'; $('#app').appendChild(PUNI.el); } return PUNI.el; }
 cv.addEventListener('pointerdown', e => {
   if (opt.ctrl === 'dpad' || e.pointerType === 'mouse' || PUNI.id != null || !run || ui.scr || run.battle) return;
@@ -852,7 +854,7 @@ cv.addEventListener('pointermove', e => {
 function puniEnd(e) { if (e && e.pointerId !== PUNI.id) return; const was = PUNI.on; PUNI.id = null; PUNI.on = false; if (PUNI.el) PUNI.el.classList.remove('show'); if (was) stopHold(); }
 ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(ev => cv.addEventListener(ev, puniEnd));
 // 戦い・画面が開いたら、指を置いたままでもスティックを消す
-setInterval(() => { if (PUNI.id != null && (ui.scr || !run || run.battle || run.prompt)) { PUNI.id = null; PUNI.on = false; if (PUNI.el) PUNI.el.classList.remove('show'); stopHold(); } }, 100);
+setInterval(() => { if (PUNI.id != null && (ui.scr || !run || run.battle || run.prompt)) { PUNI.dead = PUNI.id; PUNI.id = null; PUNI.on = false; if (PUNI.el) PUNI.el.classList.remove('show'); stopHold(); } }, 100);
 /* タップした所まで歩く（見えている床だけを通る。敵・案内・戦いがあれば止まる） */
 let walk = null;
 function stopWalk() { if (walk) { clearTimeout(walk.timer); walk = null; dirty = true; } }
@@ -1028,7 +1030,7 @@ function shop() {
 function battle() {
   ui.scr = 'battle'; const bt = run.battle, st = IL.playerStats(pr), bi = Math.min(9, Math.floor((run.floor - 1) / 10));
   const alive = bt.foes.filter(f => f.hp > 0); if (ui.target >= alive.length) ui.target = 0;
-  const foes = bt.foes.map(f => { const ai = alive.indexOf(f); return `<div class="foe ${f.hp <= 0 ? 'dead' : ''} ${ai === ui.target && !bt.over ? 'sel' : ''}" data-tg="${ai}"><div class="spr" data-tile="${f.tile}" data-big="${f.kind ? 1 : 0}"></div><div class="nm">${esc(f.name)}</div><div class="bar"><i style="width:${100 * f.hp / f.maxhp}%"></i></div><div class="tag">${f.hp} / ${f.maxhp}${f.weak ? '　弱点:' + IL.SP_NAME[f.weak] + '　半減:' + (IL.SP_NAME[f.res] || '—') : ''}${f.charge ? '　<b class="ftag ch">力をためている</b>' : ''}${f.shield && f.shield.n > 0 ? `　<b class="ftag sh" style="--c:${IL.SP_COLOR[f.shield.sp]}">${IL.SP_NAME[f.shield.sp]}の盾</b>` : ''}${f.stance ? '　<b class="ftag st">反撃の構え</b>' : ''}${f.next === 'heal' ? '　<b class="ftag hl">回復の儀式</b>' : ''}</div></div>`; }).join('');
+  const foes = bt.foes.map(f => { const ai = alive.indexOf(f); return `<div class="foe ${f.hp <= 0 ? 'dead' : ''} ${ai === ui.target && !bt.over ? 'sel' : ''}" data-tg="${ai}"><div class="spr" data-tile="${f.tile}" data-big="${f.kind ? 1 : 0}"></div><div class="nm">${esc(f.name)}</div><div class="bar"><i style="width:${100 * f.hp / f.maxhp}%"></i></div><div class="tag">${f.hp} / ${f.maxhp}${f.weak ? '　弱点:' + IL.SP_NAME[f.weak] + '　半減:' + (IL.SP_NAME[f.res] || '—') : ''}${f.charge ? '　<b class="ftag ch">力をためている</b>' : ''}${f.shield && (f.shield.n == null || f.shield.n > 0) ? `　<b class="ftag sh" style="--c:${IL.SP_COLOR[f.shield.sp]}">盾：${IL.SP_NAME[f.shield.sp]}の技</b>` : ''}${f.stance ? '　<b class="ftag st">反撃の構え</b>' : ''}${f.next === 'heal' ? '　<b class="ftag hl">回復の儀式</b>' : ''}</div></div>`; }).join('');
   const log = bt.log.slice(-12).map(l => `<div class="${l.hurt ? 'x' : l.warn ? 'w' : l.skill ? 'k' : l.hit ? 'h' : ''}">${esc(l.s)}</div>`).join('');
   let bottom = '';
   if (!bt.over) {
@@ -1075,7 +1077,7 @@ function bcmd(c) {
   ui.sub = null; save(); battle(); hud();
   if (run.hp < hpB) { const w = document.querySelector('.battle'); if (w) w.classList.add('shake'); }
   if (bt.over === 'win') { if (bt.kind === 'boss') bossKillFx(); else sfx('win', 0.5); if (bt.reward.ups) setTimeout(() => sfx('levelup', 0.5), 400); if (bt.kind !== 'normal' && bt.reward.parts.some(p => p.rar >= 1)) setTimeout(() => lootReveal(bt.reward.parts), 900); }
-  if (bt.over === 'lose') { tut('lose'); Net.anCount('d/' + run.floor); Net.anFlush(); sfx('fail', 0.5); const li = bt.loseInfo; if (li && li.lost && li.lost.length && !li.boss) Net.addBag(li.where.floor, li.where.x, li.where.y, li.lost, opt.name, '力尽きた…'); }
+  if (bt.over === 'lose') { tut(bt.kind === 'merchant' ? 'losem' : bt.loseInfo && bt.loseInfo.boss ? 'loseb' : 'lose'); Net.anCount('d/' + run.floor); Net.anFlush(); sfx('fail', 0.5); const li = bt.loseInfo; if (li && li.lost && li.lost.length && !li.boss) Net.addBag(li.where.floor, li.where.x, li.where.y, li.lost, opt.name, '力尽きた…'); }
 }
 function battleFx(fhp, hpB, nl) { // ダメージの数字・光・技の演出
   const els = document.querySelectorAll('.foe'), bt = run && run.battle; if (!bt) return;
@@ -1218,7 +1220,7 @@ document.addEventListener('click', async e => {
   if (!t) { if (ui.scr === 'board' && (ui.sel != null || ui.bagSel != null) && !e.target.closest('select,input,label')) { ui.sel = null; ui.bagSel = null; sfx('click', 0.2); boardScreen(); } return; }
   const d = t.dataset;
   if (d.f && t.tagName === 'BUTTON') { const own = IL.ownTop(pr);
-    if (!ui.bossTrip && +d.f > own + 2 && ui.fok !== +d.f) { ui.fok = +d.f; sfx('click', 0.3); return show(`<div class="win" style="max-width:460px"><h2>本当にこの階へ行く？</h2><p>${d.f}階は、あなたがまだボスを倒していない階（${own}階）より ${d.f - own} 階も上です。<br><b style="color:#ff8a8a">敵がとても強く、すぐに倒されるかもしれません。</b></p><p class="small mute">最前線の階にも行けますが、まずは${own}階から進めるのがおすすめです。</p><div class="row"><button class="btn pri" data-f="${own}">おすすめの階から（${own}階）</button><button class="btn warn" data-f="${d.f}">それでも行く（${d.f}階）</button><button class="btn" data-a="floors">もどる</button></div></div>`); }
+    if (!ui.bossTrip && +d.f > own + 2 && ui.fok !== +d.f) { ui.fok = +d.f; sfx('click', 0.3); return show(`<div class="win" style="max-width:460px"><h2>本当にこの階へ行く？</h2><p>${d.f}階は、あなたが次に挑む階（${own}階）より ${d.f - own} 階も上です。<br><b style="color:#ff8a8a">敵がとても強く、すぐに倒されるかもしれません。</b></p><p class="small mute">最前線の階にも行けますが、まずは${own}階から進めるのがおすすめです。</p><div class="row"><button class="btn pri" data-f="${own}">おすすめの階から（${own}階）</button><button class="btn warn" data-f="${d.f}">それでも行く（${d.f}階）</button><button class="btn" data-a="floors">もどる</button></div></div>`); }
     ui.fok = null; if (ui.bossTrip) { if (!X(['startb', +d.f])) { toast('お金が足りない'); return; } Net.anCount('u/bosstrip'); sfx('coin', 0.5); } else X(['start', +d.f]); sfx('ok', 0.4); enterRun(run); fetchDrops(); return; }
   if (d.cell != null) return boardCellTap(+d.cell);
   if (d.bag != null && ui.multi) { const id = +d.bag; if (pr.board.includes(id)) return; ui.multi.has(id) ? ui.multi.delete(id) : ui.multi.add(id); ui.mconf = false; sfx('click', 0.2); return boardScreen(); }

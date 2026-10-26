@@ -4,9 +4,11 @@
 'use strict';
 // [英語, 繁体字中国語, 韓国語]
 const D = {
+"「ボスにやられたか…ボスに負けると、盤面の欠片はぜんぶ消えちまう。でもレベルとお金は残る。欠片を集めなおして、盤面を組んでから、また挑みな」": ["\"Beaten by the boss, huh... Losing to a boss wipes every shard on your board. But your level and gold stay. Gather shards, rebuild your board, and try again.\"", "「被頭目打倒了啊…輸給頭目的話，盤面的碎片會全部消失。不過等級和金錢會保留。重新收集碎片、組好盤面再來挑戰吧」", "「보스에게 당했구나… 보스에게 지면 판의 조각이 전부 사라져. 하지만 레벨과 돈은 남아. 조각을 다시 모아 판을 짜고 다시 도전해」"],
+"「行商人に挑んだのかい？ 負けるとかばんの中身はなくなるけど、盤面とレベルとお金は残る。腕を上げてから、また来な」": ["\"You challenged the merchant? Losing empties your bag, but your board, level and gold stay. Come back when you're stronger.\"", "「你挑戰了行商人嗎？輸了背包裡的東西會沒了，但盤面、等級和金錢會保留。變強了再來吧」", "「행상인에게 도전했어? 지면 가방 속은 없어지지만 판과 레벨과 돈은 남아. 실력을 키워서 다시 와」"],
 "スマホの移動": ["Phone movement", "手機移動方式", "스마트폰 이동"], "ぷにコン": ["Virtual stick", "虛擬搖桿", "가상 스틱"], "十字キー": ["D-pad", "十字鍵", "십자키"],
 "本当にこの階へ行く？": ["Really go to this floor?", "真的要去這一層嗎？", "정말 이 층으로 갈까?"],
-"階は、あなたがまだボスを倒していない階（": [" is far above the floor you haven't cleared yet (", "層，比你還沒打倒頭目的樓層（", "층은 아직 보스를 쓰러뜨리지 못한 층("],
+"は、あなたが次に挑む階（": [" is far above your next floor (", "，比你下一個要挑戰的樓層（", "은(는) 다음에 도전할 층("],
 "）より ": [") — by ", "）高了 ", ")보다 "], " 階も上です。": [" floors.", " 層。", " 층이나 위입니다."],
 "敵がとても強く、すぐに倒されるかもしれません。": ["Enemies are very strong and may defeat you quickly.", "敵人非常強，可能很快就會被打倒。", "적이 매우 강해서 금방 쓰러질 수도 있습니다."],
 "最前線の階にも行けますが、まずは": ["You can go to the frontline, but we recommend starting from F", "也可以去最前線，但建議先從", "최전선에도 갈 수 있지만, 먼저 "],
@@ -41,7 +43,7 @@ const D = {
 "次へ": ["Next", "下一步", "다음"], "強くなる": ["Get stronger", "變強", "강해지기"], "目的": ["Goal", "目的", "목적"],
 "とばす": ["Skip", "跳過", "건너뛰기"],
 'は反撃の構えをとった！（技を当てると反撃される）': [' takes a counter stance! (using a skill will trigger a counterattack)', '擺出反擊架勢！（用技能攻擊會被反擊）', '은(는) 반격 자세를 취했다! (기술을 맞히면 반격당한다)'], 'は回復の儀式をはじめた…（大きなダメージで止められる）': [' begins a healing ritual... (big damage can stop it)', '開始回復儀式……（造成大量傷害就能打斷）', '은(는) 회복 의식을 시작했다… (큰 피해로 막을 수 있다)'], 'は力をためている…（次は大技）': [' is gathering power... (big attack next)', '正在蓄力……（下回合大招）', '은(는) 힘을 모으고 있다… (다음은 큰 기술)'],
-'の儀式がくずれた！': ['\'s ritual was broken!', '的儀式被打斷了！', '의 의식이 무너졌다!'], 'の回復の儀式！ 体力が ': ['\'s healing ritual! HP +', '的回復儀式！體力恢復 ', '의 회복 의식! 체력이 '], 'の反撃！ ': [' counterattacks! ', '的反擊！ ', '의 반격! '], 'の盾を張った！（しばらく': [' shield is up! (for a while, ', '之盾張開了！（暫時', '의 방패를 펼쳤다! (한동안 '], 'の技がほとんど効かない）': [' skills barely work)', '的技能幾乎無效）', ' 기술이 거의 통하지 않는다)'], '（盾で防がれた）': [' (blocked by shield)', '（被盾擋住）', ' (방패에 막혔다)'],
+'の儀式がくずれた！': ['\'s ritual was broken!', '的儀式被打斷了！', '의 의식이 무너졌다!'], 'の回復の儀式！ 体力が ': ['\'s healing ritual! HP +', '的回復儀式！體力恢復 ', '의 회복 의식! 체력이 '], 'の反撃！ ': [' counterattacks! ', '的反擊！ ', '의 반격! '], 'は盾を張った！（しばらく': [' raised a shield! (for a while, ', '張開了盾！（暫時', '은(는) 방패를 펼쳤다! (한동안 '], 'の技がほとんど効かない）': [' skills barely work)', '的技能幾乎無效）', ' 기술이 거의 통하지 않는다)'], '盾：': ['Shield: ', '盾：', '방패: '], 'の技': [' skills', '的技能', ' 기술'], '（盾で防がれた）': [' (blocked by shield)', '（被盾擋住）', ' (방패에 막혔다)'],
 '反撃の構え': ['Counter stance', '反擊架勢', '반격 자세'], '回復の儀式': ['Healing ritual', '回復儀式', '회복 의식'], '地域の大ボス': ['Region Boss', '地區頭目', '지역 보스'], '大ボス': ['Great Boss', '大頭目', '대보스'],
 '苔むす大樹守': ['Mossy Treeguard', '苔蘚大樹守', '이끼 낀 대수호자'], '書庫の番人': ['Archive Warden', '書庫守衛', '서고의 파수꾼'], '晶の魔像': ['Crystal Golem', '晶之魔像', '수정 마상'], '灼熱の魔人': ['Blazing Fiend', '灼熱魔人', '작열의 마인'], '氷結の巨人': ['Frost Giant', '冰結巨人', '빙결의 거인'], '毒沼の大主': ['Lord of the Bog', '毒沼大主', '독늪의 대주'], '鋼の機兵': ['Steel Automaton', '鋼之機兵', '강철 기병'], '影の王': ['Shadow King', '影之王', '그림자 왕'], '星詠みの巫': ['Star Oracle', '星詠巫女', '별읽기 무녀'], '統合核': ['Integra Core', '統合核', '통합핵'],
 'ボス部屋の前から始める': ['Start in front of the boss room', '從頭目房間前開始', '보스 방 앞에서 시작'], 'ボスを倒したことのある階だけ・ボスのお金の3倍': ['Only floors whose boss you beat · 3× the boss gold', '僅限打倒過頭目的樓層・頭目金錢的3倍', '보스를 쓰러뜨린 층만 · 보스 돈의 3배'], '選んだ階のボス部屋の入口の前から始まる。宝箱の中身はふつうと同じ。': ['You start at the boss room entrance of that floor. The chest contents are the same as usual.', '從所選樓層的頭目房間入口前開始。寶箱內容與平常相同。', '선택한 층의 보스 방 입구 앞에서 시작한다. 보물상자 내용은 평소와 같다.'], 'お金が足りない': ['Not enough gold', '金錢不足', '돈이 부족하다'],
@@ -433,7 +435,9 @@ L.pick = () => { const n = (navigator.language || 'ja').toLowerCase(); return n.
 L.t = s => {
   if (L.lang === 'ja' || !s) return s; const i = IDX[L.lang]; let out = String(s);
   if (!/[ぁ-んァ-ヶ一-龯]/.test(out)) return out;
-  for (const k of keys) if (out.indexOf(k) >= 0) out = out.split(k).join(D[k][i]);
+  // 訳した文字が、短い言葉でもう一度訳されないように、いったん印に置きかえてから最後に戻す
+  const tok = []; for (const k of keys) if (out.indexOf(k) >= 0) { out = out.split(k).join('\u0001' + tok.length + '\u0002'); tok.push(D[k][i]); }
+  out = out.replace(/\u0001(\d+)\u0002/g, (_, n) => tok[n]);
   // 数字＋階
   if (L.lang === 'en') out = out.replace(/に\s*(\d[\d,]*)\s+damage/g, ' takes $1 damage');
   if (L.lang === 'zh') out = out.replace(/に\s*(\d[\d,]*)\s*點傷害/g, ' 受到 $1 點傷害');
