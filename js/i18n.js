@@ -4,6 +4,7 @@
 'use strict';
 // [英語, 繁体字中国語, 韓国語]
 const D = {
+'仮面オーク': ['Masked Orc', '面具獸人', '가면 오크'], '小鬼': ['Imp Demon', '小鬼', '소귀'], 'インプ': ['Imp', '小惡魔', '임프'], '骸骨': ['Skeleton', '骷髏', '해골'], 'ゴブリン': ['Goblin', '哥布林', '고블린'], '屍鬼': ['Ghoul', '屍鬼', '구울'], '大鬼': ['Ogre', '大鬼', '오우거'],
 '地図屋（地図の売り買い）': ['Map Shop (buy & sell maps)', '地圖店（買賣地圖）', '지도 가게 (지도 사고팔기)'], '地図屋': ['Map Shop', '地圖店', '지도 가게'],
 'ほかの人が描いた地図を1枚10Gで買える（自分の地図と合わさる）。自分の地図は100Gで売りに出せて、だれかが買うたびに5G入る。行ったことのある階だけ選べる。数字はいま自分の地図が描けている割合。': ['Buy maps drawn by others for 10 G each (merged with yours). List your own map for 100 G and earn 5 G each time someone buys it. Only floors you have visited. The % shows how much of your own map is drawn.', '可用10G購買別人畫的地圖（會與自己的合併）。花100G可上架自己的地圖，每被買一次得5G。只能選去過的樓層。數字是自己地圖完成的比例。', '다른 사람이 그린 지도를 10G에 살 수 있다(내 지도와 합쳐짐). 내 지도는 100G로 내놓을 수 있고, 팔릴 때마다 5G. 가 본 층만 선택 가능. 숫자는 내 지도 완성 비율.'],
 'このままだと厳しそう。盤面の付け替えや回復薬を考えよう': ['This looks tough. Consider changing your board or using potions', '這樣可能很吃力。考慮更換盤面或使用回復藥', '이대로는 힘들어 보인다. 판 교체나 회복약을 생각하자'],

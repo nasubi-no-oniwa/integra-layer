@@ -1,0 +1,2 @@
+img/dt2.png は 0x72「16x16 DungeonTileset II」(https://0x72.itch.io/dungeontileset-ii) の絵を並べなおしたものです。
+ライセンスは配布ページの記載に従います（CC0）。

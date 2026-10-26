@@ -163,14 +163,14 @@ IL.BIOMES = [
 IL.biomeOf = f => IL.BIOMES[Math.min(9, Math.floor((f - 1) / 10))];
 IL.ETYPES = {
   slime:  { name: 'スライム', tile: 108, hp: 1.1, atk: 0.85, def: 0.8, spd: 0.8 },
-  eye:    { name: '一つ目', tile: 109, hp: 0.9, atk: 1.1, def: 1.0, spd: 1.0 },
-  crab:   { name: '赤鋏', tile: 110, hp: 1.0, atk: 1.0, def: 1.3, spd: 0.9 },
+  eye:    { name: '小鬼', tile: 109, hp: 0.9, atk: 1.1, def: 1.0, spd: 1.0 },
+  crab:   { name: '仮面オーク', tile: 110, hp: 1.0, atk: 1.0, def: 1.3, spd: 0.9 },
   hood:   { name: '黒頭巾', tile: 111, hp: 0.9, atk: 1.15, def: 0.9, spd: 1.05 },
-  bat:    { name: 'コウモリ', tile: 120, hp: 0.7, atk: 0.9, def: 0.7, spd: 1.3 },
-  ghost:  { name: '亡霊', tile: 121, hp: 0.8, atk: 1.0, def: 1.2, spd: 1.0 },
-  spider: { name: '大グモ', tile: 122, hp: 0.9, atk: 1.1, def: 0.9, spd: 1.1 },
-  rat:    { name: '大ネズミ', tile: 123, hp: 0.8, atk: 0.9, def: 0.8, spd: 1.2 },
-  beetle: { name: '鉄甲虫', tile: 124, hp: 1.2, atk: 0.9, def: 1.4, spd: 0.8 },
+  bat:    { name: 'インプ', tile: 120, hp: 0.7, atk: 0.9, def: 0.7, spd: 1.3 },
+  ghost:  { name: '骸骨', tile: 121, hp: 0.8, atk: 1.0, def: 1.2, spd: 1.0 },
+  spider: { name: 'ゴブリン', tile: 122, hp: 0.9, atk: 1.1, def: 0.9, spd: 1.1 },
+  rat:    { name: '屍鬼', tile: 123, hp: 0.8, atk: 0.9, def: 0.8, spd: 1.2 },
+  beetle: { name: '大鬼', tile: 124, hp: 1.2, atk: 0.9, def: 1.4, spd: 0.8 },
 };
 IL.EPREFIX = ['苔', '砂', '晶', '炎', '氷', '毒', '鋼', '影', '星', '核'];
 function expLv(f) { return Math.max(1, Math.min(100, Math.round(0.97 * f - 0.5))); }

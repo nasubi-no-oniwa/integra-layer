@@ -62,13 +62,32 @@ addEventListener('keydown', () => { if (!MUS.unlocked) { MUS.unlocked = true; mu
 
 /* ---------- 絵 ---------- */
 const sheet = new Image(); sheet.src = 'img/tiles.png';
-const tinted = {};
+const atlas = new Image(); atlas.src = 'img/dt2.png?v=1'; // 0x72「16x16 DungeonTileset II」
+const tinted = {}, tintedA = {}, tintBi = new Map();
+/* 前の絵の番号 → 新しい絵（ここにない番号は前の絵のまま） */
+const IDXART = { 108: 'swampy', 109: 'chort', 110: 'masked_orc', 111: 'necro', 120: 'imp', 121: 'skelet', 122: 'goblin', 123: 'tiny_zombie', 124: 'orc_warrior',
+  97: 'knight', 84: 'doc', 85: 'elf', 86: 'wizard', 87: 'dwarf', 88: 'lizard', 89: 'chest_full_open_anim_f0', 90: 'chest_empty_open_anim_f2', 39: 'floor_stairs', 45: 'doors_leaf_closed' };
+const BIGART = { 124: 'ogre', 123: 'big_zombie', 109: 'big_demon' }; // ボスのときは大きい絵
+function tintAtlas(bi) {
+  if (tintedA[bi]) return tintedA[bi]; if (!atlas.complete || !atlas.width) return atlas;
+  const c = document.createElement('canvas'); c.width = atlas.width; c.height = atlas.height; const g = c.getContext('2d'); g.drawImage(atlas, 0, 0);
+  const t = IL.BIOMES[bi].tint, d = g.getImageData(0, 0, c.width, c.height), a = d.data;
+  for (let i = 0; i < a.length; i += 4) { a[i] = Math.min(255, a[i] * t[0]); a[i + 1] = Math.min(255, a[i + 1] * t[1]); a[i + 2] = Math.min(255, a[i + 2] * t[2]); }
+  g.putImageData(d, 0, 0); return tintedA[bi] = c;
+}
+/* 新しい絵を描く：足もとをマスの下にそろえる（背の高い絵はマスの上にはみ出す） */
+function drawArt(g, A, name, x, y, s, o) {
+  const fr = ART[name]; if (!fr) return; const n = fr.length, f = fr[n > 1 ? Math.floor(performance.now() / 140 + ((o && o.ph) || 0)) % n : 0], [ax, ay, aw, ah] = f;
+  const sc = name.startsWith('doors') ? 0.5 : 1, dw = s * aw / 16 * sc, dh = s * ah / 16 * sc, dx = x + (s - dw) / 2, dy = y + s - dh;
+  if (o && o.flip) { g.save(); g.translate(dx + dw, dy); g.scale(-1, 1); g.drawImage(A, ax, ay, aw, ah, 0, 0, dw, dh); g.restore(); }
+  else g.drawImage(A, ax, ay, aw, ah, dx, dy, dw, dh);
+}
 function tintSheet(bi) {
   if (tinted[bi]) return tinted[bi];
   const c = document.createElement('canvas'); c.width = sheet.width; c.height = sheet.height; const g = c.getContext('2d'); g.drawImage(sheet, 0, 0);
   const t = IL.BIOMES[bi].tint, d = g.getImageData(0, 0, c.width, c.height), a = d.data;
   for (let i = 0; i < a.length; i += 4) { a[i] = Math.min(255, a[i] * t[0]); a[i + 1] = Math.min(255, a[i + 1] * t[1]); a[i + 2] = Math.min(255, a[i + 2] * t[2]); }
-  g.putImageData(d, 0, 0); return tinted[bi] = c;
+  g.putImageData(d, 0, 0); tintBi.set(c, bi); return tinted[bi] = c;
 }
 const HERB = (() => { // 回復草（16×16の点絵）
   const c = document.createElement('canvas'); c.width = c.height = 16; const g = c.getContext('2d');
@@ -84,8 +103,15 @@ const BAG = (() => { // 落ちたバッグ（16×16の点絵）
   const col = { a: '#5a3b1e', b: '#c9a86a', c: '#3b2414', d: '#8a5a2e', e: '#c9a86a', f: '#f2d14b' };
   rows.forEach((r, y) => { for (let x = 0; x < r.length; x++) if (col[r[x]]) { g.fillStyle = col[r[x]]; g.fillRect(x + 1, y + 2, 1, 1); } });
   return c; })();
-function drawTile(g, src, idx, x, y, s) { g.drawImage(src, (idx % 12) * 16, Math.floor(idx / 12) * 16, 16, 16, x, y, s, s); }
-function spriteCanvas(idx, scale, bi) { const c = document.createElement('canvas'); c.width = c.height = 16 * scale; const g = c.getContext('2d'); g.imageSmoothingEnabled = false; drawTile(g, bi == null ? sheet : tintSheet(bi), idx, 0, 0, 16 * scale); return c; }
+function drawTile(g, src, idx, x, y, s, o) {
+  const nm = IDXART[idx]; if (nm && atlas.complete && atlas.width) { const bi = tintBi.get(src); return drawArt(g, bi == null ? atlas : tintAtlas(bi), nm, x, y, s, o); }
+  g.drawImage(src, (idx % 12) * 16, Math.floor(idx / 12) * 16, 16, 16, x, y, s, s);
+}
+function spriteCanvas(idx, scale, bi, big) {
+  const nm = (big && BIGART[idx]) || IDXART[idx];
+  if (nm && ART[nm] && atlas.complete && atlas.width) { const [, , aw, ah] = ART[nm][0], k = aw > 16 ? scale * 0.75 : scale, c = document.createElement('canvas'); c.width = Math.round(aw * k); c.height = Math.round(ah * k);
+    const g = c.getContext('2d'); g.imageSmoothingEnabled = false; const A = bi == null ? atlas : tintAtlas(bi), [ax, ay] = ART[nm][0]; g.drawImage(A, ax, ay, aw, ah, 0, 0, c.width, c.height); c.className = 'art'; return c; }
+  const c = document.createElement('canvas'); c.width = c.height = 16 * scale; const g = c.getContext('2d'); g.imageSmoothingEnabled = false; drawTile(g, bi == null ? sheet : tintSheet(bi), idx, 0, 0, 16 * scale); return c; }
 
 /* ---------- 共通の部品 ---------- */
 function toast(s) { const d = document.createElement('div'); d.textContent = s; $('#toast').appendChild(d); setTimeout(() => d.remove(), 2700); }
@@ -387,8 +413,21 @@ function render(now) {
   for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
     const i = y * fl.W + x; if (!bits || !bits[i]) continue;
     const v = fl.t[i], px = Math.round(cx + x * TS), py = Math.round(cy + y * TS);
-    if (v === T.WALL) { let adj = false; for (const o of [1, -1, fl.W, -fl.W, fl.W + 1, fl.W - 1, -fl.W + 1, -fl.W - 1]) if (fl.t[i + o]) adj = true; if (adj) drawTile(g, src, B.wallTile, px, py, TS); continue; }
-    drawTile(g, src, ((i * 2654435761) >>> 0) % 17 === 0 ? (B.floorTile === 48 ? 49 : B.floorTile === 0 ? 12 : 24) : B.floorTile, px, py, TS);
+    const hh = (Math.imul(i ^ (i >>> 5) ^ 0x5bd1e995, 2654435761) ^ (i * 40503)) >>> 0, NA = atlas.complete && atlas.width ? tintAtlas(bi) : null;
+    if (v === T.WALL) { let adj = false; for (const o of [1, -1, fl.W, -fl.W, fl.W + 1, fl.W - 1, -fl.W + 1, -fl.W - 1]) if (fl.t[i + o]) adj = true; if (!adj) continue;
+      if (!NA) { drawTile(g, src, B.wallTile, px, py, TS); continue; }
+      if (fl.t[i + fl.W]) { // 下が床：壁の正面（れんが）
+        const nm = hh % 29 === 0 ? ['wall_banner_red', 'wall_banner_blue', 'wall_banner_green', 'wall_banner_yellow'][(hh >>> 5) % 4] : hh % 13 === 0 ? 'wall_hole_1' : hh % 17 === 0 ? 'wall_hole_2' : hh % 23 === 0 ? 'wall_goo' : 'wall_mid';
+        drawArt(g, NA, nm, px, py, TS);
+      } else { // 壁の上（暗い天面）。下が壁の正面なら、ふちを描く
+        g.fillStyle = '#16121c'; g.fillRect(px, py, TS, TS);
+        if (!fl.t[i + fl.W] && fl.t[i + 2 * fl.W]) drawArt(g, NA, 'wall_top_mid', px, py, TS);
+        const e = Math.max(1, TS / 16) * 2; g.fillStyle = 'rgba(150,130,160,.55)';
+        if (fl.t[i - 1]) g.fillRect(px, py, e, TS); if (fl.t[i + 1]) g.fillRect(px + TS - e, py, e, TS); if (fl.t[i - fl.W]) g.fillRect(px, py, TS, e);
+      }
+      continue; }
+    if (NA) drawArt(g, NA, hh % 5 === 0 ? 'floor_' + (2 + (hh >>> 4) % 7) : 'floor_1', px, py, TS);
+    else drawTile(g, src, hh % 17 === 0 ? (B.floorTile === 48 ? 49 : B.floorTile === 0 ? 12 : 24) : B.floorTile, px, py, TS);
     if (v === T.BOSS) { g.fillStyle = 'rgba(120,20,40,.25)'; g.fillRect(px, py, TS, TS); }
     else if (v === T.PED) drawTile(g, src, run.opened[i] ? 55 : 54, px, py, TS);
     else if (v === T.SAFE) drawTile(g, src, 32, px, py, TS);
@@ -401,19 +440,20 @@ function render(now) {
     drawTile(g, src, 39, px, py, TS); // 階段
     if (!run.bossDown) { const bt = IL.ETYPES[IL.bossType(run.floor)], k = 1.7, wob = Math.sin(now / 300) * TS * 0.04;
       g.fillStyle = 'rgba(255,60,80,.18)'; g.beginPath(); g.arc(px + TS / 2, py + TS / 2, TS * 0.95, 0, 7); g.fill();
-      drawTile(g, src, bt.tile, px + TS / 2 - TS * k / 2, py + TS / 2 - TS * k * 0.62 + wob, TS * k); }
+      if (BIGART[bt.tile] && atlas.complete && atlas.width) drawArt(g, tintAtlas(bi), BIGART[bt.tile], px, py + wob, TS); else drawTile(g, src, bt.tile, px + TS / 2 - TS * k / 2, py + TS / 2 - TS * k * 0.62 + wob, TS * k); }
   }
   if (run.bossChest) { const c = run.bossChest.i; if (bits[c]) drawTile(g, src, run.bossChest.opened ? 90 : 89, cx + (c % fl.W) * TS, cy + ((c / fl.W) | 0) * TS, TS); }
   ui.cam = { cx, cy, TS };
   const vis = (x, y) => Math.abs(x - run.x) <= 9 && Math.abs(y - run.y) <= 7 && bits[y * fl.W + x];
   if (run.merchant && vis(run.merchant.x, run.merchant.y)) drawTile(g, src, 84, cx + run.merchant.x * TS, cy + run.merchant.y * TS, TS);
-  for (const e of run.enemies) if (vis(e.x, e.y)) { drawTile(g, src, e.tile, cx + e.x * TS, cy + e.y * TS, TS); if (e.cool) { g.fillStyle = 'rgba(255,255,255,.25)'; g.fillRect(cx + e.x * TS, cy + e.y * TS, TS, TS); } }
+  for (const e of run.enemies) if (vis(e.x, e.y)) { drawTile(g, src, e.tile, cx + e.x * TS, cy + e.y * TS, TS, { ph: (e.uid || 0) % 4, flip: e.x > run.x }); if (e.cool) { g.fillStyle = 'rgba(255,255,255,.25)'; g.fillRect(cx + e.x * TS, cy + e.y * TS, TS, TS); } }
   const opened = pr.bagsOpen || {};
   for (const b of ui.bags) if (bits[b.y * fl.W + b.x] && b.x >= x0 && b.x <= x1 && b.y >= y0 && b.y <= y1) { g.globalAlpha = opened[b.id] ? 0.35 : 1; const bob = opened[b.id] ? 0 : Math.sin(now / 400 + b.x) * TS * 0.04; g.drawImage(BAG, cx + b.x * TS, cy + b.y * TS + bob, TS, TS); g.globalAlpha = 1; }
   if (ui.bags.some(b => !opened[b.id])) dirty = true;
   g.globalAlpha = 0.45; for (const o of ui.ghosts) if (Math.abs(o.x - run.x) <= 12 && Math.abs(o.y - run.y) <= 9) drawTile(g, sheet, 85 + (IL.hashStr(o.u) % 4), cx + o.x * TS, cy + o.y * TS, TS); g.globalAlpha = 1;
   if (walk && walk.target != null) { const tx = walk.target % fl.W, ty = (walk.target / fl.W) | 0, px = cx + tx * TS, py = cy + ty * TS; g.strokeStyle = 'rgba(242,209,75,' + (0.55 + 0.3 * Math.sin(now / 150)) + ')'; g.lineWidth = Math.max(2, TS / 16); g.strokeRect(px + TS * 0.15, py + TS * 0.15, TS * 0.7, TS * 0.7); dirty = true; }
-  drawTile(g, sheet, 97, Math.round(W / 2 - TS / 2), Math.round(H / 2 - TS / 2), TS);
+  if (ART.knight && atlas.complete && atlas.width) drawArt(g, atlas, anim ? 'knight_run' : 'knight', Math.round(W / 2 - TS / 2), Math.round(H / 2 - TS / 2), TS, { flip: ui.face === 3 });
+  else drawTile(g, sheet, 97, Math.round(W / 2 - TS / 2), Math.round(H / 2 - TS / 2), TS);
   // 見えている範囲の外を少し暗く
   // たいまつの明かり（自分のまわりだけ明るい）
   const fk = fxLow() ? 0 : Math.sin(now / 130) * 0.15 + Math.sin(now / 47) * 0.08, r0 = TS * (3.2 + fk), r1 = TS * (8.5 + fk);
@@ -421,7 +461,7 @@ function render(now) {
   if (!fxLow()) dirty = true;
   if (!fxLow()) drawParticles(now, cx, cy, fl, bits, bi, x0, y0, x1, y1);
   drawMini(fl, bits);
-  if (window.FX) { const t = B.tint || [1, 1, 1]; FX.frame(cv, { px: TS / 16, bump: 1.0, bloom: 1.0, th: 0.5, vig: 0.42, tint: [1 + (t[0] - 1) * 0.18, 1 + (t[1] - 1) * 0.18, 1 + (t[2] - 1) * 0.18] }); }
+  if (window.FX) { const t = B.tint || [1, 1, 1]; FX.frame(cv, { px: TS / 16, bump: 0.6, bloom: 1.0, th: 0.5, vig: 0.42, tint: [1 + (t[0] - 1) * 0.18, 1 + (t[1] - 1) * 0.18, 1 + (t[2] - 1) * 0.18] }); }
 }
 function tileColor(v, i) { const T = IL.T; return v === T.BOSS ? '#b03048' : v === T.GATE ? '#ff6a4d' : v === T.SAFE ? '#4fd17a' : v === T.PED ? (run.opened[i] ? '#666' : '#f2d14b') : '#9a8fc0'; }
 /* 粒の演出（見た目だけ）：地域ごとの空気の粒・歩いたときのほこり・お宝のきらめき */
@@ -491,7 +531,7 @@ function afterAct() {
 }
 function act(dir) {
   if (!run || ui.scr || run.battle || run.prompt || run.over) return;
-  const ox = run.x, oy = run.y; X(['mv', dir]);
+  const ox = run.x, oy = run.y; if (dir === 1 || dir === 3) ui.face = dir; X(['mv', dir]);
   if (run.x !== ox || run.y !== oy) { anim = { x0: ox, y0: oy, t0: performance.now() }; dust(ox, oy); if (run.turn % 2) sfx('step', 0.15); watchLive(); }
   afterAct();
 }
@@ -606,7 +646,7 @@ function prompt() {
     show(`<div class="win" style="max-width:520px"><h2>ボス</h2>${bossCard()}${pr.cleared[run.floor]
       ? `<p>階段が開いています。階段を進みますか？ボスと戦いますか？</p><p class="small mute">ボスからしか出ない欠片や、レアな欠片がある。</p><div class="row">${last ? '' : '<button class="btn pri" data-a="stairs">階段を進む</button>'}<button class="btn warn" data-a="boss">ボスと戦う</button><button class="btn" data-a="cancel">やめる</button></div>`
       : `<p>ボスと戦いますか？　戦いが始まったら逃げられない。</p><p class="small mute">ボスはこの階の敵より格段に強い。負けると盤面の欠片がすべて消える。</p><div class="row"><button class="btn warn" data-a="boss">ボスと戦う</button><button class="btn" data-a="cancel">やめる</button></div>`}</div>`, 'clear');
-    document.querySelectorAll('.bossinfo .spr').forEach(d => d.appendChild(spriteCanvas(+d.dataset.tile, innerHeight < 520 ? 4 : 5, Math.min(9, Math.floor((run.floor - 1) / 10)))));
+    document.querySelectorAll('.bossinfo .spr').forEach(d => d.appendChild(spriteCanvas(+d.dataset.tile, innerHeight < 520 ? 3 : 4, Math.min(9, Math.floor((run.floor - 1) / 10)), true)));
   } else if (p.kind === 'safe') {
     show(`<div class="win" style="max-width:460px"><h2>安全地帯</h2><p>ここから帰ることができる。帰れば、拾った欠片はすべて持ち帰れる。</p><div class="row"><button class="btn pri" data-a="return">帰る</button><button class="btn" data-a="cancel">続ける</button></div></div>`, 'clear');
   } else if (p.kind === 'merchant') {
@@ -655,7 +695,7 @@ function battle() {
     <div class="row" style="gap:10px"><span>体力 ${run.hp} / ${st.hp}</span><div class="bar me ${run.hp / st.hp <= 0.25 ? 'low' : run.hp / st.hp <= 0.5 ? 'mid' : ''}" style="flex:1"><i style="width:${100 * run.hp / st.hp}%"></i></div></div></div>
     <div class="br"><div class="log" id="blog">${log}</div>${bottom}</div></div></div>`);
   const small = innerHeight < 520;
-  document.querySelectorAll('.spr').forEach(d => d.appendChild(spriteCanvas(+d.dataset.tile, d.dataset.big === '1' ? (small ? 4 : 6) : (small ? 3 : 4), bi)));
+  document.querySelectorAll('.spr').forEach(d => d.appendChild(spriteCanvas(+d.dataset.tile, d.dataset.big === '1' ? (small ? 3 : 5) : (small ? 3 : 4), bi, d.dataset.big === '1')));
   const lg = $('#blog'); if (lg) lg.scrollTop = 1e6;
 }
 function battleResult() {
