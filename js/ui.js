@@ -471,7 +471,7 @@ function walkTo(tx, ty, adj, done) {
     const n = walk.path.shift(), d = n - (run.y * W + run.x), dir = d === -W ? 0 : d === 1 ? 1 : d === W ? 2 : d === -1 ? 3 : -1;
     if (dir < 0) return stopWalk(); const before = run.y * W + run.x; act(dir);
     if (run.y * W + run.x === before || ui.scr || run.battle || run.prompt) return stopWalk();
-    if (run.enemies.some(en => !en.cool && !walk.near.has(en) && Math.abs(en.x - run.x) + Math.abs(en.y - run.y) <= 3)) { stopWalk(); return toast('敵が近い！'); } // 敵が近づいたら止まる
+    if (run.enemies.some(en => !en.cool && !walk.near.has(en) && Math.abs(en.x - run.x) + Math.abs(en.y - run.y) <= 3)) return stopWalk(); // 敵が近づいたら止まる
     if (!walk.path.length) { const f = walk.done; stopWalk(); if (f) f(); return; }
     walk.timer = setTimeout(step, 125); };
   step();
