@@ -325,6 +325,9 @@ function boardScreen(from) {
     ${mul ? '<p class="small mute" style="margin:4px 0">捨てる欠片をタップして選ぶ（盤面に置いている欠片は選べない）</p>' : ''}
     <div class="bag">${items}</div></div></div></div>`);
   [...document.querySelectorAll('.boardwin .bagcol .bag, .boardwin .side, .boardwin')].forEach((e, i) => { if (keepScroll[i]) e.scrollTop = keepScroll[i]; });
+  { const cur = new Set(an.links.map(([a, b]) => a + '-' + b)), tiers = {}; for (const sp in an.skills || {}) tiers[sp] = an.skills[sp].tier;
+    if (ui.prevLinks && !from) { const nw = [...cur].filter(k => !ui.prevLinks.has(k)); const up = Object.keys(tiers).filter(sp => tiers[sp] > ((ui.prevTiers || {})[sp] || 0)); if (nw.length) snapFx(nw, up); }
+    ui.prevLinks = cur; ui.prevTiers = tiers; }
   if (an.links.length) tut('link');
 }
 /* 引っぱって置く：かばん→マスで置く、マス→マスで入れかえ、マス→かばんで外す（押すだけの操作もそのまま） */
@@ -439,6 +442,32 @@ function presetLoad(k) {
   for (let i = 0; i < 25; i++) { const c = want[i]; if (!c) continue; if (pr.board[i] !== c.id) X(['place', i, c.id]); const p = pr.bag.find(q => q.id === c.id); for (let n = 0; n < 4 && p.rot !== c.rot; n++) X(['rot', c.id]); }
   ui.sel = null; ui.bagSel = null; ui.pconf = null; save(); sfx('place'); boardScreen(); statDiff(before);
   toast('プリセット' + (k + 1) + 'に切り替えた' + (miss ? '（なくなった欠片 ' + miss + '個は空きのまま）' : ''));
+}
+/* レアな欠片を拾った瞬間：光の中から欠片が出てくる（押す操作はじゃましない） */
+function lootReveal(parts) {
+  if (fxLow()) return; const best = parts.slice().sort((a, b) => b.rar - a.rar)[0]; if (!best || best.rar < 1) return;
+  const old = document.querySelector('.lootfx'); if (old) old.remove();
+  const d = document.createElement('div'); d.className = 'lootfx r' + best.rar;
+  d.innerHTML = `<div class="rays"></div><div class="card" style="--s:64px">${partHTML(best)}</div><div class="nm">${IL.SP_NAME[best.sp]}の欠片<b>${IL.RAR_NAME[best.rar]}</b></div>`;
+  $('#app').appendChild(d); setTimeout(() => d.remove(), best.rar >= 2 ? 1900 : 1400);
+  if (best.rar >= 2) sfx('levelup', 0.45);
+}
+/* ボスを倒した瞬間：白く光って、ゆっくり崩れ、「撃破！」 */
+function bossKillFx() {
+  const w = document.querySelector('.battle'); const fl = document.createElement('div'); fl.className = 'killfx'; fl.innerHTML = '<b>撃破！</b>'; $('#app').appendChild(fl); setTimeout(() => fl.remove(), 1800);
+  const sp = document.querySelector('.foe .spr'); if (sp) sp.classList.add('dying'); if (w) w.classList.add('shake');
+  sfx('god', 0.6); setTimeout(() => sfx('win', 0.5), 500);
+}
+/* 欠片がカチッとはまった瞬間：光・火花・小さなゆれ・音。技の段階が上がったら大きく */
+function snapFx(keys, upSp) {
+  const bd = document.querySelector('.boardwin .board'); if (!bd) return; const br = bd.getBoundingClientRect();
+  for (const k of keys) { const [a, b] = k.split('-').map(Number), ca = bd.querySelector(`[data-cell="${a}"]`), cb = bd.querySelector(`[data-cell="${b}"]`); if (!ca || !cb) continue;
+    for (const c of [ca, cb]) { c.classList.remove('snapcell'); void c.offsetWidth; c.classList.add('snapcell'); }
+    const ra = ca.getBoundingClientRect(), rb = cb.getBoundingClientRect(), x = (ra.left + ra.right + rb.left + rb.right) / 4 - br.left, y = (ra.top + ra.bottom + rb.top + rb.bottom) / 4 - br.top;
+    const f = document.createElement('div'); f.className = 'snapfx'; f.style.left = x + 'px'; f.style.top = y + 'px'; f.innerHTML = '<i></i><i></i><i></i><i></i><i></i><i></i><b>カチッ</b>'; bd.appendChild(f); setTimeout(() => f.remove(), 700); }
+  bd.classList.remove('snapshake'); void bd.offsetWidth; bd.classList.add('snapshake');
+  sfx('place', 0.7); setTimeout(() => sfx('select', 0.5), 60);
+  if (upSp && upSp.length) { sfx('god', 0.35); const t = document.createElement('div'); t.className = 'tierup'; t.textContent = upSp.map(sp => IL.SKILLS[sp][(IL.analyzeBoard(IL.boardArr(pr)).skills[sp] || {}).tier] || '').filter(Boolean).join('・') + '　段階UP！'; bd.appendChild(t); setTimeout(() => t.remove(), 1300); }
 }
 function statDiff(before) { const a = IL.playerStats(pr), out = []; for (const k of IL.STATS) { const d = a[k] - before[k]; if (d) out.push(IL.STAT_NAME[k] + (d > 0 ? ' +' : ' ') + d); } if (out.length) toast(out.join('　')); }
 function boardCellTap(i) {
@@ -714,6 +743,7 @@ function afterAct() {
   for (const ev of run.events) {
     if (ev.t === 'msg') toast(ev.s);
     if (ev.t === 'loot') { if (ev.parts.length) tut('got'); sfx('chest'); const s = ev.parts.map(p => IL.SP_NAME[p.sp] + 'の欠片（' + IL.RAR_NAME[p.rar] + '）').join('、'); toast(ev.from + 'から ' + s + (ev.gold ? '、' + ev.gold + 'G' : '') + (ev.ticket ? '、ガチャチケット' : '') + ' を手に入れた'); if (ev.parts.some(p => p.rar >= 2)) sfx('god', 0.4); }
+    if (ev.t === 'loot' && ev.parts.some(p => p.rar >= 1)) lootReveal(ev.parts);
   }
   run.events = [];
   hud(); dirty = true; save();
@@ -780,7 +810,7 @@ function autoBattle() {
     if (bt.over) { AUTO.on = false;
       if (bt.over === 'win') { const r = bt.reward; X(['bx']); hideScreen(); dirty = true; hud(); save();
         toast('勝った！ 経験値 ' + r.exp + (r.tw > 1 ? '（追い風）' : '') + '・' + r.gold + ' G' + (r.parts.length ? '・' + r.parts.map(p => IL.SP_NAME[p.sp] + 'の欠片（' + IL.RAR_NAME[p.rar] + '）').join('、') : ''));
-        if (r.ups) toast('レベルが ' + pr.lv + ' に上がった！'); autoPts(); if (EXP.on) setTimeout(exploreStep, 250); }
+        if (r.ups) toast('レベルが ' + pr.lv + ' に上がった！'); if (r.parts.some(p => p.rar >= 1)) lootReveal(r.parts); autoPts(); if (EXP.on) setTimeout(exploreStep, 250); }
       return; }
     const st = IL.playerStats(pr);
     if (AUTO.stop || run.hp < st.hp * 0.3) { AUTO.on = false; stopExplore(); battle(); if (!AUTO.stop) toast('体力が少ないので、おまかせを止めた'); return; }
@@ -965,7 +995,7 @@ function bcmd(c) {
   if (run.hp < hpB) setTimeout(() => sfx('hurt', 0.45), 160);
   ui.sub = null; save(); battle(); hud();
   if (run.hp < hpB) { const w = document.querySelector('.battle'); if (w) w.classList.add('shake'); }
-  if (bt.over === 'win') { sfx('win', 0.5); if (bt.reward.ups) setTimeout(() => sfx('levelup', 0.5), 400); }
+  if (bt.over === 'win') { if (bt.kind === 'boss') bossKillFx(); else sfx('win', 0.5); if (bt.reward.ups) setTimeout(() => sfx('levelup', 0.5), 400); if (bt.kind !== 'normal' && bt.reward.parts.some(p => p.rar >= 1)) setTimeout(() => lootReveal(bt.reward.parts), 900); }
   if (bt.over === 'lose') { Net.anCount('d/' + run.floor); Net.anFlush(); sfx('fail', 0.5); const li = bt.loseInfo; if (li && li.lost && li.lost.length && !li.boss) Net.addBag(li.where.floor, li.where.x, li.where.y, li.lost, opt.name, '力尽きた…'); }
 }
 function battleFx(fhp, hpB, nl) { // ダメージの数字・光・技の演出

@@ -394,3 +394,36 @@ body.dragging,body.dragging *{cursor:grabbing!important;user-select:none}
 body.guidemenu #b-menu{box-shadow:0 0 0 3px #f2d14b,0 0 20px #f2d14b;animation:hplow .9s ease-in-out infinite}
 @media (max-height:520px){#guide{top:max(8px,env(safe-area-inset-top));left:auto;right:max(10px,env(safe-area-inset-right));transform:none;max-width:calc(100vw - 320px);white-space:normal;border-radius:12px;font-size:12px;padding:5px 12px;line-height:1.4}}
 body.guidemenu [data-a="board2"]{box-shadow:0 0 0 3px #f2d14b,0 0 18px #f2d14b;animation:hplow .9s ease-in-out infinite}
+
+/* はまった瞬間 */
+.cell.snapcell .part{animation:snapc .45s ease-out}
+@keyframes snapc{0%{filter:brightness(2.2) drop-shadow(0 0 10px #fff)}100%{filter:none}}
+.board.snapshake{animation:bshake .22s ease-out}
+@keyframes bshake{25%{transform:translate(2px,-1px)}50%{transform:translate(-2px,1px)}75%{transform:translate(1px,1px)}}
+.snapfx{position:absolute;width:0;height:0;z-index:9;pointer-events:none}
+.snapfx i{position:absolute;left:-3px;top:-3px;width:6px;height:6px;border-radius:50%;background:#fff6c8;box-shadow:0 0 8px #ffd27a;animation:spark .55s ease-out forwards}
+.snapfx i:nth-child(1){--dx:-26px;--dy:-18px}.snapfx i:nth-child(2){--dx:26px;--dy:-18px}.snapfx i:nth-child(3){--dx:-30px;--dy:10px}.snapfx i:nth-child(4){--dx:30px;--dy:10px}.snapfx i:nth-child(5){--dx:0;--dy:-30px}.snapfx i:nth-child(6){--dx:0;--dy:26px}
+@keyframes spark{to{transform:translate(var(--dx),var(--dy)) scale(.3);opacity:0}}
+.snapfx b{position:absolute;left:0;top:-22px;transform:translateX(-50%);font-size:13px;color:#fff;text-shadow:0 0 6px #ffb23d,0 1px 2px #000;white-space:nowrap;animation:kachi .6s ease-out forwards}
+@keyframes kachi{0%{transform:translate(-50%,6px) scale(.6);opacity:0}25%{transform:translate(-50%,0) scale(1.15);opacity:1}100%{transform:translate(-50%,-14px);opacity:0}}
+.tierup{position:absolute;left:50%;top:40%;transform:translate(-50%,-50%);z-index:10;pointer-events:none;font-size:22px;font-weight:700;color:#ffe58a;white-space:nowrap;text-shadow:0 0 12px #ff9a3d,0 0 24px #ffb23d,0 2px 0 #5a2a02;animation:tierup 1.3s ease-out forwards}
+@keyframes tierup{0%{transform:translate(-50%,-50%) scale(2);opacity:0}15%{transform:translate(-50%,-50%) scale(1);opacity:1}80%{opacity:1}100%{transform:translate(-50%,-80%);opacity:0}}
+body.lowfx .snapfx,body.lowfx .board.snapshake{animation:none}
+
+/* レアを拾った瞬間 */
+.lootfx{position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);z-index:60;pointer-events:none;display:flex;flex-direction:column;align-items:center;gap:8px;animation:lootin 1.4s ease-out forwards}
+.lootfx.r2,.lootfx.r3{animation-duration:1.9s}
+.lootfx .rays{position:absolute;left:50%;top:40%;width:260px;height:260px;margin:-130px 0 0 -130px;border-radius:50%;background:repeating-conic-gradient(rgba(255,255,255,.55) 0 8deg,transparent 8deg 22deg);-webkit-mask:radial-gradient(circle,#000 10%,transparent 65%);mask:radial-gradient(circle,#000 10%,transparent 65%);animation:spin 3s linear infinite;opacity:.7}
+.lootfx.r2 .rays,.lootfx.r3 .rays{background:repeating-conic-gradient(rgba(255,214,90,.8) 0 8deg,transparent 8deg 20deg);width:340px;height:340px;margin:-170px 0 0 -170px}
+.lootfx .card{position:relative;filter:drop-shadow(0 0 14px #fff)}.lootfx.r2 .card,.lootfx.r3 .card{filter:drop-shadow(0 0 18px #ffd54a) drop-shadow(0 0 36px #ff9a3d)}
+.lootfx .nm{position:relative;font-size:16px;color:#fff;text-shadow:0 0 8px #000,0 1px 2px #000;white-space:nowrap}.lootfx .nm b{margin-left:8px;color:#9fd8ff}.lootfx.r2 .nm b,.lootfx.r3 .nm b{color:#ffd54a}
+@keyframes lootin{0%{transform:translate(-50%,-50%) scale(.2);opacity:0}15%{transform:translate(-50%,-50%) scale(1.15);opacity:1}25%{transform:translate(-50%,-50%) scale(1)}80%{opacity:1}100%{transform:translate(-50%,-60%) scale(.9);opacity:0}}
+/* ボスを倒した瞬間 */
+.killfx{position:absolute;inset:0;z-index:70;pointer-events:none;display:flex;align-items:center;justify-content:center;animation:killflash 1.8s ease-out forwards}
+@keyframes killflash{0%{background:rgba(255,255,255,.95)}12%{background:rgba(255,255,255,.35)}100%{background:rgba(255,255,255,0)}}
+.killfx b{font-size:clamp(48px,11vw,110px);letter-spacing:.1em;background:linear-gradient(180deg,#fff,#ffe58a 45%,#ff9a3d 80%,#c2290a);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 3px 0 #5a0d02) drop-shadow(0 0 20px #ffb23d);animation:killslam 1.8s cubic-bezier(.2,1.5,.4,1) forwards}
+@keyframes killslam{0%{transform:scale(3);opacity:0}14%{transform:scale(1);opacity:1}80%{opacity:1}100%{transform:scale(1.08);opacity:0}}
+.foe .spr.dying canvas{animation:dying 1.4s ease-in forwards}
+@keyframes dying{0%{filter:brightness(3);transform:scale(1)}40%{filter:brightness(2);transform:scale(1.1) rotate(-3deg)}100%{filter:brightness(4) blur(2px);transform:scale(.6) translateY(20px);opacity:0}}
+body.lowfx .lootfx .rays{display:none}body.lowfx .killfx b{animation-duration:.6s}
+@keyframes spin{to{transform:rotate(360deg)}}
