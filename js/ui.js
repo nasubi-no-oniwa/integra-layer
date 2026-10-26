@@ -1193,7 +1193,9 @@ document.addEventListener('click', async e => {
   const t = e.target.closest('[data-a],[data-f],[data-cell],[data-bag],[data-pt],[data-syn],[data-gp],[data-buy],[data-c],[data-sk],[data-it],[data-tg],[data-use],[data-dpot],[data-mb],[data-rep],[data-tr],[data-pk],[data-tr2]');
   if (!t) { if (ui.scr === 'board' && (ui.sel != null || ui.bagSel != null) && !e.target.closest('select,input,label')) { ui.sel = null; ui.bagSel = null; sfx('click', 0.2); boardScreen(); } return; }
   const d = t.dataset;
-  if (d.f && t.tagName === 'BUTTON') { if (ui.bossTrip) { if (!X(['startb', +d.f])) { toast('お金が足りない'); return; } Net.anCount('u/bosstrip'); sfx('coin', 0.5); } else X(['start', +d.f]); sfx('ok', 0.4); enterRun(run); fetchDrops(); return; }
+  if (d.f && t.tagName === 'BUTTON') { const own = IL.ownTop(pr);
+    if (!ui.bossTrip && +d.f > own + 2 && ui.fok !== +d.f) { ui.fok = +d.f; sfx('click', 0.3); return show(`<div class="win" style="max-width:460px"><h2>本当にこの階へ行く？</h2><p>${d.f}階は、あなたがまだボスを倒していない階（${own}階）より ${d.f - own} 階も上です。<br><b style="color:#ff8a8a">敵がとても強く、すぐに倒されるかもしれません。</b></p><p class="small mute">最前線の階にも行けますが、まずは${own}階から進めるのがおすすめです。</p><div class="row"><button class="btn pri" data-f="${own}">おすすめの階から（${own}階）</button><button class="btn warn" data-f="${d.f}">それでも行く（${d.f}階）</button><button class="btn" data-a="floors">もどる</button></div></div>`); }
+    ui.fok = null; if (ui.bossTrip) { if (!X(['startb', +d.f])) { toast('お金が足りない'); return; } Net.anCount('u/bosstrip'); sfx('coin', 0.5); } else X(['start', +d.f]); sfx('ok', 0.4); enterRun(run); fetchDrops(); return; }
   if (d.cell != null) return boardCellTap(+d.cell);
   if (d.bag != null && ui.multi) { const id = +d.bag; if (pr.board.includes(id)) return; ui.multi.has(id) ? ui.multi.delete(id) : ui.multi.add(id); ui.mconf = false; sfx('click', 0.2); return boardScreen(); }
   if (d.bag != null) { const before = IL.playerStats(pr); setTimeout(() => statDiff(before), 0); const id = +d.bag; ui.bagSel = ui.bagSel === id ? null : id; if (ui.sel != null && ui.bagSel != null && pr.board[ui.sel] == null) { X(['place', ui.sel, id]); ui.bagSel = null; sfx('place'); save(); } else sfx('click', 0.3); return boardScreen(); }
@@ -1214,7 +1216,7 @@ document.addEventListener('click', async e => {
   if (d.dpot != null) { X(['dpot', +d.dpot]); save(); return potionMenu(); }
   switch (d.a) {
     case 'title': sfx('click', 0.3); return title();
-    case 'floors': sfx('click', 0.3); if (!opt.intro && !pr.cleared[1]) return intro(0, 'floors'); return floors();
+    case 'floors': sfx('click', 0.3); ui.fok = null; if (!opt.intro && !pr.cleared[1]) return intro(0, 'floors'); return floors();
     case 'inext': sfx('click', 0.3); return intro(ui.introI + 1);
     case 'iprev': sfx('click', 0.3); return intro(ui.introI - 1);
     case 'idone': sfx('click', 0.3); opt.intro = 1; saveOpt(); if (ui.introFrom === 'help') return help(); if (pr.maxFloor <= 1 && !pr.cleared[1]) { X(['start', 1]); sfx('ok', 0.4); enterRun(run); fetchDrops(); return; } return floors();
