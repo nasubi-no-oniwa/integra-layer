@@ -91,11 +91,11 @@ Net.addBag = async (floor, x, y, parts, name, note) => {
 };
 
 /* ---- 地図の売り買い ---- */
-Net.listMaps = async floor => { if (!db) return []; try { const s = (await db.ref('maps/' + floor).once('value')).val() || {}; return Object.keys(s).map(pid => Object.assign({ pid }, s[pid])).filter(m => m.pid !== Net.pid).sort((a, b) => b.pct - a.pct); } catch (e) { return []; } };
-Net.sellMap = async (floor, m) => { if (!db) return false; try { await db.ref('maps/' + floor + '/' + Net.pid).set(Object.assign({ t: T() }, m)); return true; } catch (e) { return false; } };
+Net.listMaps = async floor => { if (!db) return []; try { const s = (await db.ref('maps/' + IL.mapKey(floor)).once('value')).val() || {}; return Object.keys(s).map(pid => Object.assign({ pid }, s[pid])).filter(m => m.pid !== Net.pid).sort((a, b) => b.pct - a.pct); } catch (e) { return []; } };
+Net.sellMap = async (floor, m) => { if (!db) return false; try { await db.ref('maps/' + IL.mapKey(floor) + '/' + Net.pid).set(Object.assign({ t: T() }, m)); return true; } catch (e) { return false; } };
 Net.buyMap = async (floor, pid) => {
   if (!db) return null;
-  try { const m = (await db.ref('maps/' + floor + '/' + pid).once('value')).val(); if (!m) return null; await db.ref('sales/' + pid + '/' + floor).transaction(v => (v || 0) + 1); return m; } catch (e) { return null; }
+  try { const m = (await db.ref('maps/' + IL.mapKey(floor) + '/' + pid).once('value')).val(); if (!m) return null; await db.ref('sales/' + pid + '/' + floor).transaction(v => (v || 0) + 1); return m; } catch (e) { return null; }
 };
 Net.claimSales = async () => { // 売れた分（前に受け取った数との差）
   if (!db) return 0;

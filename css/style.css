@@ -389,3 +389,8 @@ body.dragging,body.dragging *{cursor:grabbing!important;user-select:none}
 .tname .row{gap:6px;flex-wrap:nowrap}.tname input{width:150px;padding:6px 8px;border-radius:6px;border:2px solid var(--line);background:#0e0c14;color:var(--ink);font:inherit;font-size:14px}
 .tonline .btn.sm{padding:2px 8px;font-size:12px;margin-left:4px}
 @media (max-height:520px) and (orientation:landscape){.tname{margin:0}.tname.need{padding:4px 8px}.tname .small{font-size:11px}.tname input{width:120px;padding:4px 6px;font-size:13px}}
+#guide{position:absolute;left:50%;top:max(118px,calc(env(safe-area-inset-top) + 110px));transform:translateX(-50%);z-index:20;pointer-events:none;background:rgba(20,16,30,.88);border:2px solid #f2d14b;color:#ffe9b0;border-radius:999px;padding:6px 16px;font-size:14px;box-shadow:0 0 16px rgba(242,209,75,.45);white-space:nowrap;max-width:94vw;overflow:hidden;text-overflow:ellipsis;animation:gpulse 1.6s ease-in-out infinite}
+@keyframes gpulse{50%{box-shadow:0 0 26px rgba(242,209,75,.8)}}
+body.guidemenu #b-menu{box-shadow:0 0 0 3px #f2d14b,0 0 20px #f2d14b;animation:hplow .9s ease-in-out infinite}
+@media (max-height:520px){#guide{top:max(8px,env(safe-area-inset-top));left:auto;right:max(10px,env(safe-area-inset-right));transform:none;max-width:calc(100vw - 320px);white-space:normal;border-radius:12px;font-size:12px;padding:5px 12px;line-height:1.4}}
+body.guidemenu [data-a="board2"]{box-shadow:0 0 0 3px #f2d14b,0 0 18px #f2d14b;animation:hplow .9s ease-in-out infinite}

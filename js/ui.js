@@ -554,7 +554,7 @@ function titleAnim(now) {
 }
 function render(now) {
   requestAnimationFrame(render);
-  if (!run) { if (TB.on && ui.scr !== 'ending') { titleAnim(now); if (window.FX) FX.frame(cv, { bloom: 1.1, vig: 0.45, th: 0.55 }); } else if (window.FX) FX.hide(); return; }
+  if (!run) { if (guideTxt) { guideTxt = ''; $('#guide').hidden = true; document.body.classList.remove('guidemenu'); } if (TB.on && ui.scr !== 'ending') { titleAnim(now); if (window.FX) FX.frame(cv, { bloom: 1.1, vig: 0.45, th: 0.55 }); } else if (window.FX) FX.hide(); return; }
   if (!sheet.complete) return;
   let ax = run.x, ay = run.y;
   if (anim) { const t = Math.min(1, (now - anim.t0) / 110); ax = anim.x0 + (run.x - anim.x0) * t; ay = anim.y0 + (run.y - anim.y0) * t; if (t >= 1) anim = null; dirty = true; }
@@ -614,6 +614,7 @@ function render(now) {
   const grd = g.createRadialGradient(W / 2, H / 2, r0, W / 2, H / 2, r1); grd.addColorStop(0, 'rgba(255,170,80,.05)'); grd.addColorStop(0.35, 'rgba(0,0,0,.15)'); grd.addColorStop(1, 'rgba(4,3,8,.82)'); g.fillStyle = grd; g.fillRect(0, 0, W, H);
   if (!fxLow()) dirty = true;
   if (!fxLow()) drawParticles(now, cx, cy, fl, bits, bi, x0, y0, x1, y1);
+  drawGuide(now, cx, cy, fl);
   drawMini(fl, bits);
   if (window.FX) { const t = B.tint || [1, 1, 1]; FX.frame(cv, { px: TS / 16, bump: 0.45, bloom: 1.0, th: 0.5, vig: 0.42, tint: [1 + (t[0] - 1) * 0.18, 1 + (t[1] - 1) * 0.18, 1 + (t[2] - 1) * 0.18] }); }
 }
@@ -653,6 +654,29 @@ function drawParticles(now, cx, cy, fl, bits, bi, x0, y0, x1, y1) {
   g.restore();
 }
 let miniKey = '';
+/* はじめての1階の案内：光る矢印で次にすることを見せる（1階のボスを倒すまで） */
+let guideTxt = '';
+function guideGoal(fl) {
+  if (!run || run.floor !== 1 || pr.cleared[1] || !fl.guide) return null;
+  if (!pr.board.some(x => x != null) && pr.bag.length) return { menu: true, s: '手に入れた欠片を、盤面にはめよう（右下の ≡ →「盤面とかばん」）' };
+  let best = null; for (const i of fl.peds) if (!run.opened[i]) { const d = Math.abs(i % fl.W - run.x) + Math.abs(((i / fl.W) | 0) - run.y); if (!best || d < best.d) best = { i, d }; }
+  if (best && !pr.bag.length) return { i: best.i, s: '光る台座のとなりで「調べる」を押そう' };
+  let g = -1, gd = 1e9; for (let i = 0; i < fl.t.length; i++) if (fl.t[i] === IL.T.GATE) { const d = Math.abs(i % fl.W - run.x) + Math.abs(((i / fl.W) | 0) - run.y); if (d < gd) { gd = d; g = i; } }
+  return { i: g, s: '右のボス部屋へ行こう（「探索」ボタンや、行きたい所のタップでも歩ける）' };
+}
+function drawGuide(now, cx, cy, fl) {
+  const gl = ui.scr ? null : guideGoal(fl), el = $('#guide');
+  const txt = gl ? gl.s : ''; if (txt !== guideTxt) { guideTxt = txt; if (el) { el.textContent = txt; el.hidden = !txt; } document.body.classList.toggle('guidemenu', !!(gl && gl.menu)); }
+  if (!gl || gl.menu || gl.i < 0) return;
+  const tx = gl.i % fl.W, ty = (gl.i / fl.W) | 0, W = cv.width, H = cv.height;
+  let px = cx + (tx + 0.5) * TS, py = cy + ty * TS - TS * 0.35 + Math.sin(now / 180) * TS * 0.15;
+  const m = TS * 0.8, inside = px > m && px < W - m && py > m && py < H - m, ang = inside ? Math.PI / 2 : Math.atan2(py - H / 2, px - W / 2);
+  if (!inside) { const k = Math.min((W / 2 - m) / Math.abs(px - W / 2 || 1), (H / 2 - m) / Math.abs(py - H / 2 || 1)); px = W / 2 + (px - W / 2) * k; py = H / 2 + (py - H / 2) * k; }
+  g.save(); g.translate(px, py); g.rotate(ang); const s = TS * 0.42;
+  g.shadowColor = '#ffd27a'; g.shadowBlur = TS * 0.5; g.fillStyle = '#ffe58a'; g.strokeStyle = '#7a4a0c'; g.lineWidth = Math.max(2, TS / 20);
+  g.beginPath(); g.moveTo(s, 0); g.lineTo(-s * 0.2, -s * 0.7); g.lineTo(-s * 0.2, -s * 0.28); g.lineTo(-s, -s * 0.28); g.lineTo(-s, s * 0.28); g.lineTo(-s * 0.2, s * 0.28); g.lineTo(-s * 0.2, s * 0.7); g.closePath(); g.fill(); g.shadowBlur = 0; g.stroke(); g.restore();
+  dirty = true;
+}
 /* 地図の目印：ボス部屋・行商人（その場所が地図に描けているときだけ） */
 function mapMarks(fl, bits) {
   const out = [], T = IL.T; let gate = -1;
@@ -979,7 +1003,7 @@ function endScreen() {
 
 
 /* ---------- みんなとつながる部分 ---------- */
-async function fetchDrops() { ui.bags = []; if (!Net.on || !run) return; const f = run.floor; const list = await Net.getBags(f); if (run && run.floor === f) { ui.bags = list; dirty = true; } }
+async function fetchDrops() { ui.bags = []; if (!Net.on || !run) return; const f = run.floor; const list = await Net.getBags(f); if (run && run.floor === f) { const fl = IL.genFloor(f); ui.bags = list.filter(b => IL.walkable(fl, b.x, b.y)); dirty = true; } }
 function watchLive(force) {
   if (!Net.on || !run) return; Net.liveSend(run.floor, run.x, run.y, opt.name || '', force);
   const key = run.floor + ':' + Net.chunkOf(run.x, run.y); if (force || Net.liveKey !== key) Net.liveWatch(run.floor, run.x, run.y, list => { const now = Net.now(); ui.ghosts = list.filter(o => now - (o.t || 0) < 15000).slice(0, 10); dirty = true; });
@@ -1044,7 +1068,7 @@ function profileScreen() {
 /* タイトルの地図屋：階を選んで、その階の地図を買う・売りに出す */
 function mapTop() {
   ui.scr = 'maptop'; const top = Math.max(1, pr.maxFloor);
-  let b = ''; for (let f = 1; f <= top; f++) { const m = pr.maps[String(f)], pct = m ? Math.round(100 * m.n / mapTotal(f)) : 0;
+  let b = ''; for (let f = 1; f <= top; f++) { const m = pr.maps[IL.mapKey(f)], pct = m ? Math.round(100 * m.n / mapTotal(f)) : 0;
     b += `<button class="mf" data-a="mapf" data-k="${f}"><b>${f}階</b><span class="small ${pct >= 100 ? 'gold' : 'mute'}">${pct}％</span></button>`; }
   show(`<div class="win" style="max-width:640px"><button class="btn sm close" data-a="title">もどる</button><h2>地図屋</h2>
     <p class="small mute">ほかの人が描いた地図を1枚10Gで買える（自分の地図と合わさる）。自分の地図は100Gで売りに出せて、だれかが買うたびに5G入る。行ったことのある階だけ選べる。数字はいま自分の地図が描けている割合。</p>
@@ -1055,24 +1079,24 @@ async function mapShop(floor) {
   ui.scr = 'mapshop'; ui.mapFloor = floor; const back = run ? 'back' : 'maptop';
   show(`<div class="win" style="max-width:560px"><button class="btn sm close" data-a="${back}">とじる</button><h2>${floor}階の地図</h2><p class="mute">読みこみ中…</p></div>`);
   const list = await Net.listMaps(floor); ui.mapList = list;
-  const mine = pr.maps[String(floor)];
+  const mine = pr.maps[IL.mapKey(floor)];
   const rows = list.map((m, i) => `<div class="item"><div class="nm"><b class="nt">${esc(m.n || '名無し')}</b>の地図　${m.pct}％<br><span class="small mute">${m.boss ? 'ボス部屋あり　' : ''}安全地帯${m.safe || 0}　台座${m.peds || 0}</span></div><button class="btn sm" data-mb="${i}" ${pr.gold >= 10 ? '' : 'disabled'}>10 G</button></div>`).join('') || '<p class="mute">まだ売りに出ている地図がない</p>';
   show(`<div class="win shop" style="max-width:560px"><button class="btn sm close" data-a="${back}">とじる</button><h2>${floor}階の地図</h2><p class="gold">所持金 ${pr.gold} G</p><div class="grid">${rows}</div>
     <h2 style="margin-top:14px">自分の地図を売りに出す</h2><p class="small mute">出すのに100G。だれかが買うたびに5G入る（次にタイトルに戻ったとき受け取る）。いま${mine ? Math.round(100 * mine.n / mapTotal(floor)) : 0}％描けている。</p>
     <button class="btn" data-a="mapsell" ${Net.on && pr.gold >= 100 && mine && mine.n ? '' : 'disabled'}>売りに出す（100 G）</button></div>`);
 }
 function mapInfo(f) {
-  const fl = IL.genFloor(f), m = pr.maps[String(f)], bits = IL.decodeBits(m ? m.bits : '', fl.W * fl.H); let boss = false, safe = 0, peds = 0;
+  const fl = IL.genFloor(f), m = pr.maps[IL.mapKey(f)], bits = IL.decodeBits(m ? m.bits : '', fl.W * fl.H); let boss = false, safe = 0, peds = 0;
   for (let i = 0; i < bits.length; i++) if (bits[i]) { const v = fl.t[i]; if (v === IL.T.GATE) boss = true; if (v === IL.T.SAFE) safe++; if (v === IL.T.PED) peds++; }
   return { bits: m ? m.bits : '', pct: m ? Math.round(100 * m.n / mapTotal(f)) : 0, boss, safe, peds, n: opt.name || '名無し' };
 }
 async function buyMap(i) {
   const m = ui.mapList[i]; if (!m || pr.gold < 10) return; const got = await Net.buyMap(ui.mapFloor, m.pid); if (!got) { toast('買えませんでした'); return; }
   X(['mapbuy', ui.mapFloor, m.pid]);
-  const f = ui.mapFloor, fl = IL.genFloor(f), a = IL.decodeBits(pr.maps[String(f)] ? pr.maps[String(f)].bits : '', fl.W * fl.H), b = IL.decodeBits(got.bits, fl.W * fl.H);
+  const f = ui.mapFloor, fl = IL.genFloor(f), a = IL.decodeBits(pr.maps[IL.mapKey(f)] ? pr.maps[IL.mapKey(f)].bits : '', fl.W * fl.H), b = IL.decodeBits(got.bits, fl.W * fl.H);
   if (run && run.floor === f && run._bits) for (let k = 0; k < a.length; k++) if (run._bits[k]) a[k] = 1;
   for (let k = 0; k < a.length; k++) if (b[k]) a[k] = 1; let n = 0; for (const v of a) n += v;
-  pr.maps[String(f)] = { bits: IL.encodeBits(a), n }; if (run && run.floor === f) { run._bits = a; run._dirty = false; }
+  pr.maps[IL.mapKey(f)] = { bits: IL.encodeBits(a), n }; if (run && run.floor === f) { run._bits = a; run._dirty = false; }
   sfx('coin'); toast('地図を手に入れた'); save(); dirty = true; mapShop(f);
 }
 async function sellMap() { const f = ui.mapFloor; if (pr.gold < 100) return; if (run && run.floor === f) IL.saveMap(pr, run); const ok = await Net.sellMap(f, mapInfo(f)); if (ok) { X(['mapsell', f]); sfx('coin'); toast('地図を売りに出した'); save(); } else toast('出せませんでした'); mapShop(f); }

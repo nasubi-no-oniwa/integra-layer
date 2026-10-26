@@ -4,6 +4,7 @@
 'use strict';
 // [英語, 繁体字中国語, 韓国語]
 const D = {
+'手に入れた欠片を、盤面にはめよう（右下の ≡ →「盤面とかばん」）': ['Place your new shard on the board (≡ at bottom right → Board & Bag)', '把拿到的碎片嵌進盤面吧（右下 ≡ →「盤面與背包」）', '얻은 조각을 판에 끼우자 (오른쪽 아래 ≡ → 「판과 가방」)'], '光る台座のとなりで「調べる」を押そう': ['Stand next to the glowing pedestal and press Search', '站在發光台座旁按「調查」', '빛나는 받침대 옆에서 「조사」를 누르자'], '右のボス部屋へ行こう（「探索」ボタンや、行きたい所のタップでも歩ける）': ['Head to the boss room on the right (use Explore or tap where you want to go)', '前往右邊的頭目房間（也可用「探索」或點擊想去的地方）', '오른쪽 보스 방으로 가자 (「탐색」 버튼이나 가고 싶은 곳을 탭해도 걸을 수 있다)'],
 '名前を決めよう（ボスを最初に倒すと塔に刻まれる）': ['Choose a name (defeat a boss first and it is carved into the tower)', '決定名字吧（第一個打倒頭目就會刻在塔上）', '이름을 정하자 (보스를 처음 쓰러뜨리면 탑에 새겨진다)'], '名前を変える': ['Change name', '更改名字', '이름 바꾸기'], '名前を入れてください': ['Please enter a name', '請輸入名字', '이름을 입력해 주세요'], '決める': ['OK', '決定', '결정'],
 '強くしたい欠片を出してみな。': ['Show me the shard you want to strengthen.', '拿出你想強化的碎片吧。', '강화하고 싶은 조각을 내 봐.'], '同じ種族・同じレアリティの欠片を材料にするんだ。': ['Use a shard of the same kind and rarity as material.', '用同種族、同稀有度的碎片當材料。', '같은 종족·같은 희귀도의 조각을 재료로 써.'],
 'これならまず大丈夫だ。': ['This should work out fine.', '這樣應該沒問題。', '이 정도면 괜찮을 거야.'], '五分より少し上ってところだね。': ['A bit better than a coin flip.', '比五五波好一點。', '반반보다 조금 나은 정도네.'], 'うーん、分の悪い賭けだよ。': ['Hmm, that is a risky bet.', '嗯，這是場不利的賭局。', '음, 불리한 도박이야.'],
