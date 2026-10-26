@@ -290,13 +290,49 @@ function boardScreen(from) {
       </div>
       <div class="side"><div class="stats">${stats}</div><div class="skills">${sk}</div>
       <div class="detail">${selP ? partText(selP) : 'マスか欠片を選ぶ。欠片を選んでからマスを押すと置ける。置いた欠片をもう一度押すと回る。'}</div>${presetHTML()}</div></div>
-    <div class="bagcol"><div class="row bagtools"><select data-f="sp">${spOpt}</select><select data-f="rar">${rOpt}</select><select data-f="sort">${soOpt}</select><span class="mute small">${pr.bag.length}個</span>
+    <div class="bagcol"><div class="spchips">${['all', ...IL.SPECIES, ...['none', 'joker'].filter(x => ui.filt.sp === x || pr.bag.some(q => q.sp === x))].map(sp => `<button class="spc ${ui.filt.sp === sp ? 'on' : ''}" data-a="fsp" data-k="${sp}" style="--c:${sp === 'all' ? '#8a80a8' : IL.SP_COLOR[sp]}" title="${sp === 'all' ? 'すべて' : IL.SP_NAME[sp]}">${sp === 'all' ? '全' : IL.SP_NAME[sp].slice(0, 1)}</button>`).join('')}</div><div class="row bagtools"><select data-f="rar">${rOpt}</select><select data-f="sort">${soOpt}</select><span class="mute small">${pr.bag.length}個</span>
       ${mul ? `<span class="mtools"><button class="btn sm" data-a="mall">表示中をすべて選ぶ</button><button class="btn sm warn" data-a="mdisc" ${mul.size ? '' : 'disabled'}>${ui.mconf ? '本当に捨てる？（' + mul.size + '個）' : mul.size + '個を捨てる'}</button><button class="btn sm" data-a="mend">やめる</button></span>` : '<button class="btn sm" data-a="multi">まとめて捨てる</button>'}</div>
     ${mul ? '<p class="small mute" style="margin:4px 0">捨てる欠片をタップして選ぶ（盤面に置いている欠片は選べない）</p>' : ''}
     <div class="bag">${items}</div></div></div></div>`);
   [...document.querySelectorAll('.boardwin .bagcol .bag, .boardwin .side, .boardwin')].forEach((e, i) => { if (keepScroll[i]) e.scrollTop = keepScroll[i]; });
   if (an.links.length) tut('link');
 }
+/* 引っぱって置く：かばん→マスで置く、マス→マスで入れかえ、マス→かばんで外す（押すだけの操作もそのまま） */
+const DRAG = { on: false, src: null, id: null, x0: 0, y0: 0, ghost: null, over: null, until: 0, pid: null };
+function dragCellAt(x, y) { const el = document.elementFromPoint(x, y); return el ? el.closest('.boardwin .cell') : null; }
+document.addEventListener('pointerdown', e => {
+  if (ui.scr !== 'board' || ui.multi || e.button > 0) return;
+  const bi = e.target.closest('.boardwin [data-bag]'), ce = e.target.closest('.boardwin [data-cell]');
+  let id = null, src = null;
+  if (bi) { id = +bi.dataset.bag; src = 'bag'; } else if (ce && pr.board[+ce.dataset.cell] != null) { id = pr.board[+ce.dataset.cell]; src = +ce.dataset.cell; }
+  if (id == null) return;
+  Object.assign(DRAG, { on: false, src, id, x0: e.clientX, y0: e.clientY, pid: e.pointerId, over: null });
+});
+document.addEventListener('pointermove', e => {
+  if (DRAG.id == null || e.pointerId !== DRAG.pid) return;
+  if (!DRAG.on) { if (Math.hypot(e.clientX - DRAG.x0, e.clientY - DRAG.y0) < 10) return;
+    const p = pr.bag.find(q => q.id === DRAG.id); if (!p) { DRAG.id = null; return; }
+    DRAG.on = true; const cell = document.querySelector('.boardwin .cell'), sz = cell ? cell.getBoundingClientRect().width : 48;
+    const g = document.createElement('div'); g.className = 'dragghost'; g.style.setProperty('--s', sz + 'px'); g.innerHTML = partHTML(p); document.body.appendChild(g); DRAG.ghost = g; document.body.classList.add('dragging'); }
+  e.preventDefault();
+  DRAG.ghost.style.transform = `translate(${e.clientX}px,${e.clientY}px)`;
+  const c = dragCellAt(e.clientX, e.clientY); if (c !== DRAG.over) { if (DRAG.over) DRAG.over.classList.remove('dropok'); DRAG.over = c; if (c) c.classList.add('dropok'); }
+}, { passive: false });
+function dragEnd(e, cancel) {
+  if (DRAG.id == null || (e && e.pointerId !== DRAG.pid)) return;
+  const was = DRAG.on, src = DRAG.src, id = DRAG.id, over = DRAG.over;
+  if (DRAG.ghost) DRAG.ghost.remove(); if (over) over.classList.remove('dropok'); document.body.classList.remove('dragging');
+  Object.assign(DRAG, { on: false, id: null, ghost: null, over: null });
+  if (!was || cancel) return;
+  DRAG.until = performance.now() + 350; // このあとの「押した」は無視
+  const before = IL.playerStats(pr);
+  if (over) { const to = +over.dataset.cell; if (src === 'bag') { X(['place', to, id]); sfx('place'); } else if (src !== to) { X(['swap', src, to]); sfx('place'); } ui.sel = to; ui.bagSel = null; }
+  else if (src !== 'bag' && e && document.elementFromPoint(e.clientX, e.clientY)?.closest('.bagcol, .bag')) { X(['unq', src]); sfx('click', 0.3); ui.sel = null; }
+  else return;
+  save(); boardScreen(); statDiff(before);
+}
+document.addEventListener('pointerup', e => dragEnd(e, false));
+document.addEventListener('pointercancel', e => dragEnd(e, true));
 /* 盤面のプリセット（この端末に保存） */
 function presets() { if (!opt.presets || opt.presets.length !== 3) { opt.presets = [null, null, null]; } return opt.presets; }
 function presetLabel(ps) { const has = new Set(pr.bag.map(p => p.id)), ba = ps.cells.map(c => c && has.has(c.id) ? pr.bag.find(p => p.id === c.id) : null), an = IL.analyzeBoard(ba);
@@ -863,6 +899,7 @@ async function collectSales() { if (!Net.on) return; const n = await Net.claimSa
 
 /* ---------- クリック ---------- */
 document.addEventListener('click', async e => {
+  if (performance.now() < DRAG.until && e.target.closest('.boardwin')) return;
   const t = e.target.closest('[data-a],[data-f],[data-cell],[data-bag],[data-pt],[data-syn],[data-gp],[data-buy],[data-c],[data-sk],[data-it],[data-tg],[data-use],[data-dpot],[data-mb],[data-rep],[data-tr],[data-pk],[data-tr2]');
   if (!t) { if (ui.scr === 'board' && (ui.sel != null || ui.bagSel != null) && !e.target.closest('select,input,label')) { ui.sel = null; ui.bagSel = null; sfx('click', 0.2); boardScreen(); } return; }
   const d = t.dataset;
@@ -906,6 +943,7 @@ document.addEventListener('click', async e => {
     case 'board2': ui.sel = null; ui.bagSel = null; return boardScreen('run');
     case 'boardback': hud(); if (ui.boardFrom === 'run' && run) { hideScreen(); dirty = true; return; } return title();
     case 'rot': { const id = ui.sel != null && pr.board[ui.sel] != null ? pr.board[ui.sel] : ui.bagSel; if (id != null) { X(['rot', id]); sfx('rotate'); save(); } return boardScreen(); }
+    case 'fsp': ui.filt.sp = t.dataset.k; sfx('click', 0.2); return boardScreen();
     case 'multi': ui.multi = new Set(); ui.mconf = false; ui.bagSel = null; return boardScreen();
     case 'mend': ui.multi = null; ui.mconf = false; return boardScreen();
     case 'mall': if (ui.multi) { const all = ui.lastList.every(id => ui.multi.has(id)); ui.lastList.forEach(id => all ? ui.multi.delete(id) : ui.multi.add(id)); ui.mconf = false; } return boardScreen();
