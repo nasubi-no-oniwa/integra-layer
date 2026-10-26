@@ -4,7 +4,7 @@
 'use strict';
 const IL = {};
 IL.VER = 1;
-IL.ENGINE = '23'; // ルールの版（記録に書く。変えたら engine/ に前の版を残す）
+IL.ENGINE = '24'; // ルールの版（記録に書く。変えたら engine/ に前の版を残す）
 
 /* ---------- 乱数 ---------- */
 function hashStr(s) { let h = 2166136261 >>> 0; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
@@ -182,6 +182,7 @@ IL.ETYPES = {
   beetle: { name: '大鬼', tile: 124, hp: 1.2, atk: 0.9, def: 1.4, spd: 0.8 },
 };
 IL.EPREFIX = ['苔', '砂', '晶', '炎', '氷', '毒', '鋼', '影', '星', '核'];
+IL.REGION_BOSS = ['苔むす大樹守', '書庫の番人', '晶の魔像', '灼熱の魔人', '氷結の巨人', '毒沼の大主', '鋼の機兵', '影の王', '星詠みの巫', '統合核'];
 function expLv(f) { return Math.max(1, Math.min(100, Math.round(0.97 * f - 0.5))); }
 function fillOf(f) { return Math.min(1, (f - 1) / 9); } // 序盤は盤面がまだ埋まっていない
 function expBoard(f) { return IL.B.boardK * partValue(Math.max(1, f - 3)) * fillOf(f); }
@@ -198,7 +199,7 @@ function makeEnemy(f, type, kind, rng) { // kind: 0 ふつう 1 中ボス 2 大�
   const res = res0 === weak ? sp[(SPECIES.indexOf(weak) + 2) % 5] : res0;
   const hp = Math.round(B.eHp * E * T.hp * hm * d * (rng ? 0.92 + rng.next() * 0.16 : 1));
   const pre = IL.EPREFIX[Math.min(9, Math.floor((f - 1) / 10))];
-  const name = kind === 3 ? '行商人' : kind === 2 ? pre + T.name + '王' : kind === 1 ? pre + T.name + 'の主' : pre + T.name;
+  const name = kind === 3 ? '行商人' : kind === 2 && f % 10 === 0 ? IL.REGION_BOSS[Math.min(9, f / 10 - 1)] : kind === 2 ? pre + T.name + '王' : kind === 1 ? pre + T.name + 'の主' : pre + T.name; // 版24：10階ごとの大ボスは地域の名前
   return { type, kind, name, tile: kind === 3 ? 84 : T.tile, hp, maxhp: hp, atk: Math.round(B.eAtk * E * T.atk * am * d), def: Math.round(B.eDef * E * T.def * d),
     spd: Math.round(0.85 * expSpd(f) * T.spd * (kind ? 1.15 : 1)), weak, res, burn: [], charge: 0,
     exp: Math.round((B.expBase + B.expPer * f) * (kind === 1 ? B.bossExp : kind >= 2 ? B.bigExp : 1)), gold: Math.round((kind ? 20 : 1 + (rng ? rng.int(3) : 1)) * IL.goldMul(f)) };
@@ -435,11 +436,14 @@ function battleCmd(pr, run, cmd) { // cmd: {c:'atk',t:i} {c:'skill',sp,t} {c:'de
   const hitFoe = (f, raw, sp, label, critRaw) => { // critRaw があるとき（ふつうの攻撃）だけ会心が出る
     let mul = 1, note = '';
     if (sp && sp !== 'star') { if (f.weak === sp) { mul = 2; note = '（弱点！）'; } else if (f.res === sp) { mul = 0.5; note = '（いまひとつ）'; } }
+    if (sp && f.shield && f.shield.n > 0 && f.shield.sp === sp) { mul *= 0.2; note += '（盾で防がれた）'; } // 版24：ボスの属性の盾
     const crit = critRaw != null && rng.chance(IL.critRate(st.luck)), r = 0.9 + rng.next() * 0.2;
     let v = crit ? Math.max(critRaw * (0.95 + (r - 0.9) * 0.5), raw * 1.25 * r) : raw * mul * r; // 会心は守りを無視（攻撃力そのまま）
     v = Math.max(1, Math.floor(v)); f.hp = Math.max(0, f.hp - v);
     if (crit) log.push({ s: '会心の一撃！', crit: true });
     log.push({ s: (label || '') + f.name + 'に ' + v + ' のダメージ' + note, hit: true, crit });
+    f.took = (f.took || 0) + v;
+    if (sp && f.stance && f.hp > 0) { const c = Math.max(1, Math.floor(dmgCalc(f.atk, 1.3, st.def) * (1 - Math.min(0.5, bt.guard || 0)))); run.hp = Math.max(0, run.hp - c); log.push({ s: f.name + 'の反撃！ ' + c + ' のダメージを受けた', hurt: true }); } // 版24：反撃の構え
     return v;
   };
   const playerAct = () => {
@@ -464,7 +468,21 @@ function battleCmd(pr, run, cmd) { // cmd: {c:'atk',t:i} {c:'skill',sp,t} {c:'de
   const foeAct = f => {
     if (f.hp <= 0 || bt.over) return;
     let m = 1;
-    if (f.kind) { if (f.charge) { m = B.chargeMul; f.charge = 0; log.push({ s: f.name + 'の大技！' }); } else if (bt.turn % 4 === 3) { f.charge = 1; log.push({ s: f.name + 'は力をためている…', warn: true }); return; } }
+    if (f.kind === 1 || f.kind === 2) { // 版24：ボスは次の行動を予告する（大技・回復の儀式・反撃の構え・属性の盾）
+      if (f.shield && f.shield.n > 0) f.shield.n--; f.stance = 0;
+      const nx = f.next, took = f.took || 0; f.next = null; f.took = 0;
+      if (nx === 'charge') { m = B.chargeMul; f.charge = 0; log.push({ s: f.name + 'の大技！' }); }
+      else if (nx === 'heal') { if (took >= f.maxhp * 0.15) log.push({ s: f.name + 'の儀式がくずれた！' }); else { const h = Math.round(f.maxhp * 0.2); f.hp = Math.min(f.maxhp, f.hp + h); log.push({ s: f.name + 'の回復の儀式！ 体力が ' + h + ' 回復した', warn: true }); } return; }
+      else if (bt.turn % 3 === 2) {
+        const opts = ['charge']; if (run.floor >= 3) { opts.push('stance'); if (f.hp < f.maxhp * 0.75) opts.push('heal'); if (f.kind === 2 || run.floor >= 11) opts.push('shield'); }
+        const a = opts[rng.int(opts.length)];
+        if (a === 'charge') { f.next = 'charge'; f.charge = 1; log.push({ s: f.name + 'は力をためている…（次は大技）', warn: true }); return; }
+        if (a === 'heal') { f.next = 'heal'; log.push({ s: f.name + 'は回復の儀式をはじめた…（大きなダメージで止められる）', warn: true }); return; }
+        if (a === 'stance') { f.stance = 1; log.push({ s: f.name + 'は反撃の構えをとった！（技を当てると反撃される）', warn: true }); return; }
+        if (a === 'shield') { let ssp = null, bt2 = -1; for (const k of SPECIES) { const sk = st.skills[k]; if (sk && sk.tier > bt2) { bt2 = sk.tier; ssp = k; } } if (!ssp) ssp = SPECIES[rng.int(5)];
+          f.shield = { sp: ssp, n: 2 }; log.push({ s: f.name + 'は' + IL.SP_NAME[ssp] + 'の盾を張った！（しばらく' + IL.SP_NAME[ssp] + 'の技がほとんど効かない）', warn: true }); }
+      }
+    }
     let v = dmgCalc(f.atk, m, st.def) * (0.9 + rng.next() * 0.2);
     const g = bt.guard ? (bt.guard >= 0.5 ? 0.5 : bt.guard) : 0; v = Math.max(1, Math.floor(v * (1 - g)));
     run.hp = Math.max(0, run.hp - v); log.push({ s: f.name + 'の攻撃！ ' + v + ' のダメージを受けた', hurt: true });

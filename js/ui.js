@@ -190,7 +190,7 @@ function title() {
   if (S.run && S.run.over) S.run = null; run = S.run; ui.scr = 'title'; if (Net.on) Net.presence(0); $('#hud').hidden = true; $('#pad').hidden = true; save(); drawIdle();
   const st = IL.playerStats(pr);
   show(`<div class="win title"><div class="tleft">
-    <div class="logo">INTEGRA LAYER<small>インテグラ・レイヤー</small></div>
+    <div class="logo"><img class="logoimg" src="img/logo.webp" alt="INTEGRA LAYER"><small>インテグラ・レイヤー</small></div>
     ${infoHTML()}
     <p class="story">倒れた誰かの欠片が、きみの盤面でつながる。\n全員で、100階の塔を上れ。</p>
     <div class="statline"><span>Lv ${pr.lv}</span><span>最前線 ${pr.maxFloor}階</span><span class="gold">${pr.gold} G</span><span>回復薬 ${pr.potions.length}</span><span>チケット ${pr.tickets}</span></div>
@@ -454,6 +454,11 @@ function lootReveal(parts) {
   d.innerHTML = `<div class="rays"></div><div class="card" style="--s:64px">${partHTML(best)}</div><div class="nm">${IL.SP_NAME[best.sp]}の欠片<b>${IL.RAR_NAME[best.rar]}</b></div>`;
   $('#app').appendChild(d); setTimeout(() => d.remove(), best.rar >= 2 ? 1900 : 1400);
   if (best.rar >= 2) sfx('levelup', 0.45);
+}
+/* ボスの登場：名前がドンと出る */
+function bossIntro(f) {
+  if (fxLow()) return; const d = document.createElement('div'); d.className = 'bossin' + (f.kind === 2 ? ' big' : '');
+  d.innerHTML = `<i></i><span>${f.kind === 2 ? (run.floor % 10 === 0 ? '地域の大ボス' : '大ボス') : 'ボス'}</span><b>${esc(f.name)}</b><i></i>`; $('#app').appendChild(d); setTimeout(() => d.remove(), 1700);
 }
 /* 会心の一撃：画面が一瞬光って、大きな文字 */
 function critFx() {
@@ -765,7 +770,7 @@ function afterAct() {
   }
   run.events = [];
   hud(); dirty = true; save();
-  if (run.battle) { ui.target = 0; ui.sub = null; battle(); if (run.battle.foes[0].kind) sfx('boss', 0.6); tut('battle'); if (run.battle.kind === 'normal' && opt.auto !== false) autoBattle(); }
+  if (run.battle) { ui.target = 0; ui.sub = null; battle(); if (run.battle.foes[0].kind) { sfx('boss', 0.6); if (run.battle.foes[0].kind <= 2) bossIntro(run.battle.foes[0]); } tut('battle'); if (run.battle.kind === 'normal' && opt.auto !== false) autoBattle(); }
   else if (run.prompt) { prompt(); if (run.prompt && run.prompt.kind === 'gate') tut('boss'); }
   else if (ui.bags.length && bagNear(6) && !(pr.bagsOpen || {})[bagNear(6).id]) tut('bag');
 }
@@ -968,7 +973,7 @@ function shop() {
 function battle() {
   ui.scr = 'battle'; const bt = run.battle, st = IL.playerStats(pr), bi = Math.min(9, Math.floor((run.floor - 1) / 10));
   const alive = bt.foes.filter(f => f.hp > 0); if (ui.target >= alive.length) ui.target = 0;
-  const foes = bt.foes.map(f => { const ai = alive.indexOf(f); return `<div class="foe ${f.hp <= 0 ? 'dead' : ''} ${ai === ui.target && !bt.over ? 'sel' : ''}" data-tg="${ai}"><div class="spr" data-tile="${f.tile}" data-big="${f.kind ? 1 : 0}"></div><div class="nm">${esc(f.name)}</div><div class="bar"><i style="width:${100 * f.hp / f.maxhp}%"></i></div><div class="tag">${f.hp} / ${f.maxhp}${f.weak ? '　弱点:' + IL.SP_NAME[f.weak] + '　半減:' + (IL.SP_NAME[f.res] || '—') : ''}${f.charge ? '　<b style="color:#ff6b6b">力をためている</b>' : ''}</div></div>`; }).join('');
+  const foes = bt.foes.map(f => { const ai = alive.indexOf(f); return `<div class="foe ${f.hp <= 0 ? 'dead' : ''} ${ai === ui.target && !bt.over ? 'sel' : ''}" data-tg="${ai}"><div class="spr" data-tile="${f.tile}" data-big="${f.kind ? 1 : 0}"></div><div class="nm">${esc(f.name)}</div><div class="bar"><i style="width:${100 * f.hp / f.maxhp}%"></i></div><div class="tag">${f.hp} / ${f.maxhp}${f.weak ? '　弱点:' + IL.SP_NAME[f.weak] + '　半減:' + (IL.SP_NAME[f.res] || '—') : ''}${f.charge ? '　<b class="ftag ch">力をためている</b>' : ''}${f.shield && f.shield.n > 0 ? `　<b class="ftag sh" style="--c:${IL.SP_COLOR[f.shield.sp]}">${IL.SP_NAME[f.shield.sp]}の盾</b>` : ''}${f.stance ? '　<b class="ftag st">反撃の構え</b>' : ''}${f.next === 'heal' ? '　<b class="ftag hl">回復の儀式</b>' : ''}</div></div>`; }).join('');
   const log = bt.log.slice(-12).map(l => `<div class="${l.hurt ? 'x' : l.warn ? 'w' : l.skill ? 'k' : l.hit ? 'h' : ''}">${esc(l.s)}</div>`).join('');
   let bottom = '';
   if (!bt.over) {
@@ -1339,7 +1344,7 @@ async function boot() {
   L10N.lang = opt.lang || L10N.pick(); document.documentElement.lang = L10N.lang; L10N.observe(); L10N.apply(); applyOpt();
   if (window.FX) { FX.init(cv); applyOpt(); }
   resize(); requestAnimationFrame(render); drawIdle();
-  drawTitleBg(); show('<div class="win title"><div class="logo">INTEGRA LAYER<small>インテグラ・レイヤー</small></div><p class="mute">つないでいます…</p></div>');
+  drawTitleBg(); show('<div class="win title"><div class="logo"><img class="logoimg" src="img/logo.webp" alt="INTEGRA LAYER"><small>インテグラ・レイヤー</small></div><p class="mute">つないでいます…</p></div>');
   const timeout = new Promise(r => setTimeout(() => r(false), 7000));
   await Promise.race([Net.init(), timeout]);
   if (Net.on) Net.anStart();

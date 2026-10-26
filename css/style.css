@@ -453,3 +453,24 @@ body.lowfx .lootfx .rays{display:none}body.lowfx .killfx b{animation-duration:.6
   .ov .win.title .tname .row{flex-wrap:nowrap}.ov .win.title .front,.ov .win.title .news,.ov .win.title .tailw{font-size:10px}
   .ov .win.title .menu{width:42%;padding:8px}
 }
+
+/* ボスの状態の札 */
+.ftag{display:inline-block;padding:0 6px;border-radius:999px;font-size:11px;line-height:1.6;white-space:nowrap}
+.ftag.ch{background:rgba(255,80,80,.25);color:#ff8a8a;border:1px solid #ff6b6b;animation:hplow .8s ease-in-out infinite}
+.ftag.sh{background:color-mix(in srgb,var(--c) 30%,transparent);color:#fff;border:1px solid var(--c)}
+.ftag.st{background:rgba(255,170,60,.22);color:#ffc37a;border:1px solid #ffb23d}
+.ftag.hl{background:rgba(110,220,140,.2);color:#9ff0b0;border:1px solid #6fd38a;animation:hplow 1s ease-in-out infinite}
+/* ボスの登場 */
+.bossin{position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);z-index:66;pointer-events:none;display:flex;flex-direction:column;align-items:center;gap:2px;padding:14px 0;background:linear-gradient(90deg,transparent,rgba(10,4,12,.88) 15%,rgba(10,4,12,.88) 85%,transparent);animation:bossin 1.7s ease-out forwards}
+.bossin span{font-size:13px;letter-spacing:.4em;color:#ff8a8a}
+.bossin b{font-size:clamp(28px,6vw,52px);color:#fff;letter-spacing:.08em;text-shadow:0 0 14px #ff3d3d,0 0 30px #c2290a,0 3px 0 #3a0505}
+.bossin.big b{color:#ffe58a;text-shadow:0 0 16px #ffb23d,0 0 34px #ff6a3d,0 3px 0 #5a2a02}
+.bossin i{display:block;width:70%;height:2px;background:linear-gradient(90deg,transparent,#ff6b6b,transparent)}
+@keyframes bossin{0%{opacity:0;transform:translateY(-50%) scaleY(.2)}12%{opacity:1;transform:translateY(-50%) scaleY(1)}80%{opacity:1}100%{opacity:0;transform:translateY(-50%) scaleY(1.05)}}
+.bossin b{animation:bossname 1.7s ease-out forwards}@keyframes bossname{0%{letter-spacing:.6em;opacity:0}20%{letter-spacing:.08em;opacity:1}}
+
+/* ロゴの絵 */
+.logo .logoimg{display:block;width:min(100%,520px);height:auto;margin:0 auto;filter:drop-shadow(0 4px 14px rgba(0,0,0,.7))}
+.ov .win.title .logo{white-space:normal;text-align:center;width:100%}
+.ov .win.title .logo .logoimg{width:100%;max-height:34vh;object-fit:contain}
+.ov .win.title .logo small{font-size:clamp(11px,1.6vw,16px)!important;margin-top:0}
