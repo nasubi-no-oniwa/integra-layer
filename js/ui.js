@@ -224,7 +224,7 @@ function help() {
   show(`<div class="win"><button class="btn sm close" data-a="title">もどる</button><h2>遊び方</h2>
   <p class="story">・塔を探索して、敵とぶつかると戦いになる。台座はとなりから「調べる」。
 ・拾った欠片を5×5の盤面に置く。同じ種族の凸と凹が向き合うとつながる。
-・同じ種族どうしの凸と凹だけがつながる（別の種族とはつながらない。万能はどの種族ともつながる）。たくさんつながるほど能力が上がり、2個以上つながると技が使える（25個で「神」）。
+・同じ種族どうしの凸と凹だけがつながる（別の種族とはつながらない。万能はどの種族ともつながる）。たくさんつながるほど能力が上がり、2個以上つながると技が使える（25個で「神」）。<br>・2個以上つながると「加護」も付き、その属性の能力が段階に応じて上がる（炎＝攻撃、岩＝守り、森＝体力、風＝素早さ、星＝運。最大+25％）。「無」はつながらないかわりに1つ1つが強い。
 ・炎＝1体に大ダメージ　風＝全体　岩＝守り　森＝回復　星＝弱点も半減も関係なし。
 ・ボスを倒すと次の階へ。帰れるのは「安全地帯」と「ボスのあとの帰還ポータル」だけ。
 ・倒れると、盤面の欠片がバッグになってその場に残る（ガチャの欠片は残る）。ボスにやられると盤面の欠片が全部消える。
@@ -298,7 +298,7 @@ function boardScreen(from) {
     const p = ba[i], gi = an.groupOf[i], big = gi >= 0 && an.groups[gi].cells.length > 1;
  cells += `<div class="cell ${ui.sel === i ? 'sel' : ''} ${big ? 'lk' : ''}" data-cell="${i}">${p ? partHTML(p, '', lks[i]) : ''}${p && big ? `<span class="gm">×${an.mulOf[i]}</span>` : ''}</div>`;
   }
-  let sk = ''; for (const sp of IL.SPECIES) { const s = st.skills[sp]; if (s) sk += `<div class="skill" style="--c:${IL.SP_COLOR[sp]}"><i></i>${IL.SKILLS[sp][s.tier]} <span class="mute">${IL.SP_NAME[sp]}×${s.count}・段階${s.tier}${IL.TIER_NAME[s.tier] ? '（' + IL.TIER_NAME[s.tier] + '）' : ''}</span></div>`; }
+  let sk = ''; for (const sp of IL.SPECIES) { const s = st.skills[sp]; if (s) sk += `<div class="skill" style="--c:${IL.SP_COLOR[sp]}"><i></i>${IL.SKILLS[sp][s.tier]} <span class="mute">${IL.SP_NAME[sp]}×${s.count}・段階${s.tier}${IL.TIER_NAME[s.tier] ? '（' + IL.TIER_NAME[s.tier] + '）' : ''}</span>${st.bless && st.bless[sp] ? `<span class="bless">加護 ${IL.STAT_NAME[st.bless[sp].k]}+${Math.round(st.bless[sp].p * 100)}％</span>` : ''}</div>`; }
   if (!sk) sk = '<div class="mute small">同じ種族を2個以上つなげると技が使える</div>';
   const stats = IL.STATS.map(k => `<div>${IL.STAT_NAME[k]}<b>${st[k]}</b><small class="mute">+${an.add[k]}</small></div>`).join('');
   // かばん

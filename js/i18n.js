@@ -4,6 +4,7 @@
 'use strict';
 // [英語, 繁体字中国語, 韓国語]
 const D = {
+'・2個以上つながると「加護」も付き、その属性の能力が段階に応じて上がる（炎＝攻撃、岩＝守り、森＝体力、風＝素早さ、星＝運。最大+25％）。「無」はつながらないかわりに1つ1つが強い。': ['• Linking 2+ also grants a Blessing that boosts that element\'s stat by tier (Fire=ATK, Rock=DEF, Forest=HP, Wind=SPD, Star=LUCK, up to +25%). Neutral shards don\'t link but are stronger on their own.', '・連結2個以上還會得到「加護」，依段階提升該屬性的能力（炎＝攻擊、岩＝守備、森＝體力、風＝速度、星＝運氣，最多+25％）。「無」無法連結，但單個較強。', '・2개 이상 이어지면 「가호」도 붙어 그 속성의 능력이 단계에 따라 오른다 (불꽃=공격, 바위=방어, 숲=체력, 바람=속도, 별=운, 최대 +25%). 「무」는 이어지지 않는 대신 하나하나가 강하다.'], '加護 ': ['Blessing ', '加護 ', '가호 '],
 '会心の一撃！': ['Critical hit!', '會心一擊！', '회심의 일격!'],
 '手に入れた欠片を、盤面にはめよう（右下の ≡ →「盤面とかばん」）': ['Place your new shard on the board (≡ at bottom right → Board & Bag)', '把拿到的碎片嵌進盤面吧（右下 ≡ →「盤面與背包」）', '얻은 조각을 판에 끼우자 (오른쪽 아래 ≡ → 「판과 가방」)'], '光る台座のとなりで「調べる」を押そう': ['Stand next to the glowing pedestal and press Search', '站在發光台座旁按「調查」', '빛나는 받침대 옆에서 「조사」를 누르자'], '右のボス部屋へ行こう（「探索」ボタンや、行きたい所のタップでも歩ける）': ['Head to the boss room on the right (use Explore or tap where you want to go)', '前往右邊的頭目房間（也可用「探索」或點擊想去的地方）', '오른쪽 보스 방으로 가자 (「탐색」 버튼이나 가고 싶은 곳을 탭해도 걸을 수 있다)'],
 '名前を決めよう（ボスを最初に倒すと塔に刻まれる）': ['Choose a name (defeat a boss first and it is carved into the tower)', '決定名字吧（第一個打倒頭目就會刻在塔上）', '이름을 정하자 (보스를 처음 쓰러뜨리면 탑에 새겨진다)'], '名前を変える': ['Change name', '更改名字', '이름 바꾸기'], '名前を入れてください': ['Please enter a name', '請輸入名字', '이름을 입력해 주세요'], '決める': ['OK', '決定', '결정'],

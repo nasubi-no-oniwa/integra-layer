@@ -4,7 +4,7 @@
 'use strict';
 const IL = {};
 IL.VER = 1;
-IL.ENGINE = '19'; // ルールの版（記録に書く。変えたら engine/ に前の版を残す）
+IL.ENGINE = '20'; // ルールの版（記録に書く。変えたら engine/ に前の版を残す）
 
 /* ---------- 乱数 ---------- */
 function hashStr(s) { let h = 2166136261 >>> 0; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
@@ -22,9 +22,9 @@ const B = IL.B = {
   perLv: { atk: 1.2, hp: 5, def: 1.2, spd: 0.4, luck: 0.4 },
   perPt: { atk: 1, hp: 6, def: 1, spd: 1, luck: 1 },
   ptsPerLv: 3, maxLv: 100,
-  partBase: 2, partPerFloor: 0.2, hpCoef: 3, spRatio: 2 / 3,
+  partBase: 2, partPerFloor: 0.2, hpCoef: 3, spRatio: 0.8, // 版20：属性の欠片を強く（無との差 1.5倍→1.25倍）
   rarMul: [1, 2.5, 6, 3], rankMul: { A: 1.2, B: 1.0, C: 0.8 },
-  eAtk: 0.9, eHp: 1.8, eDef: 0.6,
+  eAtk: 1.03, eHp: 2.07, eDef: 0.6, // 版20：属性の加護に合わせて敵の攻撃と体力を+15％
   bossHp: 8, bossAt: 2.0, bigHp: 11, bigAt: 2.4, depth: 0.3, chargeMul: 2.5,
   expBase: 8, expPer: 3, bossExp: 10, bigExp: 15,
   potion: 0.5, potionPrice: 5, ticketPrice: 60, partPrice: [15, 80, 300, 300],
@@ -140,7 +140,12 @@ IL.newProfile = newProfile;
 function baseStats(pr) { const o = {}; for (const k of IL.STATS) o[k] = Math.round(B.base[k] + B.perLv[k] * (pr.lv - 1) + B.perPt[k] * pr.pts[k]); return o; }
 function boardArr(pr) { return pr.board.map(id => id == null ? null : pr.bag.find(p => p.id === id) || null); }
 IL.boardArr = boardArr;
-function playerStats(pr) { const b = baseStats(pr), an = analyzeBoard(boardArr(pr)); const o = {}; for (const k of IL.STATS) o[k] = b[k] + an.add[k]; o.skills = an.skills; return o; }
+/* 版20：属性の加護（同じ種族を2つ以上つなぐと、その属性らしい能力が段階に応じて％で上がる） */
+IL.BLESS_STAT = { fire: 'atk', rock: 'def', forest: 'hp', wind: 'spd', star: 'luck' };
+IL.BLESS_PCT = [0, 0.04, 0.07, 0.10, 0.13, 0.17, 0.21, 0.25];
+function playerStats(pr) { const b = baseStats(pr), an = analyzeBoard(boardArr(pr)); const o = {}; for (const k of IL.STATS) o[k] = b[k] + an.add[k]; o.skills = an.skills;
+  o.bless = {}; for (const sp in an.skills) { const k = IL.BLESS_STAT[sp], p = IL.BLESS_PCT[an.skills[sp].tier] || 0; if (k && p) { o.bless[sp] = { k, p }; o[k] = Math.round(o[k] * (1 + p)); } }
+  return o; }
 IL.playerStats = playerStats; IL.baseStats = baseStats;
 /* 追い風（版16）：自分が倒したいちばん上の階が、みんなの最前線より5階以上下なら、経験値2.5倍 */
 IL.frontOf = gclear => { let m = 0; for (const f in gclear || {}) if (gclear[f]) m = Math.max(m, +f); return Math.min(100, m + 1); };
