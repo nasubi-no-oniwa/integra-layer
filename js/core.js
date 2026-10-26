@@ -4,7 +4,7 @@
 'use strict';
 const IL = {};
 IL.VER = 1;
-IL.ENGINE = '18'; // ルールの版（記録に書く。変えたら engine/ に前の版を残す）
+IL.ENGINE = '19'; // ルールの版（記録に書く。変えたら engine/ に前の版を残す）
 
 /* ---------- 乱数 ---------- */
 function hashStr(s) { let h = 2166136261 >>> 0; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
@@ -149,7 +149,7 @@ IL.tailwind = (pr, gclear) => IL.frontOf(gclear) - IL.ownTop(pr) >= 5 ? 2.5 : 1;
 function gainExp(pr, n) { let ups = 0; pr.exp += n; while (pr.lv < B.maxLv && pr.exp >= IL.NEED[pr.lv]) { pr.exp -= IL.NEED[pr.lv]; pr.lv++; pr.freePts += B.ptsPerLv; ups++; } if (pr.lv >= B.maxLv) pr.exp = 0; return ups; }
 IL.gainExp = gainExp;
 function newPart(pr, rng, o) { const p = makePart(rng, Object.assign({ id: pr.nextId++ }, o)); return p; }
-IL.critRate = luck => Math.min(0.3, luck / (luck + 2000));
+IL.critRate = luck => 1 / 32 + Math.max(0, luck) / (Math.max(0, luck) + 400) * 0.12; // 版19：ドラクエ風。基本1/32＋運で上がる（ふつうの攻撃だけ）
 
 /* ---------- 景色と敵 ---------- */
 IL.BIOMES = [
@@ -421,16 +421,18 @@ function battleCmd(pr, run, cmd) { // cmd: {c:'atk',t:i} {c:'skill',sp,t} {c:'de
   const bt = run.battle; if (!bt || bt.over) return;
   const st = playerStats(pr), rng = run.rng, log = bt.log; bt.turn++; bt.guard = 0; bt.counter = 0;
   const alive = () => bt.foes.filter(f => f.hp > 0);
-  const hitFoe = (f, raw, sp, label) => {
+  const hitFoe = (f, raw, sp, label, critRaw) => { // critRaw があるとき（ふつうの攻撃）だけ会心が出る
     let mul = 1, note = '';
     if (sp && sp !== 'star') { if (f.weak === sp) { mul = 2; note = '（弱点！）'; } else if (f.res === sp) { mul = 0.5; note = '（いまひとつ）'; } }
-    const crit = rng.chance(IL.critRate(st.luck)); let v = raw * mul * (0.9 + rng.next() * 0.2) * (crit ? 1.5 : 1);
+    const crit = critRaw != null && rng.chance(IL.critRate(st.luck)), r = 0.9 + rng.next() * 0.2;
+    let v = crit ? Math.max(critRaw * (0.95 + (r - 0.9) * 0.5), raw * 1.25 * r) : raw * mul * r; // 会心は守りを無視（攻撃力そのまま）
     v = Math.max(1, Math.floor(v)); f.hp = Math.max(0, f.hp - v);
-    log.push({ s: (label || '') + f.name + 'に ' + v + ' のダメージ' + (crit ? '（会心！）' : '') + note, hit: true });
+    if (crit) log.push({ s: '会心の一撃！', crit: true });
+    log.push({ s: (label || '') + f.name + 'に ' + v + ' のダメージ' + note, hit: true, crit });
     return v;
   };
   const playerAct = () => {
-    if (cmd.c === 'atk') { const f = alive()[cmd.t] || alive()[0]; if (f) hitFoe(f, dmgCalc(st.atk, 1, f.def), null, ''); }
+    if (cmd.c === 'atk') { const f = alive()[cmd.t] || alive()[0]; if (f) hitFoe(f, dmgCalc(st.atk, 1, f.def), null, '', st.atk); }
     else if (cmd.c === 'skill') {
       const sk = st.skills[cmd.sp]; if (!sk) return;
       const pct = B.tierPct[sk.tier] * B.coef[cmd.sp], nm = IL.SKILLS[cmd.sp][sk.tier];

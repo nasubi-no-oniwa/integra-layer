@@ -452,6 +452,11 @@ function lootReveal(parts) {
   $('#app').appendChild(d); setTimeout(() => d.remove(), best.rar >= 2 ? 1900 : 1400);
   if (best.rar >= 2) sfx('levelup', 0.45);
 }
+/* 会心の一撃：画面が一瞬光って、大きな文字 */
+function critFx() {
+  const d = document.createElement('div'); d.className = 'critfx'; d.innerHTML = '<b>会心の一撃！</b>'; $('#app').appendChild(d); setTimeout(() => d.remove(), opt.bspd === 'fast' ? 700 : 1100);
+  sfx('hit', 0.8); setTimeout(() => sfx('god', 0.3), 40); const w = document.querySelector('.battle'); if (w) { w.classList.remove('shake'); void w.offsetWidth; w.classList.add('shake'); }
+}
 /* ボスを倒した瞬間：白く光って、ゆっくり崩れ、「撃破！」 */
 function bossKillFx() {
   const w = document.querySelector('.battle'); const fl = document.createElement('div'); fl.className = 'killfx'; fl.innerHTML = '<b>撃破！</b>'; $('#app').appendChild(fl); setTimeout(() => fl.remove(), 1800);
@@ -488,7 +493,7 @@ function points() {
     <p>Lv ${pr.lv}　経験値 ${pr.exp} / ${need}　<span class="gold">残りポイント ${pr.freePts}</span></p>
     <div class="row"><button class="btn pri" data-a="ptauto" ${pr.freePts ? '' : 'disabled'}>おまかせで振る（${{ atk: '攻撃', hp: '体力', def: '守り' }[opt.autoPt] || 'バランス'}）</button><span class="small mute">レベルが上がったら自動で振る：</span>${[['off', 'しない'], ['atk', '攻撃'], ['hp', '体力'], ['def', '守り'], ['bal', 'バランス']].map(([k, n]) => `<button class="btn sm ${(opt.autoPt || 'off') === k ? 'pri' : ''}" data-a="apt" data-k="${k}">${n}</button>`).join('')}</div>
     <div class="grid">${rows}</div>
-    <p class="small mute">運は会心・レアの出やすさ・合成の成功率に効く。素早さは戦いで先に動けるかに効く。</p>
+    <p class="small mute">運は会心の一撃・レアの出やすさに効く。素早さは戦いで先に動けるかに効く。</p>
     <button class="btn" data-a="respec" ${pr.respec ? '' : 'disabled'}>振りなおす（振りなおしの札 ${pr.respec}枚）</button></div>`);
 }
 
@@ -993,6 +998,7 @@ function bcmd(c) {
   setTimeout(() => battleFx(fhp, hpB, nl), 0);
   if (nl.some(l => l.skill)) { const sk = nl.find(l => l.skill); sfx(sk.tier >= 5 ? 'god' : 'skill', 0.5); if (sk.tier >= 5) godFx(IL.SKILLS[sk.skill][sk.tier]); } else if (nl.some(l => l.hit)) sfx('hit', 0.5);
   if (run.hp < hpB) setTimeout(() => sfx('hurt', 0.45), 160);
+  if (nl.some(l => l.crit)) critFx();
   ui.sub = null; save(); battle(); hud();
   if (run.hp < hpB) { const w = document.querySelector('.battle'); if (w) w.classList.add('shake'); }
   if (bt.over === 'win') { if (bt.kind === 'boss') bossKillFx(); else sfx('win', 0.5); if (bt.reward.ups) setTimeout(() => sfx('levelup', 0.5), 400); if (bt.kind !== 'normal' && bt.reward.parts.some(p => p.rar >= 1)) setTimeout(() => lootReveal(bt.reward.parts), 900); }
