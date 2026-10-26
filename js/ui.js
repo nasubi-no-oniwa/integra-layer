@@ -186,6 +186,7 @@ function infoHTML() {
   return h;
 }
 function title() {
+  const ti = document.getElementById('tname'), keepNm = ti ? [ti.value, document.activeElement === ti] : null; // 入力中に画面が描きなおされても消さない
   if (S.run && S.run.over) S.run = null; run = S.run; ui.scr = 'title'; if (Net.on) Net.presence(0); $('#hud').hidden = true; $('#pad').hidden = true; save(); drawIdle();
   const st = IL.playerStats(pr);
   show(`<div class="win title"><div class="tleft">
@@ -194,7 +195,8 @@ function title() {
     <p class="story">倒れた誰かの欠片が、きみの盤面でつながる。\n全員で、100階の塔を上れ。</p>
     <div class="statline"><span>Lv ${pr.lv}</span><span>最前線 ${pr.maxFloor}階</span><span class="gold">${pr.gold} G</span><span>回復薬 ${pr.potions.length}</span><span>チケット ${pr.tickets}</span></div>
     ${IL.tailwind(pr, S.gclear) > 1 ? `<div class="tailw">🍃 追い風：経験値 ×2.5（最前線 ${IL.frontOf(S.gclear)}階まで追いつこう）</div>` : ''}
-    <p class="small mute tonline">${Net.on ? 'オンライン　<span class="nt">' + esc(opt.name || '名無し') + '</span>' : 'オフライン（この端末だけ）'}</p></div>
+    ${!opt.name || ui.editName ? `<div class="tname ${opt.name ? '' : 'need'}"><span class="small">${opt.name ? '名前を変える' : '名前を決めよう（ボスを最初に倒すと塔に刻まれる）'}</span><div class="row"><input id="tname" maxlength="12" placeholder="名前（12文字まで）" value="${esc(opt.name || '')}"><button class="btn sm pri" data-a="tnameok">決める</button>${opt.name ? '<button class="btn sm" data-a="tnamecancel">やめる</button>' : ''}</div></div>`
+      : `<p class="small tonline">${Net.on ? 'オンライン' : 'オフライン（この端末だけ）'}　<b class="nt">${esc(opt.name)}</b> <button class="btn sm" data-a="tnameedit">✎ 名前を変える</button></p>`}</div>
     <div class="menu">
       <button class="btn pri" data-a="floors">塔に入る</button>
       <button class="btn" data-a="board">盤面とかばん</button>
@@ -208,6 +210,7 @@ function title() {
     </div></div>
     ${IOS && !STANDALONE ? '<p class="small mute iosh">📱 Safariの「共有」→「ホーム画面に追加」から開くと、上の帯なしの全画面で遊べます</p>' : ''}
     <a class="credit" href="https://maou.audio/" target="_blank" rel="noopener">音楽：魔王魂</a>`);
+  if (keepNm) { const n = document.getElementById('tname'); if (n) { n.value = keepNm[0]; if (keepNm[1]) n.focus(); } }
   drawTitleBg();
 }
 function floors() {
@@ -531,7 +534,7 @@ function resize() {
   dirty = true;
 }
 addEventListener('resize', resize);
-function enterRun(r) { run = r; Net.presence(r.floor); ui.scr = null; ui.ghosts = []; miniKey = ''; watchLive(true); hideScreen(); $('#hud').hidden = false; $('#pad').hidden = false; dirty = true; hud(); save(); tut('start'); }
+function enterRun(r) { run = r; Net.anMark('run'); if (r.floor <= 10) Net.anMark('f' + r.floor); Net.anSet('lf', r.floor); Net.presence(r.floor); ui.scr = null; ui.ghosts = []; miniKey = ''; watchLive(true); hideScreen(); $('#hud').hidden = false; $('#pad').hidden = false; dirty = true; hud(); save(); tut('start'); }
 function hud() {
   if (!run) return; const st = IL.playerStats(pr);
   $('#h-floor').textContent = run.floor; $('#h-biome').textContent = IL.biomeOf(run.floor).name;
@@ -747,7 +750,7 @@ function walkTo(tx, ty, adj, done) {
 /* おまかせ戦闘（ふつうの敵だけ）：勝つまで「たたかう」。体力が3割を切ったら止めて自分で選ぶ */
 const AUTO = { on: false, stop: false };
 function autoBattle() {
-  if (AUTO.on) return; AUTO.on = true; AUTO.stop = false; battle();
+  if (AUTO.on) return; Net.anCount('u/autobattle'); AUTO.on = true; AUTO.stop = false; battle();
   const tick = () => {
     const bt = run && run.battle; if (!bt) { AUTO.on = false; return; }
     if (bt.over) { AUTO.on = false;
@@ -767,7 +770,7 @@ function autoPts(mode) { const m = mode || opt.autoPt; if (!m || m === 'off' || 
 /* 自動探索：まだ見ていない所へ歩きつづける */
 const EXP = { on: false, timer: null, seen: null };
 function stopExplore() { if (!EXP.on) return; EXP.on = false; clearTimeout(EXP.timer); const b = $('#b-exp'); if (b) b.classList.remove('act'); }
-function toggleExplore() { if (EXP.on) { stopExplore(); return; } if (!run || ui.scr || run.battle || run.prompt) return; stopWalk(); EXP.on = true; EXP.seen = interesting(); const b = $('#b-exp'); if (b) b.classList.add('act'); exploreStep(); }
+function toggleExplore() { if (EXP.on) { stopExplore(); return; } Net.anCount('u/explore'); if (!run || ui.scr || run.battle || run.prompt) return; stopWalk(); EXP.on = true; EXP.seen = interesting(); const b = $('#b-exp'); if (b) b.classList.add('act'); exploreStep(); }
 function interesting() { const fl = IL.genFloor(run.floor), bits = IL.mapBits(pr, run), out = new Set(), op = pr.bagsOpen || {};
   for (let i = 0; i < fl.t.length; i++) if (bits[i] && fl.t[i] === IL.T.PED && !run.opened[i]) out.add('p' + i);
   for (const b of ui.bags) if (!op[b.id] && bits[b.y * fl.W + b.x]) out.add('b' + b.id); return out; }
@@ -797,6 +800,7 @@ function exploreStep() {
 /* ---------- 落ちたバッグ ---------- */
 function ago(t) { const m = Math.max(0, Math.floor((Net.now() - (t || 0)) / 60000)); return m < 1 ? 'たった今' : m < 60 ? m + '分前' : m < 1440 ? Math.floor(m / 60) + '時間前' : Math.floor(m / 1440) + '日前'; }
 function bagScreen(b) {
+  Net.anCount('u/bag');
   ui.scr = 'bag'; ui.bagOpen = b; const max = IL.B.bagPick, sel = ui.pickSel = ui.pickSel && ui.pickSelFor === b.id ? ui.pickSel : []; ui.pickSelFor = b.id;
   const cards = b.p.map((q, i) => { const p = Object.assign({ id: 0 }, q); return `<div class="pcard ${sel.includes(i) ? 'sel' : ''}" data-pk="${i}">${partHTML(p)}<div class="small">${partText(p)}</div></div>`; }).join('');
   show(`<div class="win" style="max-width:820px"><button class="btn sm close" data-a="back">とじる</button>
@@ -938,7 +942,7 @@ function bcmd(c) {
   ui.sub = null; save(); battle(); hud();
   if (run.hp < hpB) { const w = document.querySelector('.battle'); if (w) w.classList.add('shake'); }
   if (bt.over === 'win') { sfx('win', 0.5); if (bt.reward.ups) setTimeout(() => sfx('levelup', 0.5), 400); }
-  if (bt.over === 'lose') { sfx('fail', 0.5); const li = bt.loseInfo; if (li && li.lost && li.lost.length && !li.boss) Net.addBag(li.where.floor, li.where.x, li.where.y, li.lost, opt.name, '力尽きた…'); }
+  if (bt.over === 'lose') { Net.anCount('d/' + run.floor); Net.anFlush(); sfx('fail', 0.5); const li = bt.loseInfo; if (li && li.lost && li.lost.length && !li.boss) Net.addBag(li.where.floor, li.where.x, li.where.y, li.lost, opt.name, '力尽きた…'); }
 }
 function battleFx(fhp, hpB, nl) { // ダメージの数字・光・技の演出
   const els = document.querySelectorAll('.foe'), bt = run && run.battle; if (!bt) return;
@@ -981,6 +985,7 @@ function watchLive(force) {
   const key = run.floor + ':' + Net.chunkOf(run.x, run.y); if (force || Net.liveKey !== key) Net.liveWatch(run.floor, run.x, run.y, list => { const now = Net.now(); ui.ghosts = list.filter(o => now - (o.t || 0) < 15000).slice(0, 10); dirty = true; });
 }
 async function claimFirst(floor, br) {
+  Net.anMark('b' + floor); Net.anCount('w/' + floor); Net.anSet('maxB', Math.max(...Object.keys(pr.cleared).map(Number), 0));
   if (!br || !br.maybeFirst) return;
   if (!Net.on) { const got = X(['first', floor]); if (got && got !== true) { save(); showFirst(floor, got); } return; }
   await flushJournal();
@@ -1128,25 +1133,25 @@ document.addEventListener('click', async e => {
     case 'boardback': hud(); if (ui.boardFrom === 'run' && run) { hideScreen(); dirty = true; return; } return title();
     case 'rot': { const id = ui.sel != null && pr.board[ui.sel] != null ? pr.board[ui.sel] : ui.bagSel; if (id != null) { X(['rot', id]); sfx('rotate'); save(); } return boardScreen(); }
     case 'fsp': ui.filt.sp = t.dataset.k; sfx('click', 0.2); return boardScreen();
-    case 'multi': ui.multi = new Set(); ui.mconf = false; ui.bagSel = null; return boardScreen();
+    case 'multi': Net.anCount('u/multidisc'); ui.multi = new Set(); ui.mconf = false; ui.bagSel = null; return boardScreen();
     case 'mend': ui.multi = null; ui.mconf = false; return boardScreen();
     case 'mall': if (ui.multi) { const all = ui.lastList.every(id => ui.multi.has(id)); ui.lastList.forEach(id => all ? ui.multi.delete(id) : ui.multi.add(id)); ui.mconf = false; } return boardScreen();
     case 'mdisc': if (ui.multi && ui.multi.size) { if (!ui.mconf) { ui.mconf = true; return boardScreen(); } let n = 0; for (const id of ui.multi) if (!pr.board.includes(id) && pr.bag.some(p => p.id === id)) { X(['disc', id]); n++; } ui.multi = null; ui.mconf = false; save(); sfx('ok', 0.4); toast(n + '個を捨てた'); } return boardScreen();
     case 'autob': ui.autoSel = ui.autoSel || []; return autoScreen();
     case 'autosp': { const sp = t.dataset.k, a = ui.autoSel; const i = a.indexOf(sp); if (i >= 0) a.splice(i, 1); else { a.push(sp); if (a.length > 2) a.shift(); } sfx('click', 0.2); return autoScreen(); }
     case 'autogo': case 'autoagain': { if (!ui.autoSel || !ui.autoSel.length) return; const b = autoBuild(ui.autoSel); if (!b) { toast('かばんに欠片がない'); return autoScreen(); } ui.autoPlan = b; sfx('select', 0.4); return autoConfirm(); }
-    case 'autook': { const before = IL.playerStats(pr); applyBoard(ui.autoPlan.map(p => p ? { id: p.id, rot: p.rot } : null)); ui.sel = null; ui.bagSel = null; save(); sfx('place'); boardScreen(); statDiff(before); toast('おまかせで組んだ'); return; }
+    case 'autook': Net.anCount('u/autoboard'); /* fallthrough */ case 'autook_': { const before = IL.playerStats(pr); applyBoard(ui.autoPlan.map(p => p ? { id: p.id, rot: p.rot } : null)); ui.sel = null; ui.bagSel = null; save(); sfx('place'); boardScreen(); statDiff(before); toast('おまかせで組んだ'); return; }
     case 'autoback': return boardScreen();
     case 'psave': return presetSave(+t.dataset.k);
-    case 'pload': return presetLoad(+t.dataset.k);
+    case 'pload': Net.anCount('u/preset'); return presetLoad(+t.dataset.k);
     case 'synall': ui.synAll = !ui.synAll; ui.synthMat = null; return synth();
     case 'unequip': if (ui.sel != null) { X(['unq', ui.sel]); save(); } return boardScreen();
     case 'discard': if (ui.bagSel != null && !pr.board.includes(ui.bagSel)) { X(['disc', ui.bagSel]); ui.bagSel = null; save(); } return boardScreen();
-    case 'gacha': return gacha();
+    case 'gacha': Net.anCount('u/gacha'); return gacha();
     case 'reroll': if (pr.tickets > 0) { X(['groll', todayKey(), 1]); save(); } return gacha();
     case 'synth': ui.synthBase = null; ui.synthMat = null; return synth();
     case 'synreset': ui.synthBase = null; ui.synthMat = null; return synth();
-    case 'dosynth': { const r = X(['syn', ui.synthBase, ui.synthMat, ui.synTk | 0, !!ui.synGuard]); if (r && r !== true) { ui.synRes = r; if (r.ok) { sfx('god', 0.5); ui.synthMat = null; } else { sfx('fail', 0.5); ui.synthMat = null; if (!r.kept) ui.synthBase = null; } save(); } return synth(); }
+    case 'dosynth': { Net.anCount('u/synth'); const r = X(['syn', ui.synthBase, ui.synthMat, ui.synTk | 0, !!ui.synGuard]); if (r && r !== true) { ui.synRes = r; if (r.ok) { sfx('god', 0.5); ui.synthMat = null; } else { sfx('fail', 0.5); ui.synthMat = null; if (!r.kept) ui.synthBase = null; } save(); } return synth(); }
     case 'tkm': ui.synTk = (ui.synTk | 0) - 1; sfx('click', 0.2); return synth();
     case 'tkp': ui.synTk = (ui.synTk | 0) + 1; sfx('click', 0.2); return synth();
     case 'tks': ui.synTk = +t.dataset.k; sfx('click', 0.2); return synth();
@@ -1168,12 +1173,15 @@ document.addEventListener('click', async e => {
     case 'plazaback': if (ui.unBoard) { ui.unBoard(); ui.unBoard = null; } return title();
     case 'post': return doPost();
     case 'profile': return profileScreen();
+    case 'tnameedit': ui.editName = true; title(); setTimeout(() => { const i = $('#tname'); if (i) { i.focus(); i.select(); } }, 0); return;
+    case 'tnamecancel': ui.editName = false; return title();
+    case 'tnameok': { const v = ($('#tname').value || '').trim().slice(0, 12); if (!v) { toast('名前を入れてください'); return; } if (banned(v)) { toast('使えない言葉が入っています'); return; } opt.name = v; saveOpt(); syncProfile(); ui.editName = false; sfx('ok', 0.4); toast('名前を「' + v + '」にした'); return title(); }
     case 'savename': { const v = ($('#pname').value || '').trim().slice(0, 12); if (v && banned(v)) { toast('使えない言葉が入っています'); return; } opt.name = v; saveOpt(); syncProfile(); toast('名前を決めた'); return title(); }
     case 'mkcode': { const c = await Net.makeCode(); await syncProfile(); const el = $('#code'); if (el) el.textContent = c || '作れませんでした'; return; }
     case 'usecode': { const v = $('#incode').value; const sv = await Net.useCode(v); if (!sv) { toast('合言葉がちがうか、使えません'); return; } try { const o = JSON.parse(sv); S = { uid: Net.pid, pr: o.pr, run: null, journal: [], gclear: o.gclear || {} }; pr = S.pr; run = null; save(); toast('引き継ぎました'); } catch (e) { toast('読みこめませんでした'); } return title(); }
     case 'mapopen': return mapShop(+$('#mapf').value);
     case 'mapshop': return mapShop(run.floor);
-    case 'maptop': return mapTop();
+    case 'maptop': Net.anCount('u/mapshop'); return mapTop();
     case 'mapf': return mapShop(+t.dataset.k);
     case 'mapsell': return sellMap();
 
@@ -1260,6 +1268,7 @@ async function boot() {
   drawTitleBg(); show('<div class="win title"><div class="logo">INTEGRA LAYER<small>インテグラ・レイヤー</small></div><p class="mute">つないでいます…</p></div>');
   const timeout = new Promise(r => setTimeout(() => r(false), 7000));
   await Promise.race([Net.init(), timeout]);
+  if (Net.on) Net.anStart();
   let pid = null; try { pid = localStorage.getItem('il_pid'); } catch (e) {}
   if (!pid) { pid = Net.uid || ('local-' + Math.random().toString(36).slice(2, 12)); try { localStorage.setItem('il_pid', pid); } catch (e) {} }
   Net.pid = pid; loadState(pid);

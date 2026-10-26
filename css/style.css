@@ -385,3 +385,7 @@ body.dragging,body.dragging *{cursor:grabbing!important;user-select:none}
 .mglow.boss{background:#ff4a5a;box-shadow:0 0 10px 4px rgba(255,70,90,.8)}.mglow.shop{background:#ffd250;box-shadow:0 0 10px 4px rgba(255,210,80,.8)}
 .mglow b{position:absolute;left:50%;top:-20px;transform:translateX(-50%);font-size:11px;white-space:nowrap;color:#fff;text-shadow:0 0 3px #000,0 1px 2px #000}
 @keyframes mglow{50%{transform:scale(1.6);opacity:.75}}
+.tname{display:flex;flex-direction:column;gap:4px;align-items:center;margin:6px auto 0}.tname.need{background:rgba(242,209,75,.1);border:1px solid rgba(242,209,75,.45);border-radius:8px;padding:6px 10px}.tname .small{color:var(--accent)}
+.tname .row{gap:6px;flex-wrap:nowrap}.tname input{width:150px;padding:6px 8px;border-radius:6px;border:2px solid var(--line);background:#0e0c14;color:var(--ink);font:inherit;font-size:14px}
+.tonline .btn.sm{padding:2px 8px;font-size:12px;margin-left:4px}
+@media (max-height:520px) and (orientation:landscape){.tname{margin:0}.tname.need{padding:4px 8px}.tname .small{font-size:11px}.tname input{width:120px;padding:4px 6px;font-size:13px}}

@@ -80,6 +80,11 @@
         }
       }
     },
+    "an": {
+      "$pid": {
+        ".write": "auth != null && ($pid === auth.uid || root.child('owner/' + $pid + '/uid').val() === auth.uid)"
+      }
+    },
     "rate": {
       "$pid": {
         ".write": "(auth != null && ($pid === auth.uid || root.child('owner/' + $pid + '/uid').val() === auth.uid)) && newData.val() === now && (!data.exists() || now - data.val() > 20000)"

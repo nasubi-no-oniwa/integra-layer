@@ -4,6 +4,7 @@
 'use strict';
 // [英語, 繁体字中国語, 韓国語]
 const D = {
+'名前を決めよう（ボスを最初に倒すと塔に刻まれる）': ['Choose a name (defeat a boss first and it is carved into the tower)', '決定名字吧（第一個打倒頭目就會刻在塔上）', '이름을 정하자 (보스를 처음 쓰러뜨리면 탑에 새겨진다)'], '名前を変える': ['Change name', '更改名字', '이름 바꾸기'], '名前を入れてください': ['Please enter a name', '請輸入名字', '이름을 입력해 주세요'], '決める': ['OK', '決定', '결정'],
 '強くしたい欠片を出してみな。': ['Show me the shard you want to strengthen.', '拿出你想強化的碎片吧。', '강화하고 싶은 조각을 내 봐.'], '同じ種族・同じレアリティの欠片を材料にするんだ。': ['Use a shard of the same kind and rarity as material.', '用同種族、同稀有度的碎片當材料。', '같은 종족·같은 희귀도의 조각을 재료로 써.'],
 'これならまず大丈夫だ。': ['This should work out fine.', '這樣應該沒問題。', '이 정도면 괜찮을 거야.'], '五分より少し上ってところだね。': ['A bit better than a coin flip.', '比五五波好一點。', '반반보다 조금 나은 정도네.'], 'うーん、分の悪い賭けだよ。': ['Hmm, that is a risky bet.', '嗯，這是場不利的賭局。', '음, 불리한 도박이야.'],
 'よし、うまくいった！': ['Yes, it worked!', '好，成功了！', '좋아, 성공했다!'], '補強が効いたね。強くする方は無事だ。': ['The reinforcement held. Your main shard is safe.', '補強起作用了，主碎片沒事。', '보강이 효과가 있었어. 강화할 조각은 무사해.'], 'すまないね…こればかりは運だ。': ['Sorry... that is just luck.', '抱歉……這只能看運氣。', '미안하군… 이건 운이야.'],

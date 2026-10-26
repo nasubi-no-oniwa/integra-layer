@@ -30,6 +30,24 @@ Net.claimFirst = async (floor, info) => { // 'first'＝いちばん、'co'＝60�
     await db.ref('firsts/' + floor + '/co/' + Net.pid).set({ n: info.n, lv: info.lv, t: T() }); return 'co'; } catch (e) { return false; }
 };
 
+/* ---- 遊んだ人の記録（どこでやめたかを知るため。名前などは送らない） ---- */
+const AN = { inc: {}, set: {}, sec: 0, t0: 0, timer: null };
+const anRef = () => db && Net.pid ? db.ref('an/' + Net.pid) : null;
+Net.anStart = () => { const r = anRef(); if (!r) return;
+  try { r.child('f').transaction(v => v || Date.now()).catch(() => {}); } catch (e) {}
+  AN.set.dev = /Mobi|Android|iPhone|iPad/.test(navigator.userAgent) ? 'sp' : 'pc'; AN.set.lang = (window.L10N && L10N.lang) || 'ja';
+  Net.anCount('n'); AN.t0 = document.visibilityState === 'visible' ? Date.now() : 0;
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') AN.t0 = Date.now(); else { if (AN.t0) AN.sec += (Date.now() - AN.t0) / 1000; AN.t0 = 0; Net.anFlush(); } });
+  addEventListener('pagehide', () => Net.anFlush());
+  AN.timer = setInterval(() => Net.anFlush(), 60000); };
+Net.anCount = (path, n) => { AN.inc[path] = (AN.inc[path] || 0) + (n || 1); };
+Net.anSet = (path, v) => { AN.set[path] = v; };
+Net.anMark = key => { const k = 'il_an_' + key; if (ls(k)) return; ls(k, '1'); AN.set['m/' + key] = Date.now(); };
+Net.anFlush = () => { const r = anRef(); if (!r) return; if (AN.t0) { AN.sec += (Date.now() - AN.t0) / 1000; AN.t0 = Date.now(); }
+  const up = Object.assign({ l: T() }, AN.set); for (const k in AN.inc) up[k] = firebase.database.ServerValue.increment(AN.inc[k]);
+  const sec = Math.round(AN.sec); if (sec > 0) { up.s = firebase.database.ServerValue.increment(sec); AN.sec -= sec; }
+  AN.inc = {}; AN.set = {}; try { r.update(up).catch(() => {}); } catch (e) {} };
+
 /* ---- 記録とセーブ ---- */
 Net.pushJournal = async (str, v) => {
   if (!db) return false; let n = +(ls('il_jn') || 0);
