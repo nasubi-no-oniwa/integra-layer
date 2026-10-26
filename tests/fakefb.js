@@ -1,6 +1,6 @@
 // テスト用のにせ Firebase（compat の使う分だけ）。データは tests/server.py に置く
 (function () {
-  const S = { TIMESTAMP: { '.sv': 'timestamp' } };
+  const S = { TIMESTAMP: { '.sv': 'timestamp' }, increment: n => n }; // 試験用：足し算はせず、その値を入れるだけ
   const resolve = v => { if (v && typeof v === 'object') { if (v['.sv'] === 'timestamp') return Date.now(); const o = Array.isArray(v) ? [] : {}; for (const k in v) o[k] = resolve(v[k]); return o; } return v; };
   const parts = p => String(p || '').split('/').filter(Boolean);
   const getAt = (tree, p) => { let t = tree; for (const k of parts(p)) { if (t == null || typeof t !== 'object') return null; t = t[k]; } return t === undefined ? null : t; };
