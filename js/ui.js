@@ -195,7 +195,7 @@ function settings(from) {
 document.addEventListener('input', e => { const k = e.target.dataset && e.target.dataset.set; if (!k) return; opt[k] = (+e.target.value) / 100; opt.sound = true; saveOpt(); if (k === 'bgm' && MUS.el) MUS.el.volume = bgmVol(); if (k === 'bgm' && !MUS.el) { MUS.cur = null; musicTick(); } });
 document.addEventListener('change', e => { if (e.target.dataset && e.target.dataset.setlang) { L10N.lang = opt.lang = e.target.value; saveOpt(); location.reload(); } });
 function fxLow() { return opt.fx === 'low'; }
-function applyOpt() { document.body.classList.toggle('lowfx', fxLow()); document.body.classList.toggle('noshake', opt.shake === false); }
+function applyOpt() { if (window.FX) FX.on = FX.ok && !fxLow() && !FX.auto; document.body.classList.toggle('lowfx', fxLow()); document.body.classList.toggle('noshake', opt.shake === false); }
 
 /* ---------- はじめの案内（行商人がしゃべる。くどくならないように1回ずつ） ---------- */
 const TUT = {
@@ -373,7 +373,7 @@ function titleAnim(now) {
 }
 function render(now) {
   requestAnimationFrame(render);
-  if (!run) { if (TB.on && ui.scr !== 'ending') titleAnim(now); return; }
+  if (!run) { if (TB.on && ui.scr !== 'ending') { titleAnim(now); if (window.FX) FX.frame(cv, { bloom: 1.1, vig: 0.45, th: 0.55 }); } else if (window.FX) FX.hide(); return; }
   if (!sheet.complete) return;
   let ax = run.x, ay = run.y;
   if (anim) { const t = Math.min(1, (now - anim.t0) / 110); ax = anim.x0 + (run.x - anim.x0) * t; ay = anim.y0 + (run.y - anim.y0) * t; if (t >= 1) anim = null; dirty = true; }
@@ -418,9 +418,45 @@ function render(now) {
   const fk = fxLow() ? 0 : Math.sin(now / 130) * 0.15 + Math.sin(now / 47) * 0.08, r0 = TS * (3.2 + fk), r1 = TS * (8.5 + fk);
   const grd = g.createRadialGradient(W / 2, H / 2, r0, W / 2, H / 2, r1); grd.addColorStop(0, 'rgba(255,170,80,.05)'); grd.addColorStop(0.35, 'rgba(0,0,0,.15)'); grd.addColorStop(1, 'rgba(4,3,8,.82)'); g.fillStyle = grd; g.fillRect(0, 0, W, H);
   if (!fxLow()) dirty = true;
+  if (!fxLow()) drawParticles(now, cx, cy, fl, bits, bi, x0, y0, x1, y1);
   drawMini(fl, bits);
+  if (window.FX) { const t = B.tint || [1, 1, 1]; FX.frame(cv, { px: TS / 16, bump: 1.0, bloom: 1.0, th: 0.5, vig: 0.42, tint: [1 + (t[0] - 1) * 0.18, 1 + (t[1] - 1) * 0.18, 1 + (t[2] - 1) * 0.18] }); }
 }
 function tileColor(v, i) { const T = IL.T; return v === T.BOSS ? '#b03048' : v === T.GATE ? '#ff6a4d' : v === T.SAFE ? '#4fd17a' : v === T.PED ? (run.opened[i] ? '#666' : '#f2d14b') : '#9a8fc0'; }
+/* 粒の演出（見た目だけ）：地域ごとの空気の粒・歩いたときのほこり・お宝のきらめき */
+const PT = { amb: [], fx: [], lastT: 0 };
+const AMB = [ // 地域ごと：色・動き（上へ/下へ/ただよう）・大きさ
+  { c: [150, 230, 120], v: -0.15, s: 1.2, tw: 1 }, { c: [235, 210, 150], v: 0.02, s: 1.0, tw: 0 }, { c: [150, 210, 255], v: -0.05, s: 1.3, tw: 1 },
+  { c: [255, 150, 60], v: -0.55, s: 1.3, tw: 1 }, { c: [230, 240, 255], v: 0.35, s: 1.4, tw: 0 }, { c: [140, 220, 90], v: -0.3, s: 1.5, tw: 0 },
+  { c: [255, 220, 120], v: 0.05, s: 0.9, tw: 1 }, { c: [180, 120, 255], v: -0.2, s: 1.6, tw: 0 }, { c: [255, 240, 200], v: -0.05, s: 1.1, tw: 1 }, { c: [235, 235, 255], v: -0.1, s: 1.0, tw: 1 }];
+function dust(x, y) { if (fxLow()) return; for (let k = 0; k < 5; k++) PT.fx.push({ x: x + 0.5 + (Math.random() - 0.5) * 0.5, y: y + 0.85, vx: (Math.random() - 0.5) * 0.8, vy: -Math.random() * 0.35, life: 0.45 + Math.random() * 0.25, age: 0, c: [190, 170, 150], s: 1.5 + Math.random(), add: false }); }
+function sparkle(x, y, c) { PT.fx.push({ x: x + 0.15 + Math.random() * 0.7, y: y + 0.1 + Math.random() * 0.6, vx: 0, vy: -0.25, life: 0.7, age: 0, c, s: 1.6, add: true, star: true }); }
+function drawParticles(now, cx, cy, fl, bits, bi, x0, y0, x1, y1) {
+  const dt = Math.min(0.05, (now - (PT.lastT || now)) / 1000); PT.lastT = now; const A = AMB[bi] || AMB[0], u = TS / 16;
+  while (PT.amb.length < 26) PT.amb.push({ x: run.x + (Math.random() - 0.5) * 18, y: run.y + (Math.random() - 0.5) * 12, ph: Math.random() * 6.3, sp: 0.6 + Math.random() * 0.8 });
+  g.save(); g.globalCompositeOperation = 'lighter';
+  for (const p of PT.amb) {
+    p.y += A.v * p.sp * dt; p.x += Math.sin(now / 1400 + p.ph) * 0.12 * dt * 4;
+    if (Math.abs(p.x - run.x) > 10 || Math.abs(p.y - run.y) > 7) { p.x = run.x + (Math.random() - 0.5) * 18; p.y = run.y + (A.v < 0 ? 6 : A.v > 0 ? -6 : (Math.random() - 0.5) * 12); }
+    const a = 0.35 + 0.35 * (A.tw ? Math.max(0, Math.sin(now / 300 + p.ph * 3)) : Math.sin(now / 900 + p.ph) * 0.5 + 0.5), r = u * A.s * (0.7 + p.sp * 0.5);
+    g.fillStyle = `rgba(${A.c[0]},${A.c[1]},${A.c[2]},${a.toFixed(2)})`; g.fillRect(cx + p.x * TS - r / 2, cy + p.y * TS - r / 2, r, r);
+  }
+  // お宝のきらめき（開いていない台座・バッグ・ボスの宝箱）とほのかな光
+  const opened = pr.bagsOpen || {}, glow = (x, y, c, k) => { const px = cx + (x + 0.5) * TS, py = cy + (y + 0.5) * TS, gr = g.createRadialGradient(px, py, 0, px, py, TS * k); gr.addColorStop(0, `rgba(${c[0]},${c[1]},${c[2]},.35)`); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(px - TS * k, py - TS * k, TS * 2 * k, TS * 2 * k); };
+  for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) { const i = y * fl.W + x; if (!bits[i]) continue; const v = fl.t[i];
+    if (v === IL.T.PED && !run.opened[i]) { glow(x, y, [255, 210, 90], 0.9 + 0.1 * Math.sin(now / 400 + i)); if (Math.random() < dt * 1.6) sparkle(x, y, [255, 230, 140]); }
+    else if (v === IL.T.GATE) glow(x, y, [255, 90, 70], 0.8 + 0.15 * Math.sin(now / 500));
+    else if (v === IL.T.SAFE) glow(x, y, [90, 255, 140], 0.75); }
+  for (const b of ui.bags) if (!opened[b.id] && bits[b.y * fl.W + b.x] && b.x >= x0 && b.x <= x1 && b.y >= y0 && b.y <= y1) { glow(b.x, b.y, [200, 160, 255], 0.9); if (Math.random() < dt * 1.4) sparkle(b.x, b.y, [220, 190, 255]); }
+  if (run.bossChest && !run.bossChest.opened) { const c = run.bossChest.i, x = c % fl.W, y = (c / fl.W) | 0; if (bits[c]) { glow(x, y, [255, 220, 120], 1.1); if (Math.random() < dt * 3) sparkle(x, y, [255, 240, 170]); } }
+  // ほこり・きらめき
+  for (const p of PT.fx) { p.age += dt; p.x += p.vx * dt; p.y += p.vy * dt; const k = 1 - p.age / p.life; if (k <= 0) continue;
+    g.globalCompositeOperation = p.add ? 'lighter' : 'source-over'; const r = u * p.s * (p.star ? 1 : 0.6 + k * 0.6), px = cx + p.x * TS, py = cy + p.y * TS;
+    g.fillStyle = `rgba(${p.c[0]},${p.c[1]},${p.c[2]},${(p.add ? k : k * 0.55).toFixed(2)})`;
+    if (p.star) { g.fillRect(px - r * 1.5, py - u * 0.4, r * 3, u * 0.8); g.fillRect(px - u * 0.4, py - r * 1.5, u * 0.8, r * 3); } else g.fillRect(px - r / 2, py - r / 2, r, r); }
+  PT.fx = PT.fx.filter(p => p.age < p.life);
+  g.restore();
+}
 let miniKey = '';
 function drawMini(fl, bits) { // 自分のまわりだけ（タップで全体）
   const k = 3, vw = mini.width / k, vh = mini.height / k, ox = Math.round(run.x - vw / 2), oy = Math.round(run.y - vh / 2);
@@ -455,7 +491,7 @@ function afterAct() {
 function act(dir) {
   if (!run || ui.scr || run.battle || run.prompt || run.over) return;
   const ox = run.x, oy = run.y; X(['mv', dir]);
-  if (run.x !== ox || run.y !== oy) { anim = { x0: ox, y0: oy, t0: performance.now() }; if (run.turn % 2) sfx('step', 0.15); watchLive(); }
+  if (run.x !== ox || run.y !== oy) { anim = { x0: ox, y0: oy, t0: performance.now() }; dust(ox, oy); if (run.turn % 2) sfx('step', 0.15); watchLive(); }
   afterAct();
 }
 function bagNear(maxD) { const op = pr.bagsOpen || {}; let best = null; for (const b of ui.bags) { const d = Math.abs(b.x - run.x) + Math.abs(b.y - run.y); if (d <= (maxD == null ? 1 : maxD) && (!best || d < best.d || (op[best.b.id] && !op[b.id]))) best = { b, d }; } return best && best.b; }
@@ -928,6 +964,7 @@ async function boot() {
   if (/[?&]reset=1/.test(location.search)) { try { ['il_state_v1', 'il_salesgot', 'il_jn'].forEach(k => localStorage.removeItem(k)); } catch (e) {} history.replaceState(null, '', location.pathname); } // この端末のデータだけ消す
   try { opt = Object.assign(opt, JSON.parse(localStorage.getItem(SAVE_O) || '{}')); } catch (e) {}
   L10N.lang = opt.lang || L10N.pick(); document.documentElement.lang = L10N.lang; L10N.observe(); L10N.apply(); applyOpt();
+  if (window.FX) { FX.init(cv); applyOpt(); }
   resize(); requestAnimationFrame(render); drawIdle();
   drawTitleBg(); show('<div class="win title"><div class="logo">INTEGRA LAYER<small>インテグラ・レイヤー</small></div><p class="mute">つないでいます…</p></div>');
   const timeout = new Promise(r => setTimeout(() => r(false), 7000));
