@@ -59,7 +59,7 @@ function watchStream() {
 /* お知らせ */
 function watchNews() {
   db.ref('news').on('value', s => { const v = s.val() || {}; const ids = Object.keys(v).sort((a, b) => (v[b].t || 0) - (v[a].t || 0));
-    $('#news').innerHTML = ids.map(id => `<div class="row" style="margin-bottom:4px"><span class="mute">${tm(v[id].t)}</span><span style="flex:1">${esc(v[id].s)}</span><button class="warn" data-nd="${esc(id)}">消す</button></div>`).join('') || '<span class="mute">まだない</span>'; });
+    $('#news').innerHTML = ids.map(id => `<div class="row" style="margin-bottom:4px"><span class="mute">${tm(v[id].t)}</span><span style="flex:1;white-space:pre-line">${esc(v[id].s)}</span><button class="warn" data-nd="${esc(id)}">消す</button></div>`).join('') || '<span class="mute">まだない</span>'; });
   $('#nw-add').onclick = async () => { const s = $('#nw-txt').value.trim(); if (!s) return; await db.ref('news').push({ s, t: T() }); $('#nw-txt').value = ''; };
   $('#news').onclick = e => { const id = e.target.dataset.nd; if (id && confirm('このお知らせを消しますか？')) db.ref('news/' + id).remove(); };
 }

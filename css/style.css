@@ -304,3 +304,4 @@ body.dragging,body.dragging *{cursor:grabbing!important;user-select:none}
   .iosh{position:absolute;left:8px;bottom:4px;margin:0;max-width:60%;font-size:10px}
 }
 @media (max-height:520px) and (orientation:landscape){.ptwin{padding:8px 12px!important}.ptwin h2{margin:0 0 4px}.ptwin p{margin:2px 0}.ptwin .grid{grid-template-columns:1fr 1fr;gap:5px}.ptwin .grid .row{padding:5px 8px!important}.ptwin .row .btn.sm{padding:3px 8px}.ptwin .grid .mute{display:none}.ptwin .grid .row{flex-wrap:nowrap}.ptwin .btn.pri{padding:6px 12px;font-size:14px}.ptwin>.row{gap:4px}}
+.news .nt{white-space:pre-line}.news{max-height:34vh;overflow:auto}
