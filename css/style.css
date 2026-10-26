@@ -237,3 +237,4 @@ html,body,*{-webkit-touch-callout:none}
 }
 
 .bossinfo{display:flex;gap:12px;align-items:center;background:var(--panel2);padding:8px 10px;border-radius:8px;margin-bottom:8px}.bossinfo .bn{font-weight:700;font-size:16px}.bstats{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:13px}.bplan{background:rgba(0,0,0,.25);padding:8px 10px;border-radius:8px;margin-bottom:8px;line-height:1.7}
+.mfgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(74px,1fr));gap:6px;max-height:55vh;overflow:auto}.mf{display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 4px;border-radius:8px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);font:inherit;cursor:pointer}.mf:hover{border-color:var(--accent)}

@@ -150,6 +150,7 @@ function title() {
       <button class="btn" data-a="synth">合成</button>
       <button class="btn" data-a="points">能力${pr.freePts ? '<span class="badge">' + pr.freePts + '</span>' : ''}</button>
       <button class="btn" data-a="plaza">広場（掲示板）</button>
+      ${Net.on ? '<button class="btn" data-a="maptop">地図屋（地図の売り買い）</button>' : ''}
       <div class="row" style="justify-content:center"><button class="btn sm" data-a="profile">名前と引き継ぎ</button><button class="btn sm" data-a="help">遊び方</button><button class="btn sm" data-a="settings">⚙ 設定</button><button class="btn sm" data-a="lang">🌐 ${L10N.LANGS[L10N.lang]}</button>${ui.firsts && ui.firsts[100] ? '<button class="btn sm" data-a="ending">エンディング</button>' : ''}</div>
       ${DEV ? '<button class="btn sm warn" data-a="devreset">【開発用】データをリセット</button>' : ''}
       <p class="small mute">${Net.on ? 'オンライン　<span class="nt">' + esc(opt.name || '名無し') + '</span>' : 'オフライン（この端末だけ）'}</p>
@@ -779,9 +780,18 @@ function profileScreen() {
     <div class="row" style="margin-top:10px"><input id="incode" maxlength="9" placeholder="合言葉（8文字）" style="flex:1;padding:10px;border-radius:8px;border:2px solid var(--line);background:#0e0c14;color:var(--ink);font:inherit;text-transform:uppercase"><button class="btn warn" data-a="usecode">合言葉を入れる</button></div>
     <p class="small mute">合言葉を入れると、この端末のデータはそのデータに置きかわります。</p>` : '<p class="mute">オンラインのときだけ使えます</p>'}</div>`);
 }
+/* タイトルの地図屋：階を選んで、その階の地図を買う・売りに出す */
+function mapTop() {
+  ui.scr = 'maptop'; const top = Math.max(1, pr.maxFloor);
+  let b = ''; for (let f = 1; f <= top; f++) { const m = pr.maps[String(f)], pct = m ? Math.round(100 * m.n / mapTotal(f)) : 0;
+    b += `<button class="mf" data-a="mapf" data-k="${f}"><b>${f}階</b><span class="small ${pct >= 100 ? 'gold' : 'mute'}">${pct}％</span></button>`; }
+  show(`<div class="win" style="max-width:640px"><button class="btn sm close" data-a="title">もどる</button><h2>地図屋</h2>
+    <p class="small mute">ほかの人が描いた地図を1枚10Gで買える（自分の地図と合わさる）。自分の地図は100Gで売りに出せて、だれかが買うたびに5G入る。行ったことのある階だけ選べる。数字はいま自分の地図が描けている割合。</p>
+    <p class="gold">所持金 ${pr.gold} G</p><div class="mfgrid">${b}</div></div>`);
+}
 function mapTotal(f) { const fl = IL.genFloor(f); let n = 0; for (const v of fl.t) if (v && v !== IL.T.BOSS) n++; return n; }
 async function mapShop(floor) {
-  ui.scr = 'mapshop'; ui.mapFloor = floor; const back = run ? 'back' : 'floors';
+  ui.scr = 'mapshop'; ui.mapFloor = floor; const back = run ? 'back' : 'maptop';
   show(`<div class="win" style="max-width:560px"><button class="btn sm close" data-a="${back}">とじる</button><h2>${floor}階の地図</h2><p class="mute">読みこみ中…</p></div>`);
   const list = await Net.listMaps(floor); ui.mapList = list;
   const mine = pr.maps[String(floor)];
@@ -886,6 +896,8 @@ document.addEventListener('click', async e => {
     case 'usecode': { const v = $('#incode').value; const sv = await Net.useCode(v); if (!sv) { toast('合言葉がちがうか、使えません'); return; } try { const o = JSON.parse(sv); S = { uid: Net.pid, pr: o.pr, run: null, journal: [], gclear: o.gclear || {} }; pr = S.pr; run = null; save(); toast('引き継ぎました'); } catch (e) { toast('読みこめませんでした'); } return title(); }
     case 'mapopen': return mapShop(+$('#mapf').value);
     case 'mapshop': return mapShop(run.floor);
+    case 'maptop': return mapTop();
+    case 'mapf': return mapShop(+t.dataset.k);
     case 'mapsell': return sellMap();
 
     case 'stairs': X(['stairs']); sfx('ok'); enterRun(run); return fetchDrops();
