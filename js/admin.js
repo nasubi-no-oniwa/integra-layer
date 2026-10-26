@@ -53,8 +53,8 @@ async function stat() {
 
 /* 配信中 */
 function watchStream() {
-  db.ref('stream').on('value', s => { const v = s.val() || {}; $('#st-on').checked = !!v.on; if (document.activeElement !== $('#st-url')) $('#st-url').value = v.url || ''; if (document.activeElement !== $('#st-txt')) $('#st-txt').value = v.txt || ''; });
-  $('#st-save').onclick = async () => { await db.ref('stream').set({ on: $('#st-on').checked, url: $('#st-url').value.trim().slice(0, 300), txt: $('#st-txt').value.trim().slice(0, 60), t: T() }); alertMsg('保存しました'); };
+  db.ref('stream').on('value', s => { const v = s.val() || {}; $('#st-on').checked = !!v.on; if (document.activeElement !== $('#st-url')) $('#st-url').value = v.url || ''; if (document.activeElement !== $('#st-txt')) $('#st-txt').value = v.txt || ''; if (document.activeElement !== $('#st-name')) $('#st-name').value = v.name || ''; });
+  $('#st-save').onclick = async () => { await db.ref('stream').set({ on: $('#st-on').checked, url: $('#st-url').value.trim().slice(0, 300), txt: $('#st-txt').value.trim().slice(0, 60), name: $('#st-name').value.trim().slice(0, 20), t: T() }); alertMsg('保存しました'); };
 }
 /* お知らせ */
 function watchNews() {

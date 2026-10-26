@@ -128,7 +128,7 @@ function shareX(kind, f, name) {
 }
 function infoHTML() {
   let h = ''; const st = ui.stream;
-  if (st && st.on) h += `<a class="stream" href="${/^https?:\/\//.test(st.url || '') ? esc(st.url) : '#'}" target="_blank" rel="noopener">🔴 配信中${st.txt ? '　<span class="nt">' + esc(st.txt) + '</span>' : ''}</a>`;
+  if (st && st.on) h += `<a class="stream" href="${/^https?:\/\//.test(st.url || '') ? esc(st.url) : '#'}" target="_blank" rel="noopener">🔴 配信中${st.name ? '　<b class="nt">' + esc(st.name) + '</b>' + (L10N.lang === 'ja' ? 'さん' : '') : ''}${st.txt ? '　<span class="nt">' + esc(st.txt) + '</span>' : ''}</a>`;
   const fs = ui.firsts || {}, top = Math.max(0, ...Object.keys(fs).map(Number).filter(f => fs[f] && !fs[f].ng));
   if (top) { const v = fs[top], co = Object.values(v.co || {}).length; h += `<div class="front">🏆 最前線　<b>${top}階</b>のボスを <span class="nt">${esc(v.n || '無名')}</span>${co ? ' ＋' + co : ''}が初めて倒した <span class="mute small">（${ago(v.t)}）</span></div>`; }
   const nw = ui.news || {}; const ids = Object.keys(nw).sort((a, b) => (nw[b].t || 0) - (nw[a].t || 0)).slice(0, 3);
