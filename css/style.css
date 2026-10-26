@@ -77,6 +77,8 @@ button{font:inherit;color:inherit;touch-action:manipulation}
 .bag{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:10px;max-height:38vh;overflow:auto;padding:8px;background:#0e0c14;border-radius:10px;margin-top:8px}
 .bagitem{display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;padding:4px;border-radius:8px;--s:46px}
 .bagitem.sel{background:#3a2f58}.bagitem.eq{opacity:.45}
+.bagitem.chk{background:rgba(214,69,92,.35);outline:2px solid #ff8a8a;position:relative}.bagitem.chk::after{content:'✓';position:absolute;top:0;right:4px;color:#fff;font-weight:700}
+.presets{margin-top:10px;display:flex;flex-direction:column;gap:5px}.pslot{display:flex;gap:5px}.pslot .btn:first-child{flex:1;text-align:left}.btn.ghost{opacity:.5}.mtools{display:inline-flex;gap:6px;flex-wrap:wrap}
 .bagitem small{font-size:10px;color:var(--mute);text-align:center;line-height:1.2}
 select{background:var(--panel2);color:var(--ink);border:2px solid var(--line);border-radius:6px;padding:4px;font:inherit;font-size:14px}
 .detail{background:var(--panel2);border-radius:8px;padding:8px;font-size:13px;min-height:58px;margin-top:8px}

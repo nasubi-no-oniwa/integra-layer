@@ -230,6 +230,7 @@ function ending(auto) {
 
 /* ---------- 盤面とかばん ---------- */
 function boardScreen(from) {
+  if (from) { ui.multi = null; ui.mconf = false; ui.pconf = null; }
   ui.scr = 'board'; ui.boardFrom = from || ui.boardFrom || 'title';
   const ba = IL.boardArr(pr), an = IL.analyzeBoard(ba), st = IL.playerStats(pr);
   const gcol = ['#ffd17a', '#8ad3ff', '#ff9ad5', '#b5f78a', '#ffb36b', '#c7a8ff', '#7fffd4', '#ff7f7f'];
@@ -248,19 +249,42 @@ function boardScreen(from) {
   if (ui.filt.sp !== 'all') list = list.filter(p => p.sp === ui.filt.sp);
   if (ui.filt.rar !== 'all') list = list.filter(p => String(p.rar) === ui.filt.rar);
   if (ui.filt.sort === 'score') list.sort((a, b) => IL.partScore(b) - IL.partScore(a)); else if (ui.filt.sort === 'new') list.sort((a, b) => b.id - a.id); else list.sort((a, b) => b.floor - a.floor);
-  const items = list.map(p => `<div class="bagitem ${ui.bagSel === p.id ? 'sel' : ''} ${onB.has(p.id) ? 'eq' : ''}" data-bag="${p.id}">${partHTML(p)}<small>${IL.RAR_NAME[p.rar]} ${p.floor}階</small></div>`).join('') || '<div class="mute small">かばんは空っぽ</div>';
+  const mul = ui.multi; ui.lastList = list.filter(p => !onB.has(p.id)).map(p => p.id);
+  const items = list.map(p => `<div class="bagitem ${!mul && ui.bagSel === p.id ? 'sel' : ''} ${onB.has(p.id) ? 'eq' : ''} ${mul && mul.has(p.id) ? 'chk' : ''}" data-bag="${p.id}">${partHTML(p)}<small>${IL.RAR_NAME[p.rar]} ${p.floor}階</small></div>`).join('') || '<div class="mute small">かばんは空っぽ</div>';
   const selP = ui.sel != null && ba[ui.sel] ? ba[ui.sel] : ui.bagSel != null ? pr.bag.find(p => p.id === ui.bagSel) : null;
   const spOpt = ['all', ...IL.SPECIES, 'none', 'joker'].map(s => `<option value="${s}" ${ui.filt.sp === s ? 'selected' : ''}>${s === 'all' ? '種族：すべて' : IL.SP_NAME[s]}</option>`).join('');
   const rOpt = ['all', '0', '1', '2', '3'].map(s => `<option value="${s}" ${ui.filt.rar === s ? 'selected' : ''}>${s === 'all' ? 'レアリティ：すべて' : IL.RAR_NAME[s]}</option>`).join('');
   const soOpt = [['score', '強い順'], ['new', '新しい順'], ['floor', '深い階順']].map(([v, n]) => `<option value="${v}" ${ui.filt.sort === v ? 'selected' : ''}>${n}</option>`).join('');
   show(`<div class="win" style="max-width:900px"><button class="btn sm close" data-a="boardback">とじる</button><h2>盤面とかばん</h2>
     <div class="boardwrap"><div><div class="board">${cells}</div>
-      <div class="row" style="margin-top:8px"><button class="btn sm" data-a="rot" ${selP ? '' : 'disabled'}>回す</button><button class="btn sm" data-a="unequip" ${ui.sel != null && ba[ui.sel] ? '' : 'disabled'}>外す</button><button class="btn sm warn" data-a="discard" ${ui.bagSel != null && !onB.has(ui.bagSel) ? '' : 'disabled'}>捨てる</button></div></div>
+      <div class="row" style="margin-top:8px"><button class="btn sm" data-a="rot" ${selP ? '' : 'disabled'}>回す</button><button class="btn sm" data-a="unequip" ${ui.sel != null && ba[ui.sel] ? '' : 'disabled'}>外す</button><button class="btn sm warn" data-a="discard" ${ui.bagSel != null && !onB.has(ui.bagSel) ? '' : 'disabled'}>捨てる</button></div>
+      ${presetHTML()}</div>
       <div class="side"><div class="stats">${stats}</div><div class="skills">${sk}</div>
       <div class="detail">${selP ? partText(selP) : 'マスか欠片を選ぶ。欠片を選んでからマスを押すと置ける。置いた欠片をもう一度押すと回る。'}</div></div></div>
-    <div class="row" style="margin-top:10px"><select data-f="sp">${spOpt}</select><select data-f="rar">${rOpt}</select><select data-f="sort">${soOpt}</select><span class="mute small">${pr.bag.length}個</span></div>
+    <div class="row" style="margin-top:10px"><select data-f="sp">${spOpt}</select><select data-f="rar">${rOpt}</select><select data-f="sort">${soOpt}</select><span class="mute small">${pr.bag.length}個</span>
+      ${mul ? `<span class="mtools"><button class="btn sm" data-a="mall">表示中をすべて選ぶ</button><button class="btn sm warn" data-a="mdisc" ${mul.size ? '' : 'disabled'}>${ui.mconf ? '本当に捨てる？（' + mul.size + '個）' : mul.size + '個を捨てる'}</button><button class="btn sm" data-a="mend">やめる</button></span>` : '<button class="btn sm" data-a="multi">まとめて捨てる</button>'}</div>
+    ${mul ? '<p class="small mute" style="margin:4px 0">捨てる欠片をタップして選ぶ（盤面に置いている欠片は選べない）</p>' : ''}
     <div class="bag">${items}</div></div>`);
   if (an.links.length) tut('link');
+}
+/* 盤面のプリセット（この端末に保存） */
+function presets() { if (!opt.presets || opt.presets.length !== 3) { opt.presets = [null, null, null]; } return opt.presets; }
+function presetLabel(ps) { const has = new Set(pr.bag.map(p => p.id)), ba = ps.cells.map(c => c && has.has(c.id) ? pr.bag.find(p => p.id === c.id) : null), an = IL.analyzeBoard(ba);
+  const top = Object.entries(an.skills || {}).sort((a, b) => b[1].count - a[1].count).slice(0, 2).map(([sp, v]) => IL.SP_NAME[sp] + '×' + v.count); return top.join('・') || (ba.filter(Boolean).length + '個'); }
+function presetHTML() {
+  const ps = presets();
+  const slots = ps.map((p, k) => `<div class="pslot"><button class="btn sm ${p ? '' : 'ghost'}" data-a="pload" data-k="${k}" ${p ? '' : 'disabled'}>${k + 1}：${p ? esc(presetLabel(p)) : '空き'}</button><button class="btn sm" data-a="psave" data-k="${k}">${ui.pconf === k ? '上書きする？' : '保存'}</button></div>`).join('');
+  return `<div class="presets"><div class="small mute">プリセット（今の盤面を保存して、すぐ切り替え）</div>${slots}</div>`;
+}
+function presetSave(k) { const ps = presets(); if (ps[k] && ui.pconf !== k) { ui.pconf = k; return boardScreen(); }
+  ui.pconf = null; ps[k] = { cells: pr.board.map(id => { if (id == null) return null; const p = pr.bag.find(q => q.id === id); return p ? { id, rot: p.rot } : null; }) }; saveOpt(); sfx('ok', 0.4); toast('プリセット' + (k + 1) + 'に保存した'); boardScreen(); }
+function presetLoad(k) {
+  const ps = presets()[k]; if (!ps) return; const before = IL.playerStats(pr), has = new Set(pr.bag.map(p => p.id)); let miss = 0;
+  const want = ps.cells.map(c => { if (!c) return null; if (!has.has(c.id)) { miss++; return null; } return c; });
+  for (let i = 0; i < 25; i++) if (pr.board[i] != null && (!want[i] || want[i].id !== pr.board[i])) X(['place', i, null]);
+  for (let i = 0; i < 25; i++) { const c = want[i]; if (!c) continue; if (pr.board[i] !== c.id) X(['place', i, c.id]); const p = pr.bag.find(q => q.id === c.id); for (let n = 0; n < 4 && p.rot !== c.rot; n++) X(['rot', c.id]); }
+  ui.sel = null; ui.bagSel = null; ui.pconf = null; save(); sfx('place'); boardScreen(); statDiff(before);
+  toast('プリセット' + (k + 1) + 'に切り替えた' + (miss ? '（なくなった欠片 ' + miss + '個は空きのまま）' : ''));
 }
 function statDiff(before) { const a = IL.playerStats(pr), out = []; for (const k of IL.STATS) { const d = a[k] - before[k]; if (d) out.push(IL.STAT_NAME[k] + (d > 0 ? ' +' : ' ') + d); } if (out.length) toast(out.join('　')); }
 function boardCellTap(i) {
@@ -288,14 +312,16 @@ function points() {
 function synth() {
   ui.scr = 'synth';
   const base = pr.bag.find(p => p.id === ui.synthBase), mat = pr.bag.find(p => p.id === ui.synthMat);
-  let list = base ? pr.bag.filter(p => IL.canSynth(base, p)) : pr.bag.filter(p => p.stats.some(s => s.r !== 'A') && pr.bag.some(q => IL.canSynth(p, q)));
+  const onB = new Set(pr.board.filter(x => x != null));
+  let list = base ? pr.bag.filter(p => IL.canSynth(base, p) && (ui.synAll || !onB.has(p.id))) : pr.bag.filter(p => p.stats.some(s => s.r !== 'A') && pr.bag.some(q => IL.canSynth(p, q)));
   list.sort((a, b) => IL.partScore(b) - IL.partScore(a));
-  const items = list.map(p => `<div class="bagitem ${p.id === ui.synthMat ? 'sel' : ''}" data-syn="${p.id}">${partHTML(p)}<small>${IL.RAR_NAME[p.rar]} ${p.floor}階</small></div>`).join('') || '<div class="mute small">合成できる組み合わせがない</div>';
+  const items = list.map(p => `<div class="bagitem ${p.id === ui.synthMat ? 'sel' : ''}" data-syn="${p.id}">${partHTML(p)}<small>${onB.has(p.id) ? '<b class="gold">盤面</b> ' : ''}${IL.RAR_NAME[p.rar]} ${p.floor}階</small></div>`).join('') || '<div class="mute small">合成できる組み合わせがない</div>';
   const rate = Math.round(IL.synthRate(pr) * 100);
   show(`<div class="win"><button class="btn sm close" data-a="title">もどる</button><h2>合成</h2>
     <p class="small mute">同じ種族・同じレアリティの2個で合成。成功すると能力のどれか1つのランクが上がる（材料は消える）。失敗すると<b style="color:#ff8a8a">両方消える</b>。成功率 ${rate}％</p>
     <div class="row"><div>${base ? partHTML(base) : '<div class="cell" style="--s:56px"></div>'}<div class="small mute">強くする方</div></div><div style="font-size:24px">＋</div><div>${mat ? partHTML(mat) : '<div class="cell" style="--s:56px"></div>'}<div class="small mute">材料</div></div>
       <button class="btn pri" data-a="dosynth" ${base && mat ? '' : 'disabled'}>合成する</button>${base ? '<button class="btn sm" data-a="synreset">選びなおす</button>' : ''}</div>
+    ${base ? `<div class="row small" style="margin:6px 0"><button class="btn sm" data-a="synall">${ui.synAll ? '☑' : '☐'} 盤面に置いている欠片も材料に出す</button><span class="mute">${ui.synAll ? '' : '（いまは出していない）'}</span></div>` : ''}
     <div class="detail">${base ? partText(base) : '強くしたい欠片を選ぶ'}${mat ? '<br><br>材料：' + partText(mat) : ''}</div>
     <div class="bag">${items}</div></div>`);
 }
@@ -733,6 +759,7 @@ document.addEventListener('click', async e => {
   const d = t.dataset;
   if (d.f && t.tagName === 'BUTTON') { sfx('ok', 0.4); X(['start', +d.f]); enterRun(run); fetchDrops(); return; }
   if (d.cell != null) return boardCellTap(+d.cell);
+  if (d.bag != null && ui.multi) { const id = +d.bag; if (pr.board.includes(id)) return; ui.multi.has(id) ? ui.multi.delete(id) : ui.multi.add(id); ui.mconf = false; sfx('click', 0.2); return boardScreen(); }
   if (d.bag != null) { const before = IL.playerStats(pr); setTimeout(() => statDiff(before), 0); const id = +d.bag; ui.bagSel = ui.bagSel === id ? null : id; if (ui.sel != null && ui.bagSel != null && pr.board[ui.sel] == null) { X(['place', ui.sel, id]); ui.bagSel = null; sfx('place'); save(); } else sfx('click', 0.3); return boardScreen(); }
   if (d.pt) { X(['pt', d.pt]); sfx('select', 0.4); save(); return points(); }
   if (d.syn != null) { const id = +d.syn; if (ui.synthBase == null) ui.synthBase = id; else ui.synthMat = ui.synthMat === id ? null : id; sfx('click', 0.3); return synth(); }
@@ -770,6 +797,13 @@ document.addEventListener('click', async e => {
     case 'board2': ui.sel = null; ui.bagSel = null; return boardScreen('run');
     case 'boardback': hud(); if (ui.boardFrom === 'run' && run) { hideScreen(); dirty = true; return; } return title();
     case 'rot': { const id = ui.sel != null && pr.board[ui.sel] != null ? pr.board[ui.sel] : ui.bagSel; if (id != null) { X(['rot', id]); sfx('rotate'); save(); } return boardScreen(); }
+    case 'multi': ui.multi = new Set(); ui.mconf = false; ui.bagSel = null; return boardScreen();
+    case 'mend': ui.multi = null; ui.mconf = false; return boardScreen();
+    case 'mall': if (ui.multi) { const all = ui.lastList.every(id => ui.multi.has(id)); ui.lastList.forEach(id => all ? ui.multi.delete(id) : ui.multi.add(id)); ui.mconf = false; } return boardScreen();
+    case 'mdisc': if (ui.multi && ui.multi.size) { if (!ui.mconf) { ui.mconf = true; return boardScreen(); } let n = 0; for (const id of ui.multi) if (!pr.board.includes(id) && pr.bag.some(p => p.id === id)) { X(['disc', id]); n++; } ui.multi = null; ui.mconf = false; save(); sfx('ok', 0.4); toast(n + '個を捨てた'); } return boardScreen();
+    case 'psave': return presetSave(+t.dataset.k);
+    case 'pload': return presetLoad(+t.dataset.k);
+    case 'synall': ui.synAll = !ui.synAll; ui.synthMat = null; return synth();
     case 'unequip': if (ui.sel != null) { X(['unq', ui.sel]); save(); } return boardScreen();
     case 'discard': if (ui.bagSel != null && !pr.board.includes(ui.bagSel)) { X(['disc', ui.bagSel]); ui.bagSel = null; save(); } return boardScreen();
     case 'gacha': return gacha();
