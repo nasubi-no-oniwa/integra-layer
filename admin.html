@@ -26,10 +26,13 @@ table{width:100%;border-collapse:collapse;font-size:13px} td,th{border-bottom:1p
 .be.t.v{top:-18%;border-radius:50% 50% 0 0}.be.b.v{bottom:-18%;border-radius:0 0 50% 50%}.be.l.v{left:-18%;border-radius:50% 0 0 50%}.be.r.v{right:-18%;border-radius:0 50% 50% 0}
 .be.c{background:#0e0c14}.be.t.c{top:0;border-radius:0 0 50% 50%}.be.b.c{bottom:0;border-radius:50% 50% 0 0}.be.l.c{left:0;border-radius:0 50% 50% 0}.be.r.c{right:0;border-radius:50% 0 0 50%}
 .be.v.lk{z-index:3}.be.t.v.lk{top:-36%;height:38%}.be.b.v.lk{bottom:-36%;height:38%}.be.l.v.lk{left:-36%;width:38%}.be.r.v.lk{right:-36%;width:38%}
+.row.tg{margin:0 0 10px}section>h2{cursor:pointer;user-select:none;display:flex;align-items:center;gap:8px;margin:0}section>h2::before{content:'▼';font-size:11px;color:var(--mute);transition:transform .15s}section.shut>h2::before{transform:rotate(-90deg)}section:not(.shut)>h2{margin-bottom:8px}section.shut>:not(h2){display:none!important}
+#news{max-height:260px;overflow:auto}
 </style>
 </head>
 <body>
 <h1>インテグラ・レイヤー 管理ページ</h1>
+<div class="row tg"><button id="openall">全部ひらく</button><button id="closeall">全部とじる</button></div>
 <section id="me"><p class="mute">つないでいます…</p></section>
 <section><h2>状況</h2><div id="online" class="ok">—</div><div id="stat" class="mute">—</div></section>
 <section><h2>配信中の表示</h2>
@@ -54,11 +57,24 @@ table{width:100%;border-collapse:collapse;font-size:13px} td,th{border-bottom:1p
   <div class="row"><button id="cl-drops">古いバッグの控えを消す</button><button id="cl-board">60件より前の書きこみを消す</button><span id="cl-msg" class="mute"></span></div>
   <div class="row" style="margin-top:10px"><button id="cl-all" class="warn">公開前：全部消す</button><span class="mute">テストのデータを消すときだけ使う</span></div>
 </section>
+<script>
+// 欄の開け閉め（この端末に覚えておく）
+(function () {
+  const KEY = 'il_admin_shut', secs = [...document.querySelectorAll('section')].filter(s => s.querySelector(':scope>h2'));
+  let st = {}; try { st = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch (e) {}
+  const name = s => s.querySelector(':scope>h2').textContent.trim();
+  const save = () => { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (e) {} };
+  secs.forEach(s => { const n = name(s); if (st[n] == null) st[n] = n !== '状況'; s.classList.toggle('shut', !!st[n]);
+    s.querySelector(':scope>h2').addEventListener('click', () => { st[n] = !s.classList.contains('shut'); s.classList.toggle('shut', st[n]); save(); }); });
+  document.getElementById('openall').onclick = () => { secs.forEach(s => { st[name(s)] = false; s.classList.remove('shut'); }); save(); };
+  document.getElementById('closeall').onclick = () => { secs.forEach(s => { st[name(s)] = true; s.classList.add('shut'); }); save(); };
+})();
+</script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
-<script src="js/firebase-config.js?v=30"></script>
-<script src="js/core.js?v=30"></script>
-<script src="js/admin.js?v=30"></script>
+<script src="js/firebase-config.js?v=31"></script>
+<script src="js/core.js?v=31"></script>
+<script src="js/admin.js?v=31"></script>
 </body>
 </html>

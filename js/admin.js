@@ -9,7 +9,7 @@ let db = null, uid = null, players = {};
 const ADMIN_EMAIL = 'il-admin@nasubi-no-oniwa.github.io';
 function loginForm(au) {
   $('#me').innerHTML = `<h2>管理者ログイン</h2><form id="lf" class="row"><input id="pw" type="password" autocomplete="current-password" placeholder="パスワード" style="min-width:220px"><button class="pri">入る</button></form><p id="lm" class="mute"></p>`;
-  document.querySelectorAll('section:not(#me)').forEach(e => e.hidden = true);
+  document.querySelectorAll('section:not(#me), .row.tg').forEach(e => e.hidden = true);
   $('#pw').focus();
   $('#lf').onsubmit = async e => { e.preventDefault(); const pw = $('#pw').value; if (!pw) return; $('#lm').textContent = '確かめています…';
     try { await au.signInWithEmailAndPassword(ADMIN_EMAIL, pw); return location.reload(); }
