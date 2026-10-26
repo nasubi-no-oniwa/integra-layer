@@ -32,7 +32,11 @@
   const dbs = {};
   window.firebase = {
     initializeApp(cfg, name) { const id = (localStorage.getItem('fake_uid_' + name) || (name + '-' + Math.random().toString(36).slice(2, 10))); localStorage.setItem('fake_uid_' + name, id);
-      const user = { uid: id }; const auth = { currentUser: null, signInAnonymously: async () => { auth.currentUser = user; return { user }; } };
+      const user = { uid: id }; const auth = { currentUser: null, signInAnonymously: async () => { auth.currentUser = user; return { user }; },
+        onAuthStateChanged: cb => { const v = sessionStorage.getItem('fk_pw'); auth.currentUser = v ? { uid: 'adm', email: 'il-admin@nasubi-no-oniwa.github.io' } : null; setTimeout(() => cb(auth.currentUser)); return () => {}; },
+        signInWithEmailAndPassword: async (e, pw) => { const ok = localStorage.getItem('fk_acc'); if (!ok) throw { code: 'auth/invalid-credential' }; if (ok !== pw) throw { code: 'auth/invalid-credential' }; sessionStorage.setItem('fk_pw', 1); },
+        createUserWithEmailAndPassword: async (e, pw) => { if (localStorage.getItem('fk_acc')) throw { code: 'auth/email-already-in-use' }; localStorage.setItem('fk_acc', pw); sessionStorage.setItem('fk_pw', 1); },
+        signOut: async () => sessionStorage.removeItem('fk_pw') };
       const db = dbs[cfg.projectId] || (dbs[cfg.projectId] = new DB(cfg.projectId)); const dapi = { ref: p => new Ref(db, p) };
       return { auth: () => auth, database: () => dapi }; },
     database: { ServerValue: S },

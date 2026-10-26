@@ -6,18 +6,34 @@ const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&a
 const tm = t => t ? new Date(t).toLocaleString() : '—';
 const T = () => firebase.database.ServerValue.TIMESTAMP;
 let db = null, uid = null, players = {};
+const ADMIN_EMAIL = 'il-admin@nasubi-no-oniwa.github.io';
+function loginForm(au) {
+  $('#me').innerHTML = `<h2>管理者ログイン</h2><form id="lf" class="row"><input id="pw" type="password" autocomplete="current-password" placeholder="パスワード" style="min-width:220px"><button class="pri">入る</button></form><p id="lm" class="mute"></p>`;
+  document.querySelectorAll('section:not(#me)').forEach(e => e.hidden = true);
+  $('#pw').focus();
+  $('#lf').onsubmit = async e => { e.preventDefault(); const pw = $('#pw').value; if (!pw) return; $('#lm').textContent = '確かめています…';
+    try { await au.signInWithEmailAndPassword(ADMIN_EMAIL, pw); return location.reload(); }
+    catch (err) {
+      const c = err.code || '';
+      if (c === 'auth/operation-not-allowed') { $('#lm').innerHTML = '<span class="ng">Firebase でメール／パスワードのログインがまだ有効になっていません。</span>'; return; }
+      if (c === 'auth/too-many-requests') { $('#lm').innerHTML = '<span class="ng">試しすぎです。しばらく待ってからもう一度。</span>'; return; }
+      // まだ管理者のアカウントがないとき（最初の1回だけ）は、このパスワードで作る
+      try { await au.createUserWithEmailAndPassword(ADMIN_EMAIL, pw); return location.reload(); }
+      catch (e2) { $('#lm').innerHTML = '<span class="ng">' + (e2.code === 'auth/email-already-in-use' ? 'パスワードがちがいます。' : e2.code === 'auth/weak-password' ? 'パスワードは6文字以上にしてください。' : e2.code === 'auth/operation-not-allowed' ? 'Firebase でメール／パスワードのログインがまだ有効になっていません。' : 'ログインできませんでした（' + esc(e2.code || e2.message) + '）') + '</span>'; }
+    } };
+}
 
 async function init() {
   const CFG = window.IL_FIREBASE;
   if (!CFG || typeof firebase === 'undefined') { $('#me').innerHTML = '<p class="ng">Firebase を読みこめませんでした。</p>'; return; }
-  const app = firebase.initializeApp(CFG.main, 'main'); // ゲームと同じ名前なので、同じ端末なら同じ人として入れる
-  await app.auth().signInAnonymously(); uid = app.auth().currentUser.uid; db = app.database();
-  let isAdmin = uid === 'WCPX6tpyozR2hNC2jpGzqhnzxXs1'; try { isAdmin = isAdmin || !!(await db.ref('admins/' + uid).once('value')).val(); } catch (e) {}
-  await loadEngines();
-  $('#me').innerHTML = isAdmin
-    ? `<p class="ok">管理者として入っています。</p><p class="mute">あなたのID：<code>${esc(uid)}</code></p>`
-    : `<p class="ng">まだ管理者ではありません。</p><p>あなたのID：<code>${esc(uid)}</code></p>
-       <p class="mute">Firebase コンソール →「Realtime Database」→「データ」で、いちばん上の行の「＋」を押し、<br>キーに <b>admins</b> を入れ、その中に キー＝上のID、値＝<b>true</b> を追加してから、このページを読みなおしてください。<br>（ゲームを遊ぶのと同じブラウザでこのページを開くと、ゲームの自分と同じIDになります）</p>`;
+  // 管理者はメールとパスワードで入る（ゲームの匿名ログインとは別の入れ物を使うので、ゲームのデータには触れない）
+  const app = firebase.initializeApp(CFG.main, 'admin'), au = app.auth(); db = app.database();
+  const user = await new Promise(r => { const off = au.onAuthStateChanged(u => { off(); r(u); }); });
+  const isAdmin = !!(user && user.email === ADMIN_EMAIL);
+  if (!isAdmin) { loginForm(au); return; }
+  uid = user.uid; await loadEngines();
+  $('#me').innerHTML = `<div class="row"><p class="ok" style="margin:0">管理者として入っています。</p><button id="logout">ログアウト</button></div>`;
+  $('#logout').onclick = async () => { await au.signOut(); location.reload(); };
   if (!isAdmin) return;
   try { const la = firebase.initializeApp(CFG.live, 'live'); await la.auth().signInAnonymously(); la.database().ref('on').on('value', s => { const v = s.val() || {}, now = Date.now(); let n = 0, inT = 0; const fl = {}; for (const k in v) if (now - (v[k].t || 0) < 180000) { n++; if (v[k].f) { inT++; fl[v[k].f] = (fl[v[k].f] || 0) + 1; } }
     $('#online').innerHTML = `いま遊んでいる人：<b>${n}人</b>（塔の中 ${inT}人）` + (inT ? '<br><span class="mute">' + Object.keys(fl).sort((a, b) => b - a).map(f => f + '階 ' + fl[f] + '人').join('　') + '</span>' : ''); }); } catch (e) {}

@@ -1,7 +1,7 @@
 {
   "rules": {
-    ".read": "(auth != null && (auth.uid === 'WCPX6tpyozR2hNC2jpGzqhnzxXs1' || root.child('admins/' + auth.uid).exists()))",
-    ".write": "(auth != null && (auth.uid === 'WCPX6tpyozR2hNC2jpGzqhnzxXs1' || root.child('admins/' + auth.uid).exists()))",
+    ".read": "(auth != null && (auth.uid === 'WCPX6tpyozR2hNC2jpGzqhnzxXs1' || auth.token.email === 'il-admin@nasubi-no-oniwa.github.io' || root.child('admins/' + auth.uid).exists()))",
+    ".write": "(auth != null && (auth.uid === 'WCPX6tpyozR2hNC2jpGzqhnzxXs1' || auth.token.email === 'il-admin@nasubi-no-oniwa.github.io' || root.child('admins/' + auth.uid).exists()))",
     "admins": {
       ".read": "auth != null"
     },
