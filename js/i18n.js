@@ -4,6 +4,7 @@
 'use strict';
 // [英語, 繁体字中国語, 韓国語]
 const D = {
+'保存': ['Save', '保存', '저장'], '弱点 ': ['Weak ', '弱點 ', '약점 '], '半減 ': ['Resist ', '減半 ', '반감 '], '上書きする？': ['Overwrite?', '要覆蓋嗎？', '덮어쓸까?'],
 '体力が少ないので、おまかせを止めた': ['HP is low, so auto-battle stopped', '體力偏低，已停止自動戰鬥', '체력이 적어서 자동 전투를 멈췄다'], '体力が少ないので、探索を止めた': ['HP is low, so exploring stopped', '體力偏低，已停止探索', '체력이 적어서 탐색을 멈췄다'],
 'この階は歩きつくした': ['This floor is fully explored', '這層已經走遍了', '이 층은 다 돌아봤다'], '落ちたバッグを見つけた': ['Found a dropped bag', '發現掉落的背包', '떨어진 가방을 발견했다'], '台座を見つけた': ['Found a pedestal', '發現台座', '받침대를 발견했다'],
 'ふつうの敵はおまかせで戦う': ['Auto-battle normal enemies', '普通敵人自動戰鬥', '일반 적은 자동 전투'], 'レベルが上がったら自動で振る': ['Auto-assign points on level up', '升級時自動分配', '레벨업 시 자동 분배'], 'レベルが上がったら自動で振る：': ['Auto-assign on level up:', '升級時自動分配：', '레벨업 시 자동 분배:'],
@@ -377,6 +378,7 @@ L.t = s => {
   if (!/[ぁ-んァ-ヶ一-龯]/.test(out)) return out;
   for (const k of keys) if (out.indexOf(k) >= 0) out = out.split(k).join(D[k][i]);
   // 数字＋階
+  if (L.lang === 'en') out = out.replace(/に (\d[\d,]*) damage/g, ' takes $1 damage').replace(/に (\d[\d,]*) のダメージ/g, ' takes $1 damage');
   out = out.replace(/(\d+)\s*階/g, L.lang === 'en' ? 'F$1' : L.lang === 'zh' ? '$1層' : '$1층');
   if (L.lang === 'en') out = out.replace(/(\d+)\s*個/g, '$1').replace(/(\d+)\s*枚/g, '$1').replace(/ {2,}/g, ' ').replace(/ ([)\]:,.!?])/g, '$1');
   if (L.lang === 'ko') out = out.replace(/(\d+)\s*個/g, '$1개').replace(/(\d+)\s*枚/g, '$1장');
