@@ -283,16 +283,18 @@ function boardScreen(from) {
   const spOpt = ['all', ...IL.SPECIES, 'none', 'joker'].map(s => `<option value="${s}" ${ui.filt.sp === s ? 'selected' : ''}>${s === 'all' ? '種族：すべて' : IL.SP_NAME[s]}</option>`).join('');
   const rOpt = ['all', '0', '1', '2', '3'].map(s => `<option value="${s}" ${ui.filt.rar === s ? 'selected' : ''}>${s === 'all' ? 'レアリティ：すべて' : IL.RAR_NAME[s]}</option>`).join('');
   const soOpt = [['score', '強い順'], ['new', '新しい順'], ['floor', '深い階順']].map(([v, n]) => `<option value="${v}" ${ui.filt.sort === v ? 'selected' : ''}>${n}</option>`).join('');
-  show(`<div class="win" style="max-width:900px"><button class="btn sm close" data-a="boardback">とじる</button><h2>盤面とかばん</h2>
-    <div class="boardwrap"><div><div class="board">${cells}</div>
+  const keepScroll = [...document.querySelectorAll('.boardwin .bagcol .bag, .boardwin .side, .boardwin')].map(e => e.scrollTop);
+  show(`<div class="win boardwin" style="max-width:900px"><button class="btn sm close" data-a="boardback">とじる</button><h2>盤面とかばん</h2>
+    <div class="bmain"><div class="boardwrap"><div class="bcol"><div class="board">${cells}</div>
       <div class="row" style="margin-top:8px"><button class="btn sm" data-a="rot" ${selP ? '' : 'disabled'}>回す</button><button class="btn sm" data-a="unequip" ${ui.sel != null && ba[ui.sel] ? '' : 'disabled'}>外す</button><button class="btn sm warn" data-a="discard" ${ui.bagSel != null && !onB.has(ui.bagSel) ? '' : 'disabled'}>捨てる</button></div>
-      ${presetHTML()}</div>
+      </div>
       <div class="side"><div class="stats">${stats}</div><div class="skills">${sk}</div>
-      <div class="detail">${selP ? partText(selP) : 'マスか欠片を選ぶ。欠片を選んでからマスを押すと置ける。置いた欠片をもう一度押すと回る。'}</div></div></div>
-    <div class="row" style="margin-top:10px"><select data-f="sp">${spOpt}</select><select data-f="rar">${rOpt}</select><select data-f="sort">${soOpt}</select><span class="mute small">${pr.bag.length}個</span>
+      <div class="detail">${selP ? partText(selP) : 'マスか欠片を選ぶ。欠片を選んでからマスを押すと置ける。置いた欠片をもう一度押すと回る。'}</div>${presetHTML()}</div></div>
+    <div class="bagcol"><div class="row bagtools"><select data-f="sp">${spOpt}</select><select data-f="rar">${rOpt}</select><select data-f="sort">${soOpt}</select><span class="mute small">${pr.bag.length}個</span>
       ${mul ? `<span class="mtools"><button class="btn sm" data-a="mall">表示中をすべて選ぶ</button><button class="btn sm warn" data-a="mdisc" ${mul.size ? '' : 'disabled'}>${ui.mconf ? '本当に捨てる？（' + mul.size + '個）' : mul.size + '個を捨てる'}</button><button class="btn sm" data-a="mend">やめる</button></span>` : '<button class="btn sm" data-a="multi">まとめて捨てる</button>'}</div>
     ${mul ? '<p class="small mute" style="margin:4px 0">捨てる欠片をタップして選ぶ（盤面に置いている欠片は選べない）</p>' : ''}
-    <div class="bag">${items}</div></div>`);
+    <div class="bag">${items}</div></div></div></div>`);
+  [...document.querySelectorAll('.boardwin .bagcol .bag, .boardwin .side, .boardwin')].forEach((e, i) => { if (keepScroll[i]) e.scrollTop = keepScroll[i]; });
   if (an.links.length) tut('link');
 }
 /* 盤面のプリセット（この端末に保存） */
