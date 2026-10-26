@@ -474,3 +474,19 @@ body.lowfx .lootfx .rays{display:none}body.lowfx .killfx b{animation-duration:.6
 .ov .win.title .logo{white-space:normal;text-align:center;width:100%}
 .ov .win.title .logo .logoimg{width:100%;max-height:34vh;object-fit:contain}
 .ov .win.title .logo small{font-size:clamp(11px,1.6vw,16px)!important;margin-top:0}
+
+/* はじめての説明 */
+.win.intro{max-width:560px;text-align:center}
+.intro .istep{font-size:12px;color:var(--accent);letter-spacing:.15em;margin-bottom:2px}
+.intro h2{margin:2px 0 8px}
+.intro .ipic{display:flex;align-items:center;justify-content:center;gap:10px;min-height:96px;padding:10px;margin:0 auto 10px;border-radius:12px;background:radial-gradient(ellipse at center,rgba(255,220,140,.14),rgba(0,0,0,.25));flex-wrap:wrap}
+.intro .ispr canvas{display:block;image-rendering:pixelated}
+.intro .iarr{color:#ffe58a;font-size:22px;text-shadow:0 0 8px rgba(255,200,80,.7)}
+.intro .ilab{color:#ffe58a;font-weight:bold;font-size:18px}
+.intro .ipic .part{--s:52px;width:var(--s);height:var(--s);position:relative}
+.intro .ilink{display:flex;gap:0;margin-right:14px}
+.intro .itext{text-align:left;line-height:1.75;margin:0 0 10px}
+.intro .itext small{display:block;margin-top:6px;color:var(--mute,#aab);font-size:12px}
+.intro .idots{display:flex;justify-content:center;gap:6px;margin-bottom:10px}
+.intro .idots i{width:8px;height:8px;border-radius:50%;background:#555}.intro .idots i.on{background:var(--accent)}
+@media (max-height:520px){.intro .ipic{min-height:64px;padding:4px;margin-bottom:4px}.intro .itext{font-size:13px;line-height:1.55;margin-bottom:4px}.intro h2{font-size:18px;margin:0 0 4px}.intro .idots{margin-bottom:4px}}

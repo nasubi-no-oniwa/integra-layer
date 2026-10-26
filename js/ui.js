@@ -224,7 +224,7 @@ function floors() {
     <div class="floors">${b}</div>${Net.on ? '<p class="small mute" style="margin-top:8px">地図を買う：</p><div class="row"><select id="mapf">' + Array.from({ length: pr.maxFloor }, (_, i) => `<option value="${i + 1}">${i + 1}階</option>`).join('') + '</select><button class="btn sm" data-a="mapopen">地図の店へ</button></div>' : ''}</div>`);
 }
 function help() {
-  show(`<div class="win"><button class="btn sm close" data-a="title">もどる</button><h2>遊び方</h2>
+  show(`<div class="win"><button class="btn sm close" data-a="title">もどる</button><h2>遊び方</h2><div class="row" style="justify-content:center;margin-bottom:8px"><button class="btn pri" data-a="intro">はじめての人向けの説明を見る</button></div>
   <p class="story">・塔を探索して、敵とぶつかると戦いになる。台座はとなりから「調べる」。
 ・拾った欠片を5×5の盤面に置く。同じ種族の凸と凹が向き合うとつながる。
 ・同じ種族どうしの凸と凹だけがつながる（別の種族とはつながらない。万能はどの種族ともつながる）。たくさんつながるほど能力が上がり、2個以上つながると技が使える（25個で「神」）。<br>・2個以上つながると「加護」も付き、その属性の能力が段階に応じて上がる（炎＝攻撃、岩＝守り、森＝体力、風＝素早さ、星＝運。最大+25％）。「無」はつながらないかわりに1つ1つが強い。
@@ -266,7 +266,37 @@ const TUT = {
   battle: '「敵だ！『たたかう』で攻撃。技は盤面のつながりで決まる。危なくなったら『にげる』も手さ」',
   bag: '「誰かのバッグが落ちてるね。倒れた冒険者の欠片さ。となりで調べて、好きなものを5個までもらいな」',
   boss: '「ボスだ。負けると盤面の欠片がぜんぶ消える。よく準備してから挑みな」',
+  boardscr: '「ここが盤面さ。かばんの欠片をタップ（またはドラッグ）して盤面に置きな。同じ色の凸と凹を向かい合わせるとつながる。迷ったら『おまかせで組む』でいいよ」',
+  synth: '「合成所じゃ、同じ種族・同じレア度の欠片を1つ材料にして、元の欠片の能力を1つ上げられる（C→B→A）。成功は運しだい。チケットで成功しやすく、補強なら失敗しても元の欠片は残るよ」',
+  clear1: '「やったね、1階突破だ！ これで2階へ行ける。この先もボスを倒して上へ上へ。きつくなったら台座・だれかのバッグ・ガチャ・合成で盤面を育てな」',
+  lose: '「倒れちまったか。でも大丈夫、レベルとお金は残る。盤面の欠片はバッグになって、だれかの役に立つ。タイトルの『塔に入る』から何度でも挑めるよ」',
 };
+/* はじめての人向け：塔に入る前の4枚の説明 */
+const INTRO = [
+  { t: '目的', h: 'みんなで、100階の塔のてっぺんへ', p: '塔は全部で100階。各階のいちばん奥にいるボスを倒すと、次の階へ進める。<br>ボスを世界で最初に倒した人の名前は、塔に刻まれる。', pic: 'goal' },
+  { t: 'やること', h: '歩いて、拾って、はめて、ボスへ', p: '① 塔を歩いて、光る台座のとなりで「調べる」→ 欠片が手に入る<br>② 欠片を盤面にはめると強くなる（メニュー →「盤面とかばん」）<br>③ 強くなったらボス部屋へ<small>十字キーか、行きたい所をタップで歩く。「探索」ボタンで自動でも歩ける。ふつうの敵とは自動で戦う。</small>', pic: 'flow' },
+  { t: '強くなる', h: '同じ色の凸と凹をかみ合わせる', p: '同じ種族（色）の欠片の出っぱり（凸）とへこみ（凹）を向かい合わせると「つながる」。<br>つながるほど能力が上がり、2つ以上つながると技が使える。<small>迷ったら、盤面の「おまかせで組む」を押せばOK。</small>', pic: 'link' },
+  { t: 'みんなの力', h: '倒れても、だれかの力になる', p: '倒れると、盤面の欠片はバッグになってその場に残り、ほかの人が拾える。あなたも、だれかのバッグで強くなれる。<br>もちろん自分ひとりでも強くなれる：台座・ガチャ・合成所・ボスのお金。<small>レベルとお金は倒れても残る。ボスに負けたときだけは、盤面の欠片が全部消える。</small>', pic: 'bag' },
+];
+function intro(i, from) {
+  ui.scr = 'intro'; ui.introI = i = Math.max(0, Math.min(INTRO.length - 1, i | 0)); if (from) ui.introFrom = from;
+  const c = INTRO[i], last = i === INTRO.length - 1;
+  show(`<div class="win intro"><button class="btn sm close" data-a="idone">${last ? 'とじる' : 'とばす'}</button><div class="istep">${i + 1} / ${INTRO.length}　${c.t}</div><h2>${c.h}</h2><div class="ipic" data-pic="${c.pic}"></div><p class="itext">${c.p}</p>
+    <div class="idots">${INTRO.map((_, k) => `<i class="${k === i ? 'on' : ''}"></i>`).join('')}</div>
+    <div class="row" style="justify-content:center">${i ? '<button class="btn" data-a="iprev">もどる</button>' : ''}<button class="btn pri" data-a="${last ? 'idone' : 'inext'}">${last ? (ui.introFrom === 'help' ? 'とじる' : 'さあ、塔へ！') : '次へ'}</button></div></div>`);
+  introPic($('.ipic'), c.pic);
+}
+function introPic(el, k) {
+  const sp = (n, sc, big) => { const d = document.createElement('div'); d.className = 'ispr'; d.appendChild(spriteCanvas(n, sc || 3, null, big)); return d; };
+  const ar = t => { const d = document.createElement('div'); d.className = 'iarr'; d.textContent = t || '→'; return d; };
+  const pc = (sp2, e, lk) => { const d = document.createElement('div'); d.className = 'ipart'; d.innerHTML = partHTML({ sp: sp2, rar: 1, rot: 0, edges: e, stats: [{ k: 'atk', r: 'B' }] }, '', lk); return d.firstChild; };
+  const lab = t => { const d = document.createElement('div'); d.className = 'ilab'; d.textContent = t; return d; };
+  if (k === 'goal') el.append(sp(97, 3), ar(), sp(109, 2, true), ar('→ …'), lab('100階'));
+  if (k === 'flow') el.append(sp(89, 3), ar(), pc('fire', [1, 2, 0, 1]), ar(), sp(97, 3), ar(), sp(109, 2, true));
+  if (k === 'link') { const w = document.createElement('div'); w.className = 'ilink'; w.append(pc('forest', [0, 1, 0, 0], [0, 1, 0, 0]), pc('forest', [0, 0, 0, 2], [0, 0, 0, 1])); el.append(w, lab('つながった！')); }
+  if (k === 'bag') el.append(sp(121, 3), ar(), sp(89, 3), ar(), sp(97, 3), lab('拾って強くなる'));
+}
+
 let tutQ = [];
 function tut(k) {
   opt.tut = opt.tut || {}; if (opt.tut.off || opt.tut[k] || !TUT[k]) return; opt.tut[k] = 1; saveOpt();
@@ -292,7 +322,7 @@ function ending(auto) {
 /* ---------- 盤面とかばん ---------- */
 function boardScreen(from) {
   if (from) { ui.multi = null; ui.mconf = false; ui.pconf = null; }
-  ui.scr = 'board'; ui.boardFrom = from || ui.boardFrom || 'title';
+  ui.scr = 'board'; ui.boardFrom = from || ui.boardFrom || 'title'; tut('boardscr');
   const ba = IL.boardArr(pr), an = IL.analyzeBoard(ba), st = IL.playerStats(pr);
   const gcol = ['#ffd17a', '#8ad3ff', '#ff9ad5', '#b5f78a', '#ffb36b', '#c7a8ff', '#7fffd4', '#ff7f7f'];
   let cells = ''; const lks = Array.from({ length: 25 }, () => [0, 0, 0, 0]);
@@ -507,7 +537,7 @@ function points() {
 
 /* ---------- 合成 ---------- */
 function synth() { // 合成所
-  ui.scr = 'synth';
+  ui.scr = 'synth'; tut('synth');
   const base = pr.bag.find(p => p.id === ui.synthBase), mat = pr.bag.find(p => p.id === ui.synthMat);
   if (!base) ui.synthBase = null; if (!mat) ui.synthMat = null;
   const onB = new Set(pr.board.filter(x => x != null));
@@ -953,6 +983,7 @@ function prompt() {
   } else if (p.kind === 'herb') {
     show(`<div class="win" style="max-width:420px"><h2>回復草</h2><p>回復草をちぎって食べますか？（体力が30％回復）</p>${run.hp >= IL.playerStats(pr).hp ? '<p class="small mute">いまは体力が満タンです。</p>' : ''}<div class="row"><button class="btn pri" data-a="eat">食べる</button><button class="btn" data-a="cancel">やめる</button></div></div>`, 'clear');
   } else if (p.kind === 'bosswin') {
+    if (run.floor === 1) tut('clear1');
     const last = run.floor >= 100;
     show(`<div class="win" style="max-width:460px"><h2>${last ? '頂上にたどり着いた！' : 'ボスを倒した！'}</h2><p>${last ? 'インテグラ・レイヤーの頂上。' : 'ボスのいた所の階段から、次の階へ行ける。帰還ポータルで帰ることもできる。'}</p><div class="row">${last ? '' : '<button class="btn pri" data-a="next">次の階へ</button>'}<button class="btn" data-a="portal">帰還ポータルで帰る</button><button class="btn" data-a="cancel">やめる</button></div>${run.bossChest && !run.bossChest.opened ? '<p class="small gold">となりの宝箱を開け忘れていない？</p>' : ''}${ui.firstFloor === run.floor ? '<p class="gold">世界で最初に倒した！</p>' : ''}<div class="row" style="margin-top:6px"><button class="btn sm" data-a="sharex">𝕏 でつぶやく</button></div></div>`, 'clear');
   }
@@ -1020,7 +1051,7 @@ function bcmd(c) {
   ui.sub = null; save(); battle(); hud();
   if (run.hp < hpB) { const w = document.querySelector('.battle'); if (w) w.classList.add('shake'); }
   if (bt.over === 'win') { if (bt.kind === 'boss') bossKillFx(); else sfx('win', 0.5); if (bt.reward.ups) setTimeout(() => sfx('levelup', 0.5), 400); if (bt.kind !== 'normal' && bt.reward.parts.some(p => p.rar >= 1)) setTimeout(() => lootReveal(bt.reward.parts), 900); }
-  if (bt.over === 'lose') { Net.anCount('d/' + run.floor); Net.anFlush(); sfx('fail', 0.5); const li = bt.loseInfo; if (li && li.lost && li.lost.length && !li.boss) Net.addBag(li.where.floor, li.where.x, li.where.y, li.lost, opt.name, '力尽きた…'); }
+  if (bt.over === 'lose') { tut('lose'); Net.anCount('d/' + run.floor); Net.anFlush(); sfx('fail', 0.5); const li = bt.loseInfo; if (li && li.lost && li.lost.length && !li.boss) Net.addBag(li.where.floor, li.where.x, li.where.y, li.lost, opt.name, '力尽きた…'); }
 }
 function battleFx(fhp, hpB, nl) { // ダメージの数字・光・技の演出
   const els = document.querySelectorAll('.foe'), bt = run && run.battle; if (!bt) return;
@@ -1183,7 +1214,11 @@ document.addEventListener('click', async e => {
   if (d.dpot != null) { X(['dpot', +d.dpot]); save(); return potionMenu(); }
   switch (d.a) {
     case 'title': sfx('click', 0.3); return title();
-    case 'floors': sfx('click', 0.3); return floors();
+    case 'floors': sfx('click', 0.3); if (!opt.intro && !pr.cleared[1]) return intro(0, 'floors'); return floors();
+    case 'inext': sfx('click', 0.3); return intro(ui.introI + 1);
+    case 'iprev': sfx('click', 0.3); return intro(ui.introI - 1);
+    case 'idone': sfx('click', 0.3); opt.intro = 1; saveOpt(); if (ui.introFrom === 'help') return help(); if (pr.maxFloor <= 1 && !pr.cleared[1]) { X(['start', 1]); sfx('ok', 0.4); enterRun(run); fetchDrops(); return; } return floors();
+    case 'intro': sfx('click', 0.3); return intro(0, 'help');
     case 'help': return help();
     case 'sound': opt.sound = !opt.sound; saveOpt(); return run ? runMenu() : title();
     case 'settings': return settings('title');
