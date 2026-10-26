@@ -433,3 +433,4 @@ body.lowfx .lootfx .rays{display:none}body.lowfx .killfx b{animation-duration:.6
 @keyframes critslam{0%{transform:rotate(-4deg) scale(2.4);opacity:0}12%{transform:rotate(-4deg) scale(1);opacity:1}75%{opacity:1}100%{transform:rotate(-4deg) translateY(-20px);opacity:0}}
 .fastbt .critfx,.fastbt .critfx b{animation-duration:.7s}
 .skill .bless{margin-left:6px;font-size:11px;color:#ffe9b0;background:rgba(242,209,75,.14);border:1px solid rgba(242,209,75,.4);border-radius:999px;padding:0 6px;white-space:nowrap}
+.guard.trip{margin:0 0 6px;width:100%}.floors button small{display:block;font-size:9px;line-height:1;color:var(--accent);margin-top:1px}

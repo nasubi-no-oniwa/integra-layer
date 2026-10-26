@@ -215,9 +215,12 @@ function title() {
 }
 function floors() {
   ui.scr = 'floors';
-  let b = ''; for (let f = 1; f <= 100; f++) { const cl = pr.cleared[f], fr = f === pr.maxFloor; b += `<button data-f="${f}" class="${cl ? 'cl' : ''} ${fr ? 'fr' : ''}" ${f > pr.maxFloor ? 'disabled' : ''}>${f}</button>`; }
+  const bt = !!ui.bossTrip;
+  let b = ''; for (let f = 1; f <= 100; f++) { const cl = pr.cleared[f], fr = f === pr.maxFloor, ok = bt ? cl && pr.gold >= IL.bossTripCost(f) : f <= pr.maxFloor;
+    b += `<button data-f="${f}" class="${cl ? 'cl' : ''} ${fr ? 'fr' : ''}" ${ok ? '' : 'disabled'}>${f}${bt && cl ? `<small>${IL.bossTripCost(f)}G</small>` : ''}</button>`; }
   show(`<div class="win"><button class="btn sm close" data-a="title">もどる</button><h2>どの階から始める？</h2>
-    <p class="small mute">緑＝ボスを倒した階　金＝最前線（${pr.maxFloor}階）。10階ごとに景色が変わる。</p>
+    <button class="guard trip ${bt ? 'on' : ''}" data-a="btrip"><span class="sw"><i></i></span><span>ボス部屋の前から始める<small>ボスを倒したことのある階だけ・階×20G（所持 ${pr.gold} G）</small></span></button>
+    <p class="small mute">${bt ? '選んだ階のボス部屋の入口の前から始まる。宝箱の中身はふつうと同じ。' : '緑＝ボスを倒した階　金＝最前線（' + pr.maxFloor + '階）。10階ごとに景色が変わる。'}</p>
     <div class="floors">${b}</div>${Net.on ? '<p class="small mute" style="margin-top:8px">地図を買う：</p><div class="row"><select id="mapf">' + Array.from({ length: pr.maxFloor }, (_, i) => `<option value="${i + 1}">${i + 1}階</option>`).join('') + '</select><button class="btn sm" data-a="mapopen">地図の店へ</button></div>' : ''}</div>`);
 }
 function help() {
@@ -1144,7 +1147,7 @@ document.addEventListener('click', async e => {
   const t = e.target.closest('[data-a],[data-f],[data-cell],[data-bag],[data-pt],[data-syn],[data-gp],[data-buy],[data-c],[data-sk],[data-it],[data-tg],[data-use],[data-dpot],[data-mb],[data-rep],[data-tr],[data-pk],[data-tr2]');
   if (!t) { if (ui.scr === 'board' && (ui.sel != null || ui.bagSel != null) && !e.target.closest('select,input,label')) { ui.sel = null; ui.bagSel = null; sfx('click', 0.2); boardScreen(); } return; }
   const d = t.dataset;
-  if (d.f && t.tagName === 'BUTTON') { sfx('ok', 0.4); X(['start', +d.f]); enterRun(run); fetchDrops(); return; }
+  if (d.f && t.tagName === 'BUTTON') { if (ui.bossTrip) { if (!X(['startb', +d.f])) { toast('お金が足りない'); return; } Net.anCount('u/bosstrip'); sfx('coin', 0.5); } else X(['start', +d.f]); sfx('ok', 0.4); enterRun(run); fetchDrops(); return; }
   if (d.cell != null) return boardCellTap(+d.cell);
   if (d.bag != null && ui.multi) { const id = +d.bag; if (pr.board.includes(id)) return; ui.multi.has(id) ? ui.multi.delete(id) : ui.multi.add(id); ui.mconf = false; sfx('click', 0.2); return boardScreen(); }
   if (d.bag != null) { const before = IL.playerStats(pr); setTimeout(() => statDiff(before), 0); const id = +d.bag; ui.bagSel = ui.bagSel === id ? null : id; if (ui.sel != null && ui.bagSel != null && pr.board[ui.sel] == null) { X(['place', ui.sel, id]); ui.bagSel = null; sfx('place'); save(); } else sfx('click', 0.3); return boardScreen(); }
@@ -1212,6 +1215,7 @@ document.addEventListener('click', async e => {
     case 'synth': ui.synthBase = null; ui.synthMat = null; return synth();
     case 'synreset': ui.synthBase = null; ui.synthMat = null; return synth();
     case 'dosynth': { Net.anCount('u/synth'); const r = X(['syn', ui.synthBase, ui.synthMat, ui.synTk | 0, !!ui.synGuard]); if (r && r !== true) { ui.synRes = r; if (r.ok) { sfx('god', 0.5); ui.synthMat = null; } else { sfx('fail', 0.5); ui.synthMat = null; if (!r.kept) ui.synthBase = null; } save(); } return synth(); }
+    case 'btrip': ui.bossTrip = !ui.bossTrip; sfx('click', 0.3); return floors();
     case 'tkm': ui.synTk = (ui.synTk | 0) - 1; sfx('click', 0.2); return synth();
     case 'tkp': ui.synTk = (ui.synTk | 0) + 1; sfx('click', 0.2); return synth();
     case 'tks': ui.synTk = +t.dataset.k; sfx('click', 0.2); return synth();

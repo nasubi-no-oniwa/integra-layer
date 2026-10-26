@@ -75,7 +75,7 @@ async function loadAn() {
   const dead = {}; for (const id of ids) { const d = all[id].d || {}; for (const f in d) dead[f] = (dead[f] || 0) + d[f]; }
   const deadRows = Object.entries(dead).sort((a, b) => b[1] - a[1]).slice(0, 12).map(([f, v]) => `<tr><td>${f}階</td><td>${v}回</td></tr>`).join('') || '<tr><td class="mute">まだない</td></tr>';
   // 機能の使われ方
-  const FN = { synth: '合成所', mapshop: '地図屋', preset: 'プリセット', autoboard: 'おまかせで組む', explore: '自動探索', autobattle: 'おまかせ戦闘', gacha: 'ガチャ', bag: 'バッグを開けた', multidisc: 'まとめて捨てる' };
+  const FN = { synth: '合成所', mapshop: '地図屋', preset: 'プリセット', autoboard: 'おまかせで組む', explore: '自動探索', bosstrip: 'ボス部屋へ直行', autobattle: 'おまかせ戦闘', gacha: 'ガチャ', bag: 'バッグを開けた', multidisc: 'まとめて捨てる' };
   const useRows = Object.keys(FN).map(k => { let p = 0, t = 0; for (const id of ids) { const v = (all[id].u || {})[k] || 0; if (v) { p++; t += v; } } return [FN[k], p, t]; }).sort((a, b) => b[1] - a[1])
     .map(([n, p, t]) => `<tr><td>${n}</td><td>${p}人（${pct(p, N)}％）</td><td class="mute">${t}回</td></tr>`).join('');
   $('#an').innerHTML = `<div class="kpis"><div>来た人<b>${N}</b></div><div>この24時間に来た<b>${act24}</b></div><div>2回以上来た<b>${pct(back, N)}％</b></div><div>遊んだ時間（真ん中の人）<b>${mm(med)}</b></div><div>スマホ<b>${pct(sp, N)}％</b></div></div>
