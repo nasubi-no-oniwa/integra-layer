@@ -553,19 +553,13 @@ function bossCard() {
     if (!best || m > best.m) best = { m, nm: IL.SKILLS[sp][sk.tier], note, sp }; }
   const hitN = m => Math.max(1, Math.ceil(e.hp / Math.max(1, IL.dmgCalc(st.atk, m, e.def))));
   const take = Math.max(1, Math.round(IL.dmgCalc(e.atk, 1, st.def))), endure = Math.max(1, Math.ceil(run.hp / take));
-  const first = st.spd >= e.spd ? 'あなた' : 'ボス';
   const atkN = hitN(1), skN = best ? hitN(best.m) : null;
   const tough = (skN || atkN) >= endure;
   return `<div class="bossinfo"><div class="spr" data-tile="${e.tile}" data-big="1"></div><div>
     <div class="bn">${esc(e.name)}${e.kind >= 2 ? ' <span class="small gold">大ボス</span>' : ''}</div>
     <div class="bstats"><span>体力 <b>${e.hp}</b></span><span>攻撃 <b>${e.atk}</b></span><span>守り <b>${e.def}</b></span><span>素早さ <b>${e.spd}</b></span></div>
     <div class="bstats"><span>弱点 ${spn(e.weak)}</span><span>半減 ${f <= 3 ? '—' : spn(e.res)}</span></div></div></div>
-    <div class="bplan small"><div>あなた：体力 ${run.hp} / ${st.hp}　攻撃 ${st.atk}　守り ${st.def}　素早さ ${st.spd}</div>
-    <div>・ふつうの攻撃なら 約${atkN}発${best ? `、いちばん効く技「${best.nm}」${best.note ? '（' + best.note + '）' : ''}なら 約${skN}発` : ''}で倒せる</div>
-    <div>・ボスの攻撃は1発 約${take}。今の体力で 約${endure}発 耐えられる</div>
-    <div>・先に動くのは <b>${first}</b></div>
-    <div class="${tough ? 'ng' : 'ok'}">${tough ? '⚠ このままだと厳しそう。盤面の付け替えや回復薬を考えよう' : 'いけそう。ただし会心や大技には注意'}</div>
-    <div class="mute">数字は目安（会心・やけど・大技などで変わる）</div></div>`;
+    ${tough ? '<div class="bplan small ng">⚠ このままだと厳しそう。盤面の付け替えや回復薬を考えよう</div>' : ''}`;
 }
 /* ---------- 声かけ（ボス部屋・安全地帯・行商人） ---------- */
 function prompt() {
