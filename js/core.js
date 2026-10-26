@@ -4,7 +4,7 @@
 'use strict';
 const IL = {};
 IL.VER = 1;
-IL.ENGINE = '22'; // ルールの版（記録に書く。変えたら engine/ に前の版を残す）
+IL.ENGINE = '23'; // ルールの版（記録に書く。変えたら engine/ に前の版を残す）
 
 /* ---------- 乱数 ---------- */
 function hashStr(s) { let h = 2166136261 >>> 0; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
@@ -188,6 +188,7 @@ function expBoard(f) { return IL.B.boardK * partValue(Math.max(1, f - 3)) * fill
 function expAtk(f) { const L = expLv(f); return B.base.atk + (B.perLv.atk + B.perPt.atk) * (L - 1) + expBoard(f); }
 function expSpd(f) { const L = expLv(f); return B.base.spd + B.perLv.spd * (L - 1) + expBoard(f); }
 IL.expLv = expLv;
+IL.goldMul = f => 1 + (Math.max(1, Math.min(100, f)) - 1) / 10; // 版23：階が上がるほどお金が増える（10階ごとに1階の分ずつ）
 function makeEnemy(f, type, kind, rng) { // kind: 0 ふつう 1 中ボス 2 大ボス 3 行商人
   const T = IL.ETYPES[type], bi = IL.biomeOf(f), E = expAtk(f) * (1 + B.lateGrow * f / 100), d = kind ? 1 + B.depth * f / 100 : 1;
   const e1 = f === 1 && !kind; // 1階のふつうの敵は、少しだけ固く・強く
@@ -200,7 +201,7 @@ function makeEnemy(f, type, kind, rng) { // kind: 0 ふつう 1 中ボス 2 大�
   const name = kind === 3 ? '行商人' : kind === 2 ? pre + T.name + '王' : kind === 1 ? pre + T.name + 'の主' : pre + T.name;
   return { type, kind, name, tile: kind === 3 ? 84 : T.tile, hp, maxhp: hp, atk: Math.round(B.eAtk * E * T.atk * am * d), def: Math.round(B.eDef * E * T.def * d),
     spd: Math.round(0.85 * expSpd(f) * T.spd * (kind ? 1.15 : 1)), weak, res, burn: [], charge: 0,
-    exp: Math.round((B.expBase + B.expPer * f) * (kind === 1 ? B.bossExp : kind >= 2 ? B.bigExp : 1)), gold: kind ? 20 : 1 + (rng ? rng.int(3) : 1) };
+    exp: Math.round((B.expBase + B.expPer * f) * (kind === 1 ? B.bossExp : kind >= 2 ? B.bigExp : 1)), gold: Math.round((kind ? 20 : 1 + (rng ? rng.int(3) : 1)) * IL.goldMul(f)) };
 }
 IL.makeEnemy = makeEnemy;
 IL.bossType = f => { const bi = IL.biomeOf(f); return bi.types[hashStr('boss' + f) % bi.types.length]; };
@@ -296,7 +297,7 @@ IL.DIRS = DIRS;
 IL.bossFront = fl => { const W = fl.W, bc = IL.bossCenter(fl); let best = -1, bd = 1e9;
   for (let i = 0; i < fl.t.length; i++) if (fl.t[i] === T_GATE) for (const o of [1, -1, W, -W]) { const j = i + o; if (fl.t[j] === T_FLOOR) { const d = Math.abs(j % W - bc % W) + Math.abs(((j / W) | 0) - ((bc / W) | 0)); if (d < bd) { bd = d; best = j; } } }
   return best; };
-IL.bossTripCost = f => Math.max(60, f * 20); // 版22：ボスのお金（20G）の3倍より安くしない
+IL.bossTripCost = f => 3 * Math.round(20 * IL.goldMul(f)); // 版23：ボスのお金のちょうど3倍
 function startRun(pr, floor, seed, front) {
   const fl = genFloor(floor), rng = new RNG(seed);
   const st = playerStats(pr), bf = front ? IL.bossFront(fl) : -1;
@@ -396,7 +397,7 @@ function interactPed(pr, run, i) {
   const rng = run.rng, luck = playerStats(pr).luck, got = [];
   const n = (run.floor === 1 && !pr.bag.length) || rng.chance(0.5) ? 1 : 0; // 欠片は出すぎないように（版18：1階で欠片を1つも持っていなければ必ず出る）
   for (let k = 0; k < n; k++) { const p = newPart(pr, rng, { rar: rollRar(rng, IL.RAR_TABLE.chest, luck), sp: rollSpecies(rng), floor: run.floor, luck }); pr.bag.push(p); got.push(p); }
-  let gold = 0; if (!n || rng.chance(0.3)) { gold = rng.range(5, 10); pr.gold += gold; }
+  let gold = 0; if (!n || rng.chance(0.3)) { gold = Math.round(rng.range(5, 10) * IL.goldMul(run.floor)); pr.gold += gold; }
   let ticket = 0; if (rng.chance(0.03)) { ticket = 1; pr.tickets++; }
   run.events.push({ t: 'loot', parts: got, gold, ticket, from: '台座' });
 }
