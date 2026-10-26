@@ -378,7 +378,7 @@ L.t = s => {
   if (!/[ぁ-んァ-ヶ一-龯]/.test(out)) return out;
   for (const k of keys) if (out.indexOf(k) >= 0) out = out.split(k).join(D[k][i]);
   // 数字＋階
-  if (L.lang === 'en') out = out.replace(/に (\d[\d,]*) damage/g, ' takes $1 damage').replace(/に (\d[\d,]*) のダメージ/g, ' takes $1 damage');
+  if (L.lang === 'en') out = out.replace(/に\s*(\d[\d,]*)\s+damage/g, ' takes $1 damage');
   out = out.replace(/(\d+)\s*階/g, L.lang === 'en' ? 'F$1' : L.lang === 'zh' ? '$1層' : '$1층');
   if (L.lang === 'en') out = out.replace(/(\d+)\s*個/g, '$1').replace(/(\d+)\s*枚/g, '$1').replace(/ {2,}/g, ' ').replace(/ ([)\]:,.!?])/g, '$1');
   if (L.lang === 'ko') out = out.replace(/(\d+)\s*個/g, '$1개').replace(/(\d+)\s*枚/g, '$1장');
