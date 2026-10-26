@@ -4,7 +4,7 @@
 'use strict';
 const IL = {};
 IL.VER = 1;
-IL.ENGINE = '14'; // ルールの版（記録に書く。変えたら engine/ に前の版を残す）
+IL.ENGINE = '15'; // ルールの版（記録に書く。変えたら engine/ に前の版を残す）
 
 /* ---------- 乱数 ---------- */
 function hashStr(s) { let h = 2166136261 >>> 0; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
@@ -29,7 +29,7 @@ const B = IL.B = {
   expBase: 8, expPer: 3, bossExp: 10, bigExp: 15,
   potion: 0.5, potionPrice: 5, ticketPrice: 60, partPrice: [15, 80, 300, 300],
   synthRate: 0.2,
-  tierPct: [0, 1.2, 1.6, 2.2, 3.0, 4.2, 6.0, 9.0],
+  tierPct: [0, 1.2, 1.5, 1.9, 2.4, 3.0, 3.8, 5.0], // 版15：いちばん上を5倍までに（版14までは 9倍）
   coef: { fire: 1.0, wind: 0.6, rock: 0.7, forest: 0.6, star: 1.0 },
   guard: [0, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.5],
   burn: 0.1, burnTurns: 3, drain: 0.5, counter: 0.3,
