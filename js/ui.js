@@ -461,7 +461,7 @@ function render(now) {
   if (!fxLow()) dirty = true;
   if (!fxLow()) drawParticles(now, cx, cy, fl, bits, bi, x0, y0, x1, y1);
   drawMini(fl, bits);
-  if (window.FX) { const t = B.tint || [1, 1, 1]; FX.frame(cv, { px: TS / 16, bump: 0.6, bloom: 1.0, th: 0.5, vig: 0.42, tint: [1 + (t[0] - 1) * 0.18, 1 + (t[1] - 1) * 0.18, 1 + (t[2] - 1) * 0.18] }); }
+  if (window.FX) { const t = B.tint || [1, 1, 1]; FX.frame(cv, { px: TS / 16, bump: 0.45, bloom: 1.0, th: 0.5, vig: 0.42, tint: [1 + (t[0] - 1) * 0.18, 1 + (t[1] - 1) * 0.18, 1 + (t[2] - 1) * 0.18] }); }
 }
 function tileColor(v, i) { const T = IL.T; return v === T.BOSS ? '#b03048' : v === T.GATE ? '#ff6a4d' : v === T.SAFE ? '#4fd17a' : v === T.PED ? (run.opened[i] ? '#666' : '#f2d14b') : '#9a8fc0'; }
 /* 粒の演出（見た目だけ）：地域ごとの空気の粒・歩いたときのほこり・お宝のきらめき */

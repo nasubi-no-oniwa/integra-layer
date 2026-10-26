@@ -23,7 +23,7 @@ void main(){
     vec2 fp=v*res;vec3 ld=normalize(vec3(lp-fp,px*26.));
     float sh=1.+(dot(n,ld)-ld.z)*bump;
     float dist=length(lp-fp)/(px*16.);
-    float spec=pow(max(dot(reflect(-ld,n),vec3(0.,0.,1.)),0.),18.)*0.7*smoothstep(7.,1.5,dist)*step(0.02,abs(dx)+abs(dy));
+    float spec=pow(max(dot(reflect(-ld,n),vec3(0.,0.,1.)),0.),18.)*0.35*smoothstep(7.,1.5,dist)*step(0.02,abs(dx)+abs(dy));
     c=c*sh+spec*vec3(1.,.8,.55);
     float fall=smoothstep(9.,1.,dist);
     c*=mix(vec3(.62,.7,.95),vec3(1.18,1.04,.86),fall);
