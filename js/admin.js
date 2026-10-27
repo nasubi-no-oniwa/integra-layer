@@ -152,17 +152,18 @@ async function replayOf(pid) {
   // 記録のかたまりごとに、そのときのルールの版で再生する
   // 1回ぶんの再生（over：かたまりごとに版を差しかえて試す）
   const keys = Object.keys(s).sort((a, b) => a - b);
-  const play = over => { const S = IL.newState(pid, 0); let ops = [], n = 0;
+  const play = (over, skip) => { const S = IL.newState(pid, 0); let ops = [], n = 0; const skipped = [];
     for (let ki = 0; ki < keys.length; ki++) { const k = keys[ki];
       let part; try { part = IL.unpackJournal(s[k].d); } catch (e) { return { bad: '記録が壊れている（かたまり ' + k + '）' }; }
       const v = (over && over[k]) || s[k].v || '0', E = window.IL_ENGINES[v]; if (!E) return { bad: '版 ' + v + ' のルールが見つからない（engine/ に残っていない）' };
       for (let i = 0; i < part.length; i++) { const op = part[i], before = S.journal.length; E.exec(S, op);
+        if (S.journal.length === before && skip) { if (skipped.length < 200) skipped.push(op); n++; continue; }
         if (S.journal.length === before) { const R = S.run, bt = R && R.battle;
           const where = R ? `${R.floor}階・体力${R.hp}${bt ? '・戦闘中（' + (bt.over || '続き') + '・手番' + bt.turn + '）' : ''}${R.prompt ? '・' + R.prompt.kind : ''}${R.over ? '・終わった冒険' : ''}` : 'タイトル（冒険の外）';
           return { bad: (n + 1) + '番目の操作でおかしい（版 ' + v + '）', k, v, ki, i, op, prev: part[i - 1] || null, where, t: s[k].t, pt: ki ? s[keys[ki - 1]].t : 0, pv: ki ? s[keys[ki - 1]].v : '' }; }
         n++; }
       ops = ops.concat(part); }
-    return { S, ops, n }; };
+    return { S, ops, n, skipped }; };
   let res = play(null); const first = res;
   if (res.bad) {
     const fmt = x => { try { const j = JSON.stringify(x); return j.length > 160 ? j.slice(0, 160) + '…' : j; } catch (e) { return String(x); } };
@@ -173,7 +174,12 @@ async function replayOf(pid) {
       for (const alt of vs) { if (alt === res.v) continue; const r2 = play(Object.assign({}, over, { [res.k]: alt })); if (!r2.bad || r2.k !== res.k || r2.i > res.i) { over[res.k] = alt; res = r2; moved = true; break; } }
       if (!moved) break; }
     if (!res.bad) { res.note = 'かたまり ' + Object.keys(over).map(k => k + '（版' + first.v + '→' + over[k] + '）').join('・') + ' を別の版で再生すると正しく通った。端末の更新の途中で、版の名前がずれて記録されたもの（ずるではない）'; res.detail = detail; }
-    else return (jcache[pid] = { ok: false, why: first.bad + (Object.keys(over).length ? '（版を変えると先へ進むが、あとで合わない）' : '（ほかの版で試しても合わない）'), detail });
+    else {
+      // 合わない操作をとばして最後まで再生してみる（二重の記録なら、とばす数が少なく、倒した階もそのまま残る）
+      const r3 = play(null, true), cl = r3.S ? Object.keys(r3.S.pr.cleared || {}).map(Number) : [];
+      const sk = r3.skipped || [], kinds = {}; for (const o of sk) { const k = Array.isArray(o) ? o[0] : String(o); kinds[k] = (kinds[k] || 0) + 1; }
+      const sum = `\n【とばして再生】合わない操作 ${sk.length}${sk.length >= 200 ? '件以上' : '件'}（${Object.entries(kinds).map(([k, v]) => k + '×' + v).join('、')}）をとばすと、倒したボス：${cl.length ? Math.max(...cl) + '階まで' : 'なし'}`;
+      return (jcache[pid] = { ok: false, why: first.bad + (Object.keys(over).length ? '（版を変えると先へ進むが、あとで合わない）' : '（ほかの版で試しても合わない）'), detail: detail + sum, skipPr: r3.S && r3.S.pr, skipN: sk.length }); }
   }
   const S = res.S, ops = res.ops, n = res.n;
   const r = { ok: true, S };
@@ -195,6 +201,7 @@ async function verify(f) {
   const v = firsts[f]; const cell = $('#fv-' + f); if (!v || !cell) return; cell.textContent = '確認中…'; cell.className = 'mute';
   for (const cp of Object.keys(v.co || {})) { const rc = await replayOf(cp); if (!rc.ok || !(rc.pr.cleared && rc.pr.cleared[f])) { cell.textContent = '✖ 同時撃破の ' + ((v.co[cp] || {}).n || cp) + '：' + (rc.ok ? '記録にまだ無い' : rc.why); cell.className = 'ng'; return false; } }
   const r = await replayOf(v.pid);
+  if (!r.ok && r.skipPr && r.skipPr.cleared && r.skipPr.cleared[f] && r.skipN <= 20) { cell.textContent = `△ 記録が少し食い違っている（${r.skipN}件）。とばせば ${f}階を倒している。2台の端末・2つのタブで遊んだ時の二重の記録とみられる（ずるの可能性は低い）`; cell.className = 'mute'; if (r.detail) { const d = document.createElement('div'); d.className = 'mute'; d.style.cssText = 'white-space:pre-wrap;font-size:11px;margin-top:4px;word-break:break-all'; d.textContent = r.detail; cell.appendChild(d); } return false; }
   if (!r.ok) { cell.textContent = '✖ ' + r.why; cell.className = 'ng'; if (r.detail) { const d = document.createElement('div'); d.className = 'mute'; d.style.cssText = 'white-space:pre-wrap;font-size:11px;margin-top:4px;word-break:break-all'; d.textContent = r.detail; cell.appendChild(d); } return false; }
   if (r.pr.cleared && r.pr.cleared[f]) { cell.textContent = `✔ 正しい（操作 ${r.n}回）` + (r.warn ? `　※注意：${r.warn}` : ''); cell.className = 'ok'; return true; }
   cell.textContent = '△ 記録にまだ無い（送信待ちかも／不正かも）'; cell.className = 'ng'; return false;
