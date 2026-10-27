@@ -93,8 +93,8 @@
     "board": {
       ".read": true,
       "$id": {
-        ".write": "auth != null && !data.exists() && newData.child('t').val() === now && root.child('rate/' + newData.child('pid').val()).val() >= now - 3000 && (auth != null && (newData.child('pid').val() === auth.uid || root.child('owner/' + newData.child('pid').val() + '/uid').val() === auth.uid))",
-        ".validate": "!newData.exists() || (newData.child('s').isString() && newData.child('s').val().length <= 140 && newData.child('n').val().length <= 12)"
+        ".write": "auth != null && !data.exists() && !newData.hasChild('gm') && newData.child('t').val() === now && root.child('rate/' + newData.child('pid').val()).val() >= now - 3000 && (auth != null && (newData.child('pid').val() === auth.uid || root.child('owner/' + newData.child('pid').val() + '/uid').val() === auth.uid))",
+        ".validate": "!newData.exists() || (newData.child('s').isString() && newData.child('n').val().length <= 12 && (newData.child('s').val().length <= 140 || (newData.child('gm').val() === true && newData.child('s').val().length <= 600)))"
       }
     },
     "hidden": {

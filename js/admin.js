@@ -41,10 +41,13 @@ async function init() {
     for (const line of txt.split('\n')) { let l = line; while (l.length > 140) { if (cur) { parts.push(cur); cur = ''; } parts.push(l.slice(0, 140)); l = l.slice(140); }
       const nx = cur ? cur + '\n' + l : l; if (nx.length > 140) { parts.push(cur); cur = l; } else cur = nx; }
     if (cur) parts.push(cur);
-    if (!confirm('掲示板に GM として書きこみますか？（' + parts.length + 'つに分けて）')) return;
+    if (txt.length > 600) { $('#gm-msg').textContent = '600字までです（いま ' + txt.length + '字）'; return; }
+    if (!confirm('掲示板に GM として書きこみますか？')) return;
     const now = Date.now();
+    // 1つの書きこみで出す（600字まで。新しいルールが必要）。だめなら140字ごとに分けて出す
+    try { await db.ref('board').push({ pid: uid, n: 'GM', gm: true, s: txt, l: 'ja', t: now }); $('#gm-txt').value = ''; $('#gm-msg').textContent = '書きこみました'; return; } catch (e) {}
     try { for (let i = 0; i < parts.length; i++) await db.ref('board').push({ pid: uid, n: 'GM', gm: true, s: parts[i], l: 'ja', t: now + (parts.length - i) });
-      $('#gm-txt').value = ''; $('#gm-msg').textContent = '書きこみました（' + parts.length + '件）'; }
+      $('#gm-txt').value = ''; $('#gm-msg').textContent = '書きこみました（ルールが古いので ' + parts.length + 'つに分けました。database.rules.json を貼りなおすと1つで出せます）'; }
     catch (e) { $('#gm-msg').textContent = '書きこめませんでした：' + (e.code || e.message); }
   };
   if (!isAdmin) return;
