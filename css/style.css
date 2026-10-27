@@ -499,3 +499,7 @@ body.puni #pad .dpad{display:none}
 body.puni #pad{justify-content:flex-end}
 @media (hover:hover) and (pointer:fine){body.puni #pad{justify-content:space-between}}
 @media (hover:hover) and (pointer:fine){body.puni #pad .dpad{display:block}}
+
+/* ホーム画面に追加 */
+.a2ic{display:flex;gap:12px;align-items:center;margin:4px 0 10px}.a2ic img{width:64px;height:64px;border-radius:22%;box-shadow:0 4px 12px rgba(0,0,0,.5)}.a2ic p{margin:0;line-height:1.6}
+.a2s{margin:0 0 6px;padding-left:1.4em;line-height:1.9}

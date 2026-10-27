@@ -205,11 +205,11 @@ function title() {
       <button class="btn" data-a="points">能力${pr.freePts ? '<span class="badge">' + pr.freePts + '</span>' : ''}</button>
       <button class="btn" data-a="plaza">広場（掲示板）</button>
       ${Net.on ? '<button class="btn" data-a="maptop">地図屋</button>' : ''}
-      <div class="row tsub" style="justify-content:center"><button class="btn sm" data-a="profile">名前と引き継ぎ</button><button class="btn sm" data-a="help">遊び方</button><button class="btn sm" data-a="settings">⚙ 設定</button><button class="btn sm" data-a="lang">🌐 ${L10N.LANGS[L10N.lang]}</button>${ui.firsts && ui.firsts[100] ? '<button class="btn sm" data-a="ending">エンディング</button>' : ''}</div>
+      <div class="row tsub" style="justify-content:center"><button class="btn sm" data-a="profile">名前と引き継ぎ</button><button class="btn sm" data-a="help">遊び方</button>${MOBILE && !STANDALONE ? '<button class="btn sm" data-a="a2hs">📱 ホーム画面に追加</button>' : ''}<button class="btn sm" data-a="settings">⚙ 設定</button><button class="btn sm" data-a="lang">🌐 ${L10N.LANGS[L10N.lang]}</button>${ui.firsts && ui.firsts[100] ? '<button class="btn sm" data-a="ending">エンディング</button>' : ''}</div>
       ${DEV ? '<button class="btn sm warn" data-a="devreset">【開発用】データをリセット</button>' : ''}
     </div></div>
-    ${IOS && !STANDALONE ? '<p class="small mute iosh">📱 Safariの「共有」→「ホーム画面に追加」から開くと、上の帯なしの全画面で遊べます</p>' : ''}
     <a class="credit" href="https://maou.audio/" target="_blank" rel="noopener">音楽：魔王魂</a>`);
+  if (MOBILE && !STANDALONE && (opt.visits || 0) >= 2 && !opt.a2hs && !ui.a2hsShown) { ui.a2hsShown = true; setTimeout(() => { if (ui.scr === 'title') { opt.a2hs = 1; saveOpt(); a2hs(); } }, 900); }
   if (keepNm) { const n = document.getElementById('tname'); if (n) { n.value = keepNm[0]; if (keepNm[1]) n.focus(); } }
   drawTitleBg();
 }
@@ -1248,6 +1248,8 @@ document.addEventListener('click', async e => {
     case 'idone': sfx('click', 0.3); opt.intro = 1; saveOpt(); if (ui.introFrom === 'help') return help(); if (!pr.cleared[1]) { X(['start', 1]); sfx('ok', 0.4); enterRun(run); fetchDrops(); return; } return floors();
     case 'intro': sfx('click', 0.3); return intro(0, 'help');
     case 'help': return help();
+    case 'a2hs': sfx('click', 0.3); return a2hs();
+    case 'a2hsgo': if (A2HS) { A2HS.prompt(); A2HS.userChoice.finally(() => { A2HS = null; title(); }); } return;
     case 'sound': opt.sound = !opt.sound; saveOpt(); return run ? runMenu() : title();
     case 'settings': return settings('title');
     case 'settings2': return settings('run');
@@ -1358,6 +1360,16 @@ $('#mini').addEventListener('pointerup', () => { if (run && !ui.scr) fullMap(); 
 ['#view', '#pad', '#hud'].forEach(q => $(q).addEventListener('touchstart', e => { if (!e.target.closest('input,select,textarea,a')) e.preventDefault(); }, { passive: false }));
 addEventListener('contextmenu', e => e.preventDefault());
 const IOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const MOBILE = IOS || (matchMedia('(pointer:coarse)').matches && /Android|Mobile/i.test(navigator.userAgent));
+/* ホーム画面に追加（Android は本物の追加ボタン、iPhone は手順を出す） */
+let A2HS = null; addEventListener('beforeinstallprompt', e => { e.preventDefault(); A2HS = e; });
+function a2hs() {
+  ui.scr = 'a2hs';
+  const steps = IOS ? '<ol class="a2s"><li>下（または上）の <b>共有ボタン</b>（□に↑）を押す</li><li>「<b>ホーム画面に追加</b>」を選ぶ</li><li>ホーム画面の「インテグラ」から開く</li></ol><p class="small mute">Safari で開いているときだけできます。</p>'
+    : A2HS ? '<p>下のボタンを押すと、ホーム画面にアイコンが入ります。</p><div class="row" style="justify-content:center"><button class="btn pri" data-a="a2hsgo">ホーム画面に追加する</button></div>'
+    : '<ol class="a2s"><li>右上の <b>︙</b>（メニュー）を押す</li><li>「<b>ホーム画面に追加</b>」または「<b>アプリをインストール</b>」を選ぶ</li><li>ホーム画面の「インテグラ」から開く</li></ol>';
+  show(`<div class="win" style="max-width:460px"><button class="btn sm close" data-a="title">とじる</button><h2>📱 ホーム画面に追加しよう</h2><div class="a2ic"><img src="img/icon2-192.png" alt=""><p>アプリのように<b>全画面</b>で遊べます。<br>ダウンロードも登録もいりません。</p></div>${steps}</div>`);
+}
 const STANDALONE = matchMedia('(display-mode: fullscreen), (display-mode: standalone)').matches || navigator.standalone;
 addEventListener('pointerdown', () => { if (IOS || STANDALONE || document.fullscreenElement || !matchMedia('(pointer:coarse)').matches) return; const el = document.documentElement; (el.requestFullscreen || el.webkitRequestFullscreen || (() => {})).call(el).catch?.(() => {}); }, { capture: true });
 
@@ -1406,6 +1418,8 @@ async function boot() {
   if (await checkUpdate()) return;
   if (/[?&]reset=1/.test(location.search)) { try { ['il_state_v1', 'il_salesgot', 'il_jn'].forEach(k => localStorage.removeItem(k)); } catch (e) {} history.replaceState(null, '', location.pathname); } // この端末のデータだけ消す
   try { opt = Object.assign(opt, JSON.parse(localStorage.getItem(SAVE_O) || '{}')); } catch (e) {}
+  opt.visits = (opt.visits || 0) + 1; saveOpt();
+  if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {}); // 2回目から速く開く
   L10N.lang = opt.lang || L10N.pick(); document.documentElement.lang = L10N.lang; L10N.observe(); L10N.apply(); applyOpt();
   if (window.FX) { FX.init(cv); applyOpt(); }
   resize(); requestAnimationFrame(render); drawIdle();
