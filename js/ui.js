@@ -1212,7 +1212,7 @@ function banned(t) { const s = String(t).toLowerCase().replace(/\s/g, ''); retur
 function plaza() {
   ui.scr = 'plaza';
   show(`<div class="win"><button class="btn sm close" data-a="plazaback">とじる</button><h2>広場（全体掲示板）</h2>
-    ${Net.on ? `<div class="row"><input id="pmsg" maxlength="140" placeholder="ひとこと（20秒に1回）" style="flex:1;min-width:200px;padding:10px;border-radius:8px;border:2px solid var(--line);background:#0e0c14;color:var(--ink);font:inherit"><button class="btn pri" data-a="post">送る</button></div>` : '<p class="mute">オンラインのときだけ使えます</p>'}
+    ${Net.on ? `<div class="row"><textarea id="pmsg" maxlength="140" rows="2" placeholder="ひとこと（20秒に1回・改行は3回まで）" style="flex:1;min-width:200px;resize:none;line-height:1.5;padding:8px 10px;border-radius:8px;border:2px solid var(--line);background:#0e0c14;color:var(--ink);font:inherit"></textarea><button class="btn pri" data-a="post">送る</button></div>` : '<p class="mute">オンラインのときだけ使えます</p>'}
     <div id="plist" class="log" style="height:52vh"></div><p class="small mute">いやな書きこみは「通報」してください。</p></div>`);
   if (ui.prefill && $('#pmsg')) { $('#pmsg').value = ui.prefill; ui.prefill = null; }
   if (ui.unBoard) ui.unBoard();
@@ -1222,11 +1222,12 @@ function drawBoard() { const v = ui.boardV || {};
     { const el = $('#plist'); if (!el) return; const ids = Object.keys(v).sort((a, b) => (v[b].t || 0) - (v[a].t || 0));
     el.innerHTML = ids.map(id => { const m = v[id]; if (!m || banned(m.s || '') || (ui.hidden && ui.hidden[id])) return '';
       if (m.gm) return `<div class="gmmsg"><div class="gmh"><b>🛡 GMからの一言</b> <span class="mute small">${new Date(m.t || 0).toLocaleString().slice(0, -3)}</span></div><div class="gmt nt">${esc(m.s || '')}</div></div>`;
-      return `<div style="margin-bottom:6px"><b class="nt">${esc(m.n || '名無し')}</b>${m.bf || m.lv ? ` <span class="small gold">（${m.bf ? m.bf + '階・' : ''}Lv${m.lv || 1}）</span>` : ''} <span class="mute small">${new Date(m.t || 0).toLocaleTimeString().slice(0, 5)}</span> <button class="btn sm" data-rep="${esc(id)}" style="min-height:24px;padding:0 6px;font-size:11px">通報</button>${'Translator' in window && m.l && m.l !== L10N.lang ? ` <button class="btn sm" data-tr="${esc(id)}" data-tl="${esc(m.l)}" style="min-height:24px;padding:0 6px;font-size:11px">翻訳</button>` : ''}<br><span class="nt" data-msg="${esc(id)}">${esc(m.s || '')}</span></div>`; }).join('') || '<span class="mute">まだ書きこみがない</span>'; }
+      return `<div style="margin-bottom:6px"><b class="nt">${esc(m.n || '名無し')}</b>${m.bf || m.lv ? ` <span class="small gold">（${m.bf ? m.bf + '階・' : ''}Lv${m.lv || 1}）</span>` : ''} <span class="mute small">${new Date(m.t || 0).toLocaleTimeString().slice(0, 5)}</span> <button class="btn sm" data-rep="${esc(id)}" style="min-height:24px;padding:0 6px;font-size:11px">通報</button>${'Translator' in window && m.l && m.l !== L10N.lang ? ` <button class="btn sm" data-tr="${esc(id)}" data-tl="${esc(m.l)}" style="min-height:24px;padding:0 6px;font-size:11px">翻訳</button>` : ''}<br><span class="nt" data-msg="${esc(id)}" style="white-space:pre-line">${esc(m.s || '')}</span></div>`; }).join('') || '<span class="mute">まだ書きこみがない</span>'; }
 }
 let lastPost = 0;
 async function doPost() {
-  const el = $('#pmsg'); if (!el) return; const t = el.value.trim(); if (!t) return;
+  const el = $('#pmsg'); if (!el) return; let t = el.value.replace(/\r/g, '').replace(/\n{2,}/g, '\n').trim(); if (!t) return;
+  { const ls = t.split('\n'); if (ls.length > 4) t = ls.slice(0, 3).concat(ls.slice(3).join(' ')).join('\n'); } // 改行は3回まで
   if (banned(t)) { toast('使えない言葉が入っています'); sfx('ng'); return; }
   if (Date.now() - lastPost < 20000) { toast('あと ' + Math.ceil((20000 - (Date.now() - lastPost)) / 1000) + ' 秒まってね'); return; }
   Net.postInfo = { bf: bestBoss(), lv: pr.lv }; const r = await Net.post(opt.name || '名無し', t, L10N.lang); if (r === 'ok') { lastPost = Date.now(); el.value = ''; sfx('ok', 0.4); } else toast(r === 'rate' ? '20秒に1回まで' : '送れませんでした');
