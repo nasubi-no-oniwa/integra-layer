@@ -146,8 +146,8 @@ async function loadFirsts() {
   $('#firsts').innerHTML = '<tr><th>階</th><th>倒した人</th><th>とき</th><th>確認</th><th></th></tr>' + fs.map(f => { const v = firsts[f]; const p = players[v.pid] || {}; const co = Object.keys(v.co || {}).map(k => `<br><span class="mute">＋同時：${esc((v.co[k] || {}).n || '無名')} <code>${esc(k)}</code></span>`).join(''); return `<tr><td>${f}階</td><td>${esc(p.n || v.n || '無名')}<br><code class="mute">${esc(v.pid)}</code>${co}</td><td class="mute">${tm(v.t)}</td><td id="fv-${f}" class="mute">—</td><td><button data-fv="${f}">確かめる</button> <button class="warn" data-fx="${f}">取り消す</button></td></tr>`; }).join('');
 }
 const jcache = {};
-async function replayOf(pid) {
-  if (jcache[pid]) return jcache[pid];
+async function replayOf(pid, quick) {
+  if (jcache[pid] && !quick) return jcache[pid];
   const s = (await db.ref('journal/' + pid).once('value')).val() || {};
   // 記録のかたまりごとに、そのときのルールの版で再生する
   // 1回ぶんの再生（over：かたまりごとに版を差しかえて試す）
@@ -164,14 +164,15 @@ async function replayOf(pid) {
         n++; }
       ops = ops.concat(part); }
     return { S, ops, n, skipped }; };
+  if (quick) { const r = play(null, true); return r.S ? { ok: !(r.skipped || []).length, pr: r.S.pr, skipPr: r.S.pr, skipN: (r.skipped || []).length, why: '' } : { ok: false, why: r.bad }; } // 復旧用：合わない操作はとばして、いちばん新しい状態を作るだけ
   let res = play(null); const first = res;
   if (res.bad) {
     const fmt = x => { try { const j = JSON.stringify(x); return j.length > 160 ? j.slice(0, 160) + '…' : j; } catch (e) { return String(x); } };
     const detail = res.k != null ? `かたまり ${res.k}（${res.ki + 1}/${keys.length}・版 ${res.v}・${new Date(res.t || 0).toLocaleString()}）の ${res.i + 1}番目／ひとつ前のかたまりは版 ${res.pv}・${new Date(res.pt || 0).toLocaleString()}\nそのときの状態：${res.where}\nおかしい操作：${fmt(res.op)}\nひとつ前の操作：${fmt(res.prev)}` : '';
     // 端末の更新の途中で、版の名前がずれて記録された可能性：合わないかたまりだけ、ほかの版で試す（5か所まで）
-    const vs = Object.keys(window.IL_ENGINES).sort((a, b) => a - b), over = {};
+    const all = Object.keys(window.IL_ENGINES).sort((a, b) => a - b), over = {}; const vs = q => { const i = all.indexOf(q); return [all[i - 1], all[i + 1]].filter(Boolean); };
     for (let tries = 0; tries < 5 && res.bad && res.k != null; tries++) { let moved = false;
-      for (const alt of vs) { if (alt === res.v) continue; const r2 = play(Object.assign({}, over, { [res.k]: alt })); if (!r2.bad || r2.k !== res.k || r2.i > res.i) { over[res.k] = alt; res = r2; moved = true; break; } }
+      for (const alt of vs(res.v)) { const r2 = play(Object.assign({}, over, { [res.k]: alt })); if (!r2.bad || r2.k !== res.k || r2.i > res.i) { over[res.k] = alt; res = r2; moved = true; break; } }
       if (!moved) break; }
     if (!res.bad) { res.note = 'かたまり ' + Object.keys(over).map(k => k + '（版' + first.v + '→' + over[k] + '）').join('・') + ' を別の版で再生すると正しく通った。端末の更新の途中で、版の名前がずれて記録されたもの（ずるではない）'; res.detail = detail; }
     else {
@@ -227,7 +228,7 @@ $('#players').addEventListener('click', e => { const w = e.target.dataset.wipe; 
    その人のゲームは、次に開いたとき（開いていれば1分以内）に、自動でこの状態に戻る */
 async function restorePlayer(pid, btn) {
   const p = players[pid] || {}; btn.disabled = true; btn.textContent = '組み直し中…';
-  delete jcache[pid]; const r = await replayOf(pid); const pr = r.ok ? r.pr : r.skipPr; btn.disabled = false; btn.textContent = '復旧';
+  await new Promise(r => setTimeout(r, 50)); const r = await replayOf(pid, true); const pr = r.pr; btn.disabled = false; btn.textContent = '復旧';
   if (!pr) { alert('記録から組み直せませんでした：' + (r.why || '')); return; }
   let cur = null; try { cur = JSON.parse(p.save || '{}').pr; } catch (e) {}
   const best = o => o && o.cleared ? Math.max(0, ...Object.keys(o.cleared).map(Number)) : 0;
