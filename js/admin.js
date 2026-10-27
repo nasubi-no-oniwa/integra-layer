@@ -99,8 +99,8 @@ function watchNews() {
 /* プレイヤー */
 async function loadPlayers() {
   players = (await db.ref('players').once('value')).val() || {};
-  const ids = Object.keys(players).sort((a, b) => (players[b].mf || 0) - (players[a].mf || 0));
-  $('#players').innerHTML = '<tr><th>名前</th><th>Lv</th><th>最前線</th><th>最後</th><th>ID</th></tr>' + ids.map(id => { const p = players[id]; return `<tr><td>${esc(p.n || '名無し')}</td><td>${p.lv || 1}</td><td>${p.mf || 1}階</td><td class="mute">${tm(p.t)}</td><td class="mute"><code>${esc(id)}</code></td><td><button data-bd2="${esc(id)}">盤面を見る</button> <button class="warn" data-wipe="${esc(id)}">全部消す</button></td></tr>`; }).join('');
+  const ids = Object.keys(players).sort((a, b) => (players[b].bf || 0) - (players[a].bf || 0) || (players[b].lv || 0) - (players[a].lv || 0)); // 自分で倒したいちばん上のボスの階の順
+  $('#players').innerHTML = '<tr><th>名前</th><th>Lv</th><th>倒したボス（最高）</th><th>最後</th><th>ID</th></tr>' + ids.map(id => { const p = players[id]; return `<tr><td>${esc(p.n || '名無し')}</td><td>${p.lv || 1}</td><td>${p.bf ? p.bf + '階' : '<span class="mute">まだ</span>'}</td><td class="mute">${tm(p.t)}</td><td class="mute"><code>${esc(id)}</code></td><td><button data-bd2="${esc(id)}">盤面を見る</button> <button class="warn" data-wipe="${esc(id)}">全部消す</button></td></tr>`; }).join('');
 }
 /* その人の盤面（最後に保存されたとき） */
 function showBoard(pid) {
