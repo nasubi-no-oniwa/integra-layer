@@ -4,6 +4,8 @@
 'use strict';
 // [英語, 繁体字中国語, 韓国語]
 const D = {
+"別のタブで開かれました": ["Opened in another tab", "已在其他分頁開啟", "다른 탭에서 열렸습니다"], "同じゲームを2つのタブ（ウィンドウ）で同時に遊ぶと、記録がずれてしまうので、こちらの画面は止めました。": ["Playing in two tabs at once breaks your records, so this tab has been paused.", "同時在兩個分頁遊玩會讓紀錄錯亂，所以已停止這個畫面。", "두 탭에서 동시에 하면 기록이 어긋나서 이 화면은 멈췄습니다."],
+"こちらで遊ぶ": ["Play here", "在這裡玩", "여기서 하기"], "押すと、もう一方のタブが止まって、こちらで続きから遊べます。": ["The other tab will stop and you can continue here.", "按下後另一個分頁會停止，可以在這裡接著玩。", "누르면 다른 탭이 멈추고 여기서 이어서 할 수 있습니다."],
 "ひとこと（20秒に1回・改行は3回まで）": ["Say something (once per 20s, up to 3 line breaks)", "說點什麼（每20秒1次・最多換行3次）", "한마디 (20초에 1번·줄바꿈 3번까지)"],
 "🛡 GMからの一言": ["🛡 A word from the GM", "🛡 GM的話", "🛡 GM의 한마디"],
 "緑＝ボスを倒した階　金＝最前線（": ["Green = cleared  Gold = frontline (", "綠＝已打倒頭目的樓層　金＝最前線（", "초록=보스를 쓰러뜨린 층  금=최전선("], "）。右上の点：🟢勝てそう 🟡手ごわい 🔴危険。押すと最初に倒した人が見られる。": ["). Dot: 🟢 winnable 🟡 tough 🔴 dangerous. Tap a floor to see who cleared it first.", "）。右上的點：🟢能贏 🟡難纏 🔴危險。按下可看到最先打倒的人。", "). 오른쪽 위 점: 🟢이길 만함 🟡버거움 🔴위험. 누르면 처음 쓰러뜨린 사람을 볼 수 있다."],

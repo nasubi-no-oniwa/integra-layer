@@ -9,9 +9,9 @@ let S = null, pr = null, run = null, opt = { sound: true, name: '', bgm: 0.5, se
 const ui = { scr: null, sel: null, bagSel: null, filt: { sp: 'all', rar: 'all', sort: 'score' }, target: 0, sub: null, synthBase: null, synthMat: null, bags: [], ghosts: [], firsts: {}, pickSel: [] };
 
 /* ---------- 保存（すべての操作は X() を通して記録する） ---------- */
-function X(op) { const r = IL.exec(S, op); pr = S.pr; run = S.run; if (S.journal.length >= 400) flushJournal(); return r; }
+function X(op) { if (TAB.lost) return null; const r = IL.exec(S, op); pr = S.pr; run = S.run; if (S.journal.length >= 400) flushJournal(); return r; }
 function packState() { const o = { uid: S.uid, pr: S.pr, journal: S.journal, gclear: S.gclear || {}, jver: S.jver || IL.ENGINE, pend: S.pend || [] }; if (S.run && !S.run.over) { IL.saveMap(S.pr, S.run); o.run = packRun(S.run); } return o; }
-function save() { if (!S) return; try { localStorage.setItem(SAVE_S, JSON.stringify(packState())); } catch (e) {} }
+function save() { if (!S || TAB.lost) return; try { localStorage.setItem(SAVE_S, JSON.stringify(packState())); } catch (e) {} }
 function saveOpt() { try { localStorage.setItem(SAVE_O, JSON.stringify(opt)); } catch (e) {} }
 function packRun(r) { const o = Object.assign({}, r); o.rngS = r.rng.s; delete o.rng; delete o._bits; delete o._dirty; o.events = []; return o; }
 function unpackRun(o) { const r = Object.assign({}, o); r.rng = new IL.RNG(o.rngS); delete r.rngS; return r; }
@@ -27,7 +27,7 @@ function loadState(pid) {
 }
 let flushing = false;
 async function flushJournal() { // 記録をサーバーへ送る（送れなかったら手元に残す）
-  if (!Net.on || flushing || (!S.journal.length && !(S.pend && S.pend.length))) return; flushing = true;
+  if (TAB.lost || !Net.on || flushing || (!S.journal.length && !(S.pend && S.pend.length))) return; flushing = true;
   try {
     while (S.pend && S.pend.length) { const ok = await Net.pushJournal(S.pend[0].s, S.pend[0].v); if (!ok) return; S.pend.shift(); save(); }
     if (S.journal.length) { const part = S.journal.slice(), str = IL.packJournal(part); const ok = await Net.pushJournal(str, IL.ENGINE); if (ok) { S.journal.splice(0, part.length); save(); } }
@@ -1489,7 +1489,21 @@ async function checkUpdate() {
 }
 setInterval(() => { if (!run || run.over || ui.scr === 'title') checkUpdate(); }, 5 * 60000);
 addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && (!run || !run.battle)) checkUpdate(); });
+/* 同時に遊べるのは1つのタブだけ（2つのタブの操作が1本の記録に混ざると、記録が合わなくなるため） */
+const TAB = { id: Math.random().toString(36).slice(2), lost: false };
+function tabOwner() { try { return JSON.parse(localStorage.getItem('il_tab') || 'null'); } catch (e) { return null; } }
+function tabClaim() { try { localStorage.setItem('il_tab', JSON.stringify({ id: TAB.id, t: Date.now(), b: TAB.at || Date.now() })); } catch (e) {} }
+function tabLost() {
+  if (TAB.lost) return; TAB.lost = true; stopWalk && stopWalk(); try { stopHold(); stopExplore(); } catch (e) {}
+  const d = document.createElement('div'); d.className = 'tablock';
+  d.innerHTML = '<div class="win" style="max-width:440px"><h2>別のタブで開かれました</h2><p>同じゲームを2つのタブ（ウィンドウ）で同時に遊ぶと、記録がずれてしまうので、こちらの画面は止めました。</p><div class="row" style="justify-content:center"><button class="btn pri" id="tabtake">こちらで遊ぶ</button></div><p class="small mute">押すと、もう一方のタブが止まって、こちらで続きから遊べます。</p></div>';
+  document.body.appendChild(d); d.querySelector('#tabtake').onclick = () => { tabClaim(); location.reload(); };
+}
+// あとから開いた（または「こちらで遊ぶ」を押した）タブが勝つ
+const tabCheck = () => { if (TAB.lost) return; const o = tabOwner(); if (o && o.id !== TAB.id && (o.b || 0) > (TAB.at || 0)) { tabLost(); return; } tabClaim(); };
+setInterval(tabCheck, 1500); addEventListener('storage', e => { if (e.key === 'il_tab') tabCheck(); });
 async function boot() {
+  TAB.at = Date.now(); tabClaim();
   if (await checkUpdate()) return;
   if (/[?&]reset=1/.test(location.search)) { try { ['il_state_v1', 'il_salesgot', 'il_jn'].forEach(k => localStorage.removeItem(k)); } catch (e) {} history.replaceState(null, '', location.pathname); } // この端末のデータだけ消す
   try { opt = Object.assign(opt, JSON.parse(localStorage.getItem(SAVE_O) || '{}')); } catch (e) {}

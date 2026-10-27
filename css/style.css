@@ -537,3 +537,4 @@ h2.caution{color:#ffb84d}
 .fiwin .row{flex-wrap:nowrap;gap:8px}.fiwin .row .btn{font-size:14px;padding:8px 10px;white-space:nowrap}.fiwin p{margin:4px 0}
 .gmmsg{margin:0 0 8px;padding:8px 10px;border-radius:10px;border:2px solid #d9a93a;background:linear-gradient(135deg,rgba(255,200,80,.18),rgba(80,40,120,.25));box-shadow:0 0 12px rgba(255,190,60,.25)}
 .gmmsg .gmh b{color:#ffe58a}.gmmsg .gmt{white-space:pre-line;margin-top:4px;line-height:1.6}
+.tablock{position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;background:rgba(8,5,16,.92)}
