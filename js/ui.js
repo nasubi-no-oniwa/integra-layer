@@ -180,7 +180,7 @@ function infoHTML() {
   let h = ''; const st = ui.stream;
   if (st && st.on) h += `<a class="stream" href="${/^https?:\/\//.test(st.url || '') ? esc(st.url) : '#'}" target="_blank" rel="noopener">🔴 配信中${st.name ? '　<b class="nt">' + esc(st.name) + '</b>' + (L10N.lang === 'ja' ? 'さん' : '') : ''}${st.txt ? '　<span class="nt">' + esc(st.txt) + '</span>' : ''}</a>`;
   const fs = ui.firsts || {}, top = Math.max(0, ...Object.keys(fs).map(Number).filter(f => fs[f] && !fs[f].ng));
-  if (top) { const v = fs[top], co = Object.values(v.co || {}).length; h += `<div class="front">🏆 最前線　<b>${top}階</b>のボスを <span class="nt">${esc(v.n || '無名')}</span>${co ? ' ＋' + co : ''}が初めて倒した <span class="mute small">（${ago(v.t)}）</span></div>`; }
+  if (top) { const v = fs[top], co = Object.values(v.co || {}).length; h += `<button class="front" data-a="records"><span class="fic">🏆</span><span class="ftx"><span class="fl1">最前線 <b>${Math.min(100, top + 1)}階</b></span><span class="fl2"><span class="nt">${esc(v.n || '無名')}</span>${co ? ' ＋' + co + '人' : ''}が ${top}階を初撃破 <span class="mute">（${ago(v.t)}）</span></span></span><span class="fgo">塔の記録 ›</span></button>`; }
   const nw = ui.news || {}; const ids = Object.keys(nw).sort((a, b) => (nw[b].t || 0) - (nw[a].t || 0)).slice(0, 3);
   if (ids.length) h += '<div class="news"><b>お知らせ</b>' + ids.map(id => `<div><span class="mute">${new Date(nw[id].t || 0).toLocaleDateString()}</span> <span class="nt">${esc(nw[id].s)}</span></div>`).join('') + '</div>';
   return h;
@@ -217,10 +217,11 @@ function floors() {
   ui.scr = 'floors';
   const bt = !!ui.bossTrip;
   let b = ''; for (let f = 1; f <= 100; f++) { const cl = pr.cleared[f], fr = f === pr.maxFloor, ok = bt ? cl && pr.gold >= IL.bossTripCost(f) : f <= pr.maxFloor;
-    b += `<button data-f="${f}" class="${cl ? 'cl' : ''} ${fr ? 'fr' : ''}" ${ok ? '' : 'disabled'}>${f}${bt && cl ? `<small>${IL.bossTripCost(f)}G</small>` : ''}</button>`; }
+    const rl = ok ? floorRisk(f).lv : -1;
+    b += `<button data-f="${f}" class="${cl ? 'cl' : ''} ${fr ? 'fr' : ''} ${rl >= 0 ? 'rk' + rl : ''}" ${ok ? '' : 'disabled'}>${f}${bt && cl ? `<small>${IL.bossTripCost(f)}G</small>` : ''}</button>`; }
   show(`<div class="win"><button class="btn sm close" data-a="title">もどる</button><h2>どの階から始める？</h2>
     <button class="guard trip ${bt ? 'on' : ''}" data-a="btrip"><span class="sw"><i></i></span><span>ボス部屋の前から始める<small>ボスを倒したことのある階だけ・ボスのお金の3倍（所持 ${pr.gold} G）</small></span></button>
-    <p class="small mute">${bt ? '選んだ階のボス部屋の入口の前から始まる。宝箱の中身はふつうと同じ。' : '緑＝ボスを倒した階　金＝最前線（' + pr.maxFloor + '階）。10階ごとに景色が変わる。'}</p>
+    <p class="small mute">${bt ? '選んだ階のボス部屋の入口の前から始まる。宝箱の中身はふつうと同じ。' : '緑＝ボスを倒した階　金＝最前線（' + pr.maxFloor + '階）。右上の点：🟢勝てそう 🟡手ごわい 🔴危険。押すと最初に倒した人が見られる。'}</p>
     <div class="floors">${b}</div>${Net.on ? '<p class="small mute" style="margin-top:8px">地図を買う：</p><div class="row"><select id="mapf">' + Array.from({ length: pr.maxFloor }, (_, i) => `<option value="${i + 1}">${i + 1}階</option>`).join('') + '</select><button class="btn sm" data-a="mapopen">地図の店へ</button></div>' : ''}</div>`);
 }
 function help() {
@@ -235,6 +236,73 @@ function help() {
 ・メニューの「欠片を託す」で、選んだ欠片をバッグに入れて、だれかのために置いていける（倒れるのと同じ）。
 ・行商人とは戦えるが、とても強い。負けるとかばんの中身が消える。
 ・操作：矢印キー／WASDで移動、スペース／Zで調べる、Xでメニュー。スマホは画面のどこでも指をすべらせた向きへ歩く（ぷにコン。設定で十字キーにもできる）か、行きたい場所をタップするとそこまで歩く。<br>・「探索」ボタン（キーボードはE）で、まだ行っていない所へ自動で歩く。ふつうの敵は「おまかせ」で自動で戦う（設定で変えられる）。</p></div>`);
+}
+
+/* ---------- 初撃破の記録・階に入る前の確認 ---------- */
+function boardSnap() { // 初撃破したときの盤面（みんなが見られるように小さく）
+  const st = IL.playerStats(pr), sk = [];
+  for (const sp of IL.SPECIES) if (st.skills[sp]) sk.push([sp, st.skills[sp].tier, st.skills[sp].count]);
+  return { lv: pr.lv, s: IL.STATS.map(k => st[k]), sk, b: pr.board.map(id => { const p = id == null ? null : pr.bag.find(q => q.id === id); return p ? [p.sp, p.rar, p.stats.map(x => x.k + x.r).join(''), p.edges.join(''), p.rot || 0, p.gacha ? 1 : 0] : 0; }) };
+}
+function snapParts(b) { return (b || []).map((a, i) => a ? { id: i + 1, sp: a[0], rar: a[1], floor: 0, stats: [...String(a[2]).matchAll(/([a-z]+)([ABC])/g)].map(m => ({ k: m[1], r: m[2] })), edges: String(a[3]).split('').map(Number), rot: a[4] || 0, gacha: !!a[5] } : null); }
+/* 今の能力で、その階のボスにどれくらい戦えるか（見立て。ゲームの計算はしない）
+   いちばん安全な戦い方（ふつうの攻撃・技）で、倒すまでの手数と、何回の攻撃に耐えられるかを比べる */
+function floorRisk(f) {
+  const st = IL.playerStats(pr), B = IL.B, e = IL.makeEnemy(f, IL.bossType(f), f % 5 === 0 ? 2 : 1, null);
+  const hit = IL.dmgCalc(e.atk, 1, st.def); let best = null;
+  const opts = [{ dmg: IL.dmgCalc(st.atk, 1, e.def), heal: 0, g: 0 }];
+  for (const sp of IL.SPECIES) { const sk = st.skills[sp]; if (!sk) continue; const pct = B.tierPct[sk.tier] * B.coef[sp];
+    const mul = sp === 'star' ? 1 : e.weak === sp ? 2 : e.res === sp ? 0.5 : 1, d = IL.dmgCalc(st.atk, pct, e.def) * mul;
+    opts.push({ dmg: d, heal: sp === 'forest' ? d * B.drain : 0, g: sp === 'rock' ? Math.min(0.5, B.guard[sk.tier]) : 0 }); }
+  for (const o of opts) { const T = Math.ceil(e.hp / Math.max(1, o.dmg)), inc = hit * (1 - o.g) - o.heal, H = inc <= 0 ? 999 : Math.max(0, Math.floor(st.hp / inc)), r = T / Math.max(0.5, H);
+    if (!best || r < best.r) best = { T, H, r }; }
+  // 次に挑む階までは、階の中でレベルや欠片が増えるので「危険」にはしない。それより上だけ、かなり分が悪いときに「危険」
+  const near = f <= IL.ownTop(pr); if (f === 1) return { lv: 0, T: best.T, H: best.H }; // 1階は練習の階
+  return { lv: !near && best.r > 1.5 ? 2 : best.r > 1 ? 1 : 0, T: best.T, H: best.H };
+}
+function floorInfo(f) {
+  ui.scr = 'floorinfo'; ui.fiF = f; const bt = !!ui.bossTrip, v = (ui.firsts || {})[f], rk = floorRisk(f), danger = rk.lv === 2;
+  let own = 1; for (let g = Math.min(f, pr.maxFloor); g >= 1; g--) if (floorRisk(g).lv < 2) { own = g; break; } // 勝てそうな、いちばん上の階
+  const who = v ? `<div class="fwho">🏆 この階を最初に倒した人：<button class="btn sm nt" data-fb="${f}">${esc(v.n || '無名')}</button><span class="mute small">（${ago(v.t)}・押すと装備が見られる）</span></div>`
+    : `<div class="fwho mute">この階のボスは、まだだれも倒していない。最初に倒すと名前が塔に刻まれる。</div>`;
+  const meter = `<div class="risk r${rk.lv}"><div><span>ボスを倒すまで</span><b>約${rk.T}手</b></div><div class="vs">VS</div><div><span>あなたが耐えられる</span><b>${rk.H >= 999 ? '倒れない' : rk.H < 1 ? '1回も無理' : '約' + rk.H + '回'}</b></div></div>`;
+  const trip = bt ? `<p class="small">ボス部屋の入口の前から始まる（${IL.bossTripCost(f)} G／所持 ${pr.gold} G）</p>` : '';
+  const head = danger ? `<h2 class="danger">⚠ 危険です</h2><p>今の能力だと、${f}階のボスに勝つのはかなり難しそうです。<b style="color:#ff8a8a">すぐに倒されるかもしれません。</b></p>${meter}${trip}`
+    : rk.lv === 1 ? `<h2 class="caution">△ 手ごわい階です</h2><p>${f}階に入りますか？　ギリギリの戦いになりそう。回復薬を持っていこう。</p>${meter}${trip}`
+    : `<h2>${f}階に入りますか？</h2><p class="small">今の能力なら、ボスに勝てそうです。</p>${meter}${trip}`;
+  const btns = danger ? `${own < f ? `<button class="btn pri" data-go="${own}">勝てそうな階から（${own}階）</button>` : ''}<button class="btn warn" data-go="${f}">それでも行く（${f}階）</button>`
+    : `<button class="btn pri" data-go="${f}" ${bt && pr.gold < IL.bossTripCost(f) ? 'disabled' : ''}>入る</button>`;
+  show(`<div class="win fiwin" style="max-width:480px"><button class="btn sm close" data-a="floors">もどる</button>${head}${who}<div class="row" style="margin-top:10px">${btns}</div></div>`);
+}
+function records() {
+  ui.scr = 'records'; const fs = ui.firsts || {};
+  const rows = Object.keys(fs).map(Number).filter(f => fs[f] && !fs[f].ng).sort((a, b) => b - a).map(f => { const v = fs[f], me = v.pid === Net.pid, co = Object.values(v.co || {}).length;
+    return `<button class="rrow ${me ? 'me' : ''}" data-fb="${f}"><span class="rf">${f}階</span><span class="rn nt">${esc(v.n || '無名')}${co ? '<small> ＋' + co + '人</small>' : ''}</span><span class="rt mute">${ago(v.t)}</span><span class="rgo">装備 ›</span></button>`; }).join('');
+  show(`<div class="win recwin" style="max-width:560px"><button class="btn sm close" data-a="title">もどる</button><h2>🏆 塔の記録</h2><p class="small mute">各階のボスを最初に倒した人。名前を押すと、そのときの装備が見られる。</p><div class="rlist">${rows || '<p class="mute">まだだれも倒していない</p>'}</div></div>`);
+}
+async function firstBoard(f) {
+  const v = (ui.firsts || {})[f]; if (!v) return; const back = ui.scr === 'records' ? 'records' : 'fi'; ui.fbBack = back;
+  let parts, st, note = '';
+  if (v.bd) { parts = snapParts(v.bd.b); st = { lv: v.bd.lv, s: v.bd.s, sk: v.bd.sk }; }
+  else {
+    show('<div class="win" style="max-width:420px"><p class="mute">読みこんでいます…</p></div>');
+    const sv = await Net.loadPlayerSave(v.pid); const p2 = sv && sv.pr;
+    if (!p2) { show(`<div class="win" style="max-width:420px"><h2>${f}階　<span class="nt">${esc(v.n || '無名')}</span></h2><p class="mute">装備の記録が見つからなかった。</p><div class="row"><button class="btn" data-a="fbback">もどる</button></div></div>`); return; }
+    const ps = IL.playerStats(p2); parts = p2.board.map(id => id == null ? null : p2.bag.find(q => q.id === id) || null);
+    st = { lv: p2.lv, s: IL.STATS.map(k => ps[k]), sk: IL.SPECIES.filter(sp => ps.skills[sp]).map(sp => [sp, ps.skills[sp].tier, ps.skills[sp].count]) };
+    note = '<p class="small mute">※ この階を倒したときの記録がないので、この人の「いまの」装備を出しています。</p>';
+  }
+  ui.scr = 'firstboard'; const an = IL.analyzeBoard(parts);
+  const sk = (st.sk || []).map(([sp, t, n]) => `<div class="skill" style="--c:${IL.SP_COLOR[sp]}"><i></i>${IL.SKILLS[sp][t]} <span class="mute">${IL.SP_NAME[sp]}×${n}・段階${t}</span></div>`).join('') || '<div class="mute small">技なし</div>';
+  const stats = IL.STATS.map((k, i) => `<div>${IL.STAT_NAME[k]}<b>${(st.s || [])[i] ?? '-'}</b></div>`).join('');
+  show(`<div class="win fbwin" style="max-width:640px"><button class="btn sm close" data-a="fbback">もどる</button><h2>${f}階を初撃破　<span class="nt">${esc(v.n || '無名')}</span></h2><p class="small mute">${ago(v.t)}　Lv ${st.lv}</p>${note}
+    <div class="fbbody">${boardMini(parts, an)}<div class="fbside"><div class="stats">${stats}</div><div class="skills">${sk}</div></div></div></div>`);
+}
+/* だれかが初撃破したとき：画面の真ん中に大きく */
+function firstFx(name, f) {
+  const d = document.createElement('div'); d.className = 'firstfx';
+  d.innerHTML = `<span>🏆 初撃破</span><b><span class="nt">${esc(name)}</span>さんが ${f}階を倒した！</b><small>最前線が ${Math.min(100, f + 1)}階になった</small>`;
+  $('#app').appendChild(d); setTimeout(() => d.remove(), 3600);
 }
 
 /* ---------- 設定 ---------- */
@@ -1124,7 +1192,7 @@ async function claimFirst(floor, br) {
   if (!br || !br.maybeFirst) return;
   if (!Net.on) { const got = X(['first', floor]); if (got && got !== true) { save(); showFirst(floor, got); } return; }
   await flushJournal();
-  const ok = await Net.claimFirst(floor, { n: opt.name || '', jn: Net.journalCount(), dg: IL.digest(pr), lv: pr.lv });
+  const ok = await Net.claimFirst(floor, { n: opt.name || '', jn: Net.journalCount(), dg: IL.digest(pr), lv: pr.lv, bd: boardSnap() });
   if (ok) { const got = X(['first', floor]); save(); syncProfile(); if (got && got !== true) showFirst(floor, got, ok === 'co'); }
 }
 function showFirst(floor, got, co) { ui.firstFloor = floor; if (run && run.prompt && run.prompt.kind === 'bosswin' && ui.scr === 'prompt') prompt(); sfx('god', 0.5);
@@ -1134,7 +1202,7 @@ function onFirsts(fs) {
   const prevTop = ui.firstsTop || 0;
   ui.firsts = fs || {};
   const top = Math.max(0, ...Object.keys(ui.firsts).map(Number).filter(f => ui.firsts[f] && !ui.firsts[f].ng)); ui.firstsTop = top;
-  if (prevTop && top > prevTop && ui.firsts[top] && ui.firsts[top].pid !== Net.pid) { const v = ui.firsts[top]; toast('🏆 ' + (v.n || '無名') + 'さんが ' + top + '階のボスを初めて倒した！ 最前線が ' + Math.min(100, top + 1) + '階になった'); sfx('levelup', 0.4); } const floors = Object.keys(ui.firsts).map(Number).filter(n => n > 0 && !(ui.firsts[n] && ui.firsts[n].ng)).sort((a, b) => a - b);
+  if (prevTop && top > prevTop && ui.firsts[top] && ui.firsts[top].pid !== Net.pid) { const v = ui.firsts[top]; firstFx(v.n || '無名', top); sfx('levelup', 0.4); } const floors = Object.keys(ui.firsts).map(Number).filter(n => n > 0 && !(ui.firsts[n] && ui.firsts[n].ng)).sort((a, b) => a - b);
   const cur = Object.keys(S.gclear || {}).map(Number).sort((a, b) => a - b).join(',');
   if (floors.join(',') !== cur) { X(['gclr', floors]); save(); if (ui.scr === 'title') title(); }
 }
@@ -1216,12 +1284,14 @@ async function collectSales() { if (!Net.on) return; const n = await Net.claimSa
 /* ---------- クリック ---------- */
 document.addEventListener('click', async e => {
   if (performance.now() < DRAG.until && e.target.closest('.boardwin')) return;
-  const t = e.target.closest('[data-a],[data-f],[data-cell],[data-bag],[data-pt],[data-syn],[data-gp],[data-buy],[data-c],[data-sk],[data-it],[data-tg],[data-use],[data-dpot],[data-mb],[data-rep],[data-tr],[data-pk],[data-tr2]');
+  const t = e.target.closest('[data-a],[data-f],[data-go],[data-fb],[data-cell],[data-bag],[data-pt],[data-syn],[data-gp],[data-buy],[data-c],[data-sk],[data-it],[data-tg],[data-use],[data-dpot],[data-mb],[data-rep],[data-tr],[data-pk],[data-tr2]');
   if (!t) { if (ui.scr === 'board' && (ui.sel != null || ui.bagSel != null) && !e.target.closest('select,input,label')) { ui.sel = null; ui.bagSel = null; sfx('click', 0.2); boardScreen(); } return; }
   const d = t.dataset;
-  if (d.f && t.tagName === 'BUTTON') { const own = IL.ownTop(pr);
+  if (d.f && t.tagName === 'BUTTON') { sfx('click', 0.3); return floorInfo(+d.f); }
+  if (d.go && t.tagName === 'BUTTON') { d.f = d.go; ui.fok = +d.go; const own = IL.ownTop(pr);
     if (!ui.bossTrip && +d.f > own + 2 && ui.fok !== +d.f) { ui.fok = +d.f; sfx('click', 0.3); return show(`<div class="win" style="max-width:460px"><h2>本当にこの階へ行く？</h2><p>${d.f}階は、あなたが次に挑む階（${own}階）より ${d.f - own} 階も上です。<br><b style="color:#ff8a8a">敵がとても強く、すぐに倒されるかもしれません。</b></p><p class="small mute">最前線の階にも行けますが、まずは${own}階から進めるのがおすすめです。</p><div class="row"><button class="btn pri" data-f="${own}">おすすめの階から（${own}階）</button><button class="btn warn" data-f="${d.f}">それでも行く（${d.f}階）</button><button class="btn" data-a="floors">もどる</button></div></div>`); }
     ui.fok = null; if (ui.bossTrip) { if (!X(['startb', +d.f])) { toast('お金が足りない'); return; } Net.anCount('u/bosstrip'); sfx('coin', 0.5); } else X(['start', +d.f]); sfx('ok', 0.4); enterRun(run); fetchDrops(); return; }
+  if (d.fb != null) { sfx('click', 0.3); return firstBoard(+d.fb); }
   if (d.cell != null) return boardCellTap(+d.cell);
   if (d.bag != null && ui.multi) { const id = +d.bag; if (pr.board.includes(id)) return; ui.multi.has(id) ? ui.multi.delete(id) : ui.multi.add(id); ui.mconf = false; sfx('click', 0.2); return boardScreen(); }
   if (d.bag != null) { const before = IL.playerStats(pr); setTimeout(() => statDiff(before), 0); const id = +d.bag; ui.bagSel = ui.bagSel === id ? null : id; if (ui.sel != null && ui.bagSel != null && pr.board[ui.sel] == null) { X(['place', ui.sel, id]); ui.bagSel = null; sfx('place'); save(); } else sfx('click', 0.3); return boardScreen(); }
@@ -1248,6 +1318,8 @@ document.addEventListener('click', async e => {
     case 'idone': sfx('click', 0.3); opt.intro = 1; saveOpt(); if (ui.introFrom === 'help') return help(); if (!pr.cleared[1]) { X(['start', 1]); sfx('ok', 0.4); enterRun(run); fetchDrops(); return; } return floors();
     case 'intro': sfx('click', 0.3); return intro(0, 'help');
     case 'help': return help();
+    case 'records': sfx('click', 0.3); return records();
+    case 'fbback': sfx('click', 0.3); return ui.fbBack === 'records' ? records() : floorInfo(ui.fiF);
     case 'a2hs': sfx('click', 0.3); return a2hs();
     case 'a2hsgo': if (A2HS) { A2HS.prompt(); A2HS.userChoice.finally(() => { A2HS = null; title(); }); } return;
     case 'sound': opt.sound = !opt.sound; saveOpt(); return run ? runMenu() : title();

@@ -59,6 +59,7 @@ Net.makeCode = async () => {
   if (!db) return null; const ch = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let c = ''; for (let i = 0; i < 8; i++) c += ch[Math.floor(Math.random() * ch.length)];
   try { await db.ref('xfer/' + c).set({ pid: Net.pid, t: T() }); return c; } catch (e) { return null; }
 };
+Net.loadPlayerSave = async pid => { if (!db) return null; try { const v = (await db.ref('players/' + pid + '/save').once('value')).val(); return v ? JSON.parse(v) : null; } catch (e) { return null; } };
 Net.useCode = async code => {
   if (!db) return null; code = String(code || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
   try {
