@@ -143,7 +143,9 @@ async function replayOf(pid) {
   }
   const r = { ok: true, S };
   // 外から入ってくる値（みんなの初撃破・地図の売り上げ）が本当にあったかも確かめる
-  let gain = 0; for (const op of ops) { if (op[0] === 'gclr') { const bad = (op[1] || []).find(f => !firsts[f]); if (bad) return (jcache[pid] = { ok: false, why: bad + '階は、まだだれも倒していないのに倒したことになっている' }); } if (op[0] === 'mapgain') gain += Math.max(0, op[1] | 0); }
+  // みんなの初撃破（gclr）は本人のゲームが自動で書き写すだけ。取り消された初撃破を見ていた人もいるので、ここでは「注意」にとどめる
+  //（gclr で変わるのは始められる階と追い風だけ。ボスを倒したかどうかは上の再生で本当に確かめている）
+  let gain = 0; const gone = new Set(); for (const op of ops) { if (op[0] === 'gclr') for (const f of op[1] || []) if (!firsts[f]) gone.add(+f); if (op[0] === 'mapgain') gain += Math.max(0, op[1] | 0); }
   const sales = (await db.ref('sales/' + pid).once('value')).val() || {}; let sold = 0; for (const k in sales) sold += sales[k] | 0;
   if (gain > sold) return (jcache[pid] = { ok: false, why: `地図の売り上げが多すぎる（記録 ${gain}回／本当は ${sold}回）` });
   // バッグから拾ったものが、本当にそのバッグに入っていたか
@@ -151,14 +153,15 @@ async function replayOf(pid) {
     const b = arc[id]; if (!b) return (jcache[pid] = { ok: false, why: 'ないバッグ（' + id + '）から拾ったことになっている' });
     const key = q => JSON.stringify([q.sp, q.rar, q.floor, (q.stats || []).map(x => x.k + x.r).join(''), (q.edges || []).join('')]); const pool = (b.p || []).map(key);
     for (const q of op[2] || []) { const i = pool.indexOf(key(q)); if (i < 0) return (jcache[pid] = { ok: false, why: 'バッグ（' + id + '）に入っていない欠片を拾ったことになっている' }); pool.splice(i, 1); } }
-  return (jcache[pid] = { ok: true, why: '', pr: r.S.pr, n: ops.length });
+  const warn = gone.size ? 'いまは無い初撃破（' + [...gone].sort((a, b) => a - b).join('・') + '階）を見ていた時期がある。取り消された記録を、本人のゲームが書き写しただけ' : '';
+  return (jcache[pid] = { ok: true, why: '', warn, pr: r.S.pr, n: ops.length });
 }
 async function verify(f) {
   const v = firsts[f]; const cell = $('#fv-' + f); if (!v || !cell) return; cell.textContent = '確認中…'; cell.className = 'mute';
   for (const cp of Object.keys(v.co || {})) { const rc = await replayOf(cp); if (!rc.ok || !(rc.pr.cleared && rc.pr.cleared[f])) { cell.textContent = '✖ 同時撃破の ' + ((v.co[cp] || {}).n || cp) + '：' + (rc.ok ? '記録にまだ無い' : rc.why); cell.className = 'ng'; return false; } }
   const r = await replayOf(v.pid);
   if (!r.ok) { cell.textContent = '✖ ' + r.why; cell.className = 'ng'; return false; }
-  if (r.pr.cleared && r.pr.cleared[f]) { cell.textContent = `✔ 正しい（操作 ${r.n}回）`; cell.className = 'ok'; return true; }
+  if (r.pr.cleared && r.pr.cleared[f]) { cell.textContent = `✔ 正しい（操作 ${r.n}回）` + (r.warn ? `　※注意：${r.warn}` : ''); cell.className = 'ok'; return true; }
   cell.textContent = '△ 記録にまだ無い（送信待ちかも／不正かも）'; cell.className = 'ng'; return false;
 }
 $('#firsts').addEventListener('click', async e => {
