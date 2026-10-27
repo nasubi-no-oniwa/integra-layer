@@ -34,6 +34,19 @@ async function init() {
   uid = user.uid; await loadEngines();
   $('#me').innerHTML = `<div class="row"><p class="ok" style="margin:0">管理者として入っています。</p><button id="logout">ログアウト</button></div>`;
   $('#logout').onclick = async () => { await au.signOut(); location.reload(); };
+  // GMからの一言（掲示板に、GMの印つきで書きこむ。1つ140字まで）
+  $('#gm-post').onclick = async () => {
+    const txt = $('#gm-txt').value.trim(); if (!txt) return;
+    const parts = []; let cur = '';
+    for (const line of txt.split('\n')) { let l = line; while (l.length > 140) { if (cur) { parts.push(cur); cur = ''; } parts.push(l.slice(0, 140)); l = l.slice(140); }
+      const nx = cur ? cur + '\n' + l : l; if (nx.length > 140) { parts.push(cur); cur = l; } else cur = nx; }
+    if (cur) parts.push(cur);
+    if (!confirm('掲示板に GM として書きこみますか？（' + parts.length + 'つに分けて）')) return;
+    const now = Date.now();
+    try { for (let i = 0; i < parts.length; i++) await db.ref('board').push({ pid: uid, n: 'GM', gm: true, s: parts[i], l: 'ja', t: now + (parts.length - i) });
+      $('#gm-txt').value = ''; $('#gm-msg').textContent = '書きこみました（' + parts.length + '件）'; }
+    catch (e) { $('#gm-msg').textContent = '書きこめませんでした：' + (e.code || e.message); }
+  };
   if (!isAdmin) return;
   try { const la = firebase.initializeApp(CFG.live, 'live'); await la.auth().signInAnonymously(); la.database().ref('on').on('value', s => { const v = s.val() || {}, now = Date.now(); let n = 0, inT = 0; const fl = {}; for (const k in v) if (now - (v[k].t || 0) < 180000) { n++; if (v[k].f) { inT++; fl[v[k].f] = (fl[v[k].f] || 0) + 1; } }
     $('#online').innerHTML = `いま遊んでいる人：<b>${n}人</b>（塔の中 ${inT}人）` + (inT ? '<br><span class="mute">' + Object.keys(fl).sort((a, b) => b - a).map(f => f + '階 ' + fl[f] + '人').join('　') + '</span>' : ''); }); } catch (e) {}

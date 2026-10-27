@@ -1220,7 +1220,9 @@ function plaza() {
 }
 function drawBoard() { const v = ui.boardV || {};
     { const el = $('#plist'); if (!el) return; const ids = Object.keys(v).sort((a, b) => (v[b].t || 0) - (v[a].t || 0));
-    el.innerHTML = ids.map(id => { const m = v[id]; if (!m || banned(m.s || '') || (ui.hidden && ui.hidden[id])) return ''; return `<div style="margin-bottom:6px"><b class="nt">${esc(m.n || '名無し')}</b>${m.bf || m.lv ? ` <span class="small gold">（${m.bf ? m.bf + '階・' : ''}Lv${m.lv || 1}）</span>` : ''} <span class="mute small">${new Date(m.t || 0).toLocaleTimeString().slice(0, 5)}</span> <button class="btn sm" data-rep="${esc(id)}" style="min-height:24px;padding:0 6px;font-size:11px">通報</button>${'Translator' in window && m.l && m.l !== L10N.lang ? ` <button class="btn sm" data-tr="${esc(id)}" data-tl="${esc(m.l)}" style="min-height:24px;padding:0 6px;font-size:11px">翻訳</button>` : ''}<br><span class="nt" data-msg="${esc(id)}">${esc(m.s || '')}</span></div>`; }).join('') || '<span class="mute">まだ書きこみがない</span>'; }
+    el.innerHTML = ids.map(id => { const m = v[id]; if (!m || banned(m.s || '') || (ui.hidden && ui.hidden[id])) return '';
+      if (m.gm) return `<div class="gmmsg"><div class="gmh"><b>🛡 GMからの一言</b> <span class="mute small">${new Date(m.t || 0).toLocaleString().slice(0, -3)}</span></div><div class="gmt nt">${esc(m.s || '')}</div></div>`;
+      return `<div style="margin-bottom:6px"><b class="nt">${esc(m.n || '名無し')}</b>${m.bf || m.lv ? ` <span class="small gold">（${m.bf ? m.bf + '階・' : ''}Lv${m.lv || 1}）</span>` : ''} <span class="mute small">${new Date(m.t || 0).toLocaleTimeString().slice(0, 5)}</span> <button class="btn sm" data-rep="${esc(id)}" style="min-height:24px;padding:0 6px;font-size:11px">通報</button>${'Translator' in window && m.l && m.l !== L10N.lang ? ` <button class="btn sm" data-tr="${esc(id)}" data-tl="${esc(m.l)}" style="min-height:24px;padding:0 6px;font-size:11px">翻訳</button>` : ''}<br><span class="nt" data-msg="${esc(id)}">${esc(m.s || '')}</span></div>`; }).join('') || '<span class="mute">まだ書きこみがない</span>'; }
 }
 let lastPost = 0;
 async function doPost() {

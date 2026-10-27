@@ -535,3 +535,5 @@ h2.caution{color:#ffb84d}
 .floors button.rk0::after{background:#5fd38a}.floors button.rk1::after{background:#ffb84d}.floors button.rk2::after{background:#ff5a5a;box-shadow:0 0 6px #ff5a5a}
 .fbwin .board.mini{--s:min(44px,calc((100vh - 190px) / 5))}
 .fiwin .row{flex-wrap:nowrap;gap:8px}.fiwin .row .btn{font-size:14px;padding:8px 10px;white-space:nowrap}.fiwin p{margin:4px 0}
+.gmmsg{margin:0 0 8px;padding:8px 10px;border-radius:10px;border:2px solid #d9a93a;background:linear-gradient(135deg,rgba(255,200,80,.18),rgba(80,40,120,.25));box-shadow:0 0 12px rgba(255,190,60,.25)}
+.gmmsg .gmh b{color:#ffe58a}.gmmsg .gmt{white-space:pre-line;margin-top:4px;line-height:1.6}
