@@ -1518,10 +1518,12 @@ async function boot() {
   if (Net.on) Net.anStart();
   let pid = null; try { pid = localStorage.getItem('il_pid'); } catch (e) {}
   if (!pid) { pid = Net.uid || ('local-' + Math.random().toString(36).slice(2, 12)); try { localStorage.setItem('il_pid', pid); } catch (e) {} }
-  Net.pid = pid; loadState(pid);
+  Net.pid = pid;
+  if (Net.on) { const rf = await Net.restoreFlag(); if (rf) { const sv = await Net.doRestore(rf); if (sv) { try { const o = JSON.parse(sv); localStorage.setItem(SAVE_S, JSON.stringify({ uid: Net.pid, pr: o.pr, journal: [], gclear: o.gclear || {}, jver: IL.ENGINE, pend: [] })); } catch (e) {} pid = Net.pid; ui.restored = true; } } }
+  loadState(pid); if (ui.restored) setTimeout(() => toast('管理者がデータを復旧しました。続きから遊べます'), 1500);
   if (Net.on) { Net.watchHidden(h => { ui.hidden = h; if (ui.scr === 'plaza') drawBoard(); }); Net.watchInfo((k, v) => { ui[k] = v; if (ui.scr === 'title') title(); }); Net.watchFirsts(onFirsts);
     const beat = () => Net.presence(run && !run.over ? run.floor : 0); beat(); setInterval(beat, 60000);
-    collectSales(); setInterval(() => { flushJournal(); }, 60000); }
+    collectSales(); setInterval(async () => { if (await Net.restoreFlag()) { location.reload(); return; } flushJournal(); }, 60000); }
   const go = () => { dirty = true; if (run && !run.over) { enterRun(run); fetchDrops(); if (run.battle) battle(); else if (run.prompt) prompt(); } else title(); };
   if (sheet.complete && sheet.naturalWidth) go(); else sheet.onload = go;
 }

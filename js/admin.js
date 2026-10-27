@@ -116,7 +116,7 @@ function watchNews() {
 async function loadPlayers() {
   players = (await db.ref('players').once('value')).val() || {};
   const ids = Object.keys(players).sort((a, b) => (players[b].bf || 0) - (players[a].bf || 0) || (players[b].lv || 0) - (players[a].lv || 0)); // 自分で倒したいちばん上のボスの階の順
-  $('#players').innerHTML = '<tr><th>名前</th><th>Lv</th><th>倒したボス（最高）</th><th>最後</th><th>ID</th></tr>' + ids.map(id => { const p = players[id]; return `<tr><td>${esc(p.n || '名無し')}</td><td>${p.lv || 1}</td><td>${p.bf ? p.bf + '階' : '<span class="mute">まだ</span>'}</td><td class="mute">${tm(p.t)}</td><td class="mute"><code>${esc(id)}</code></td><td><button data-bd2="${esc(id)}">盤面を見る</button> <button class="warn" data-wipe="${esc(id)}">全部消す</button></td></tr>`; }).join('');
+  $('#players').innerHTML = '<tr><th>名前</th><th>Lv</th><th>倒したボス（最高）</th><th>最後</th><th>ID</th></tr>' + ids.map(id => { const p = players[id]; return `<tr><td>${esc(p.n || '名無し')}</td><td>${p.lv || 1}</td><td>${p.bf ? p.bf + '階' : '<span class="mute">まだ</span>'}</td><td class="mute">${tm(p.t)}</td><td class="mute"><code>${esc(id)}</code></td><td><button data-bd2="${esc(id)}">盤面を見る</button> <button data-code="${esc(id)}">復旧</button> <button class="warn" data-wipe="${esc(id)}">全部消す</button></td></tr>`; }).join('');
 }
 /* その人の盤面（最後に保存されたとき） */
 function showBoard(pid) {
@@ -222,7 +222,23 @@ async function wipePlayer(pid) {
   const bd = (await db.ref('board').once('value')).val() || {}; for (const id in bd) if (bd[id].pid === pid) up['board/' + id] = null;
   await db.ref().update(up); alertMsg('消しました'); await loadPlayers(); loadFirsts(); stat();
 }
-$('#players').addEventListener('click', e => { const w = e.target.dataset.wipe; if (w) wipePlayer(w); const b = e.target.dataset.bd2; if (b) showBoard(b); });
+$('#players').addEventListener('click', e => { const w = e.target.dataset.wipe; if (w) wipePlayer(w); const b = e.target.dataset.bd2; if (b) showBoard(b); const c = e.target.dataset.code; if (c) restorePlayer(c, e.target); });
+/* 復旧：サーバーの記録（操作の全履歴）から、いちばん新しい状態を組み直して、セーブを上書きする。
+   その人のゲームは、次に開いたとき（開いていれば1分以内）に、自動でこの状態に戻る */
+async function restorePlayer(pid, btn) {
+  const p = players[pid] || {}; btn.disabled = true; btn.textContent = '組み直し中…';
+  delete jcache[pid]; const r = await replayOf(pid); const pr = r.ok ? r.pr : r.skipPr; btn.disabled = false; btn.textContent = '復旧';
+  if (!pr) { alert('記録から組み直せませんでした：' + (r.why || '')); return; }
+  let cur = null; try { cur = JSON.parse(p.save || '{}').pr; } catch (e) {}
+  const best = o => o && o.cleared ? Math.max(0, ...Object.keys(o.cleared).map(Number)) : 0;
+  const msg = `${p.n || '名無し'} を復旧します。\n\n記録から組み直した状態：Lv ${pr.lv}・倒したボス ${best(pr)}階まで・かばん ${pr.bag.length}個・${pr.gold}G${r.ok ? '' : '（合わない操作 ' + r.skipN + '件をとばした）'}\nいまのセーブ：${cur ? 'Lv ' + cur.lv + '・倒したボス ' + best(cur) + '階まで・かばん ' + cur.bag.length + '個' : 'なし'}\n\n組み直した状態で上書きしますか？`;
+  if (!confirm(msg)) return;
+  const other = (prompt('この人が新しいIDで遊び直している場合は、その新しいIDを入れてください（同じIDのままなら空のままOK）', '') || '').trim();
+  const up = {}; const save = JSON.stringify({ pr, gclear: {} });
+  up['players/' + pid + '/save'] = save; up['players/' + pid + '/lv'] = pr.lv; up['players/' + pid + '/bf'] = best(pr); up['players/' + pid + '/restore'] = pid;
+  if (other && other !== pid) { up['owner/' + pid] = { uid: other, code: 'ADMIN' }; up['players/' + other + '/restore'] = pid; }
+  try { await db.ref().update(up); alert('復旧しました。その人が次にゲームを開いたとき（開いていれば1分以内）に、この状態に戻ります。'); } catch (e) { alert('書きこめませんでした：' + (e.code || e.message)); }
+}
 $('#fv-all').onclick = async () => { const fs = Object.keys(firsts).map(Number); let bad = 0; for (const f of fs) if (!(await verify(f))) bad++; $('#fv-msg').textContent = `${fs.length}件中 おかしい／未確認 ${bad}件`; };
 /* 掲示板 */
 function watchBoard() {

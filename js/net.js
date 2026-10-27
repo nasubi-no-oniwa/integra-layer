@@ -54,11 +54,18 @@ Net.pushJournal = async (str, v) => {
   try { await db.ref('journal/' + Net.pid + '/' + n).set({ d: str, v: String(v || '0'), t: T() }); ls('il_jn', String(n + 1)); return n + 1; } catch (e) { return false; }
 };
 Net.journalCount = () => +(ls('il_jn') || 0);
-Net.saveProfile = async (pub, saveStr) => { if (!db) return; try { await db.ref('players/' + Net.pid).update(Object.assign({ t: T(), save: saveStr, jn: Net.journalCount() }, pub)); } catch (e) {} };
+Net.saveProfile = async (pub, saveStr) => { if (!db) return; if (await Net.restoreFlag()) { location.reload(); return; } try { await db.ref('players/' + Net.pid).update(Object.assign({ t: T(), save: saveStr, jn: Net.journalCount() }, pub)); } catch (e) {} };
 Net.makeCode = async () => {
   if (!db) return null; const ch = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; let c = ''; for (let i = 0; i < 8; i++) c += ch[Math.floor(Math.random() * ch.length)];
   try { await db.ref('xfer/' + c).set({ pid: Net.pid, t: T() }); return c; } catch (e) { return null; }
 };
+Net.restoreFlag = async () => { if (!db || !Net.pid) return null; try { return (await db.ref('players/' + Net.pid + '/restore').once('value')).val(); } catch (e) { return null; } };
+Net.doRestore = async target => { // 管理者が用意したセーブに入れかえる（記録の番号はサーバーの続きから）
+  try { const me = Net.pid; const sv = (await db.ref('players/' + target + '/save').once('value')).val(); if (!sv) return null;
+    let jn = 0; try { const last = (await db.ref('journal/' + target).orderByKey().limitToLast(1).once('value')).val(); if (last) jn = Math.max(...Object.keys(last).map(k => +k + 1)); } catch (e) {}
+    Net.pid = target; ls('il_pid', target); ls('il_jn', String(jn));
+    try { await db.ref('players/' + me + '/restore').remove(); } catch (e) {} if (me !== target) { try { await db.ref('players/' + target + '/restore').remove(); } catch (e) {} }
+    return sv; } catch (e) { return null; } };
 Net.loadPlayerSave = async pid => { if (!db) return null; try { const v = (await db.ref('players/' + pid + '/save').once('value')).val(); return v ? JSON.parse(v) : null; } catch (e) { return null; } };
 Net.useCode = async code => {
   if (!db) return null; code = String(code || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
@@ -66,7 +73,8 @@ Net.useCode = async code => {
     const x = (await db.ref('xfer/' + code).once('value')).val(); if (!x || !x.pid) return null;
     await db.ref('owner/' + x.pid).set({ uid: Net.uid, code });
     const p = (await db.ref('players/' + x.pid).once('value')).val(); if (!p || !p.save) return null;
-    Net.pid = x.pid; ls('il_pid', x.pid); ls('il_jn', String(p.jn || 0));
+    let jn = p.jn || 0; try { const last = (await db.ref('journal/' + x.pid).orderByKey().limitToLast(1).once('value')).val(); if (last) jn = Math.max(jn, ...Object.keys(last).map(k => +k + 1)); } catch (e) {}
+    Net.pid = x.pid; ls('il_pid', x.pid); ls('il_jn', String(jn));
     return p.save;
   } catch (e) { return null; }
 };
