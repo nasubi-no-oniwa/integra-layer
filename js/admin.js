@@ -150,13 +150,32 @@ async function replayOf(pid) {
   if (jcache[pid]) return jcache[pid];
   const s = (await db.ref('journal/' + pid).once('value')).val() || {};
   // 記録のかたまりごとに、そのときのルールの版で再生する
-  const S = IL.newState(pid, 0); let ops = [], n = 0;
-  for (const k of Object.keys(s).sort((a, b) => a - b)) {
-    let part; try { part = IL.unpackJournal(s[k].d); } catch (e) { return (jcache[pid] = { ok: false, why: '記録が壊れている' }); }
-    const v = s[k].v || '0', E = window.IL_ENGINES[v]; if (!E) return (jcache[pid] = { ok: false, why: '版 ' + v + ' のルールが見つからない（engine/ に残っていない）' });
-    for (const op of part) { const before = S.journal.length; E.exec(S, op); if (S.journal.length === before) return (jcache[pid] = { ok: false, why: (n + 1) + '番目の操作でおかしい（版 ' + v + '）' }); n++; }
-    ops = ops.concat(part);
+  // 1回ぶんの再生（over：かたまりごとに版を差しかえて試す）
+  const keys = Object.keys(s).sort((a, b) => a - b);
+  const play = over => { const S = IL.newState(pid, 0); let ops = [], n = 0;
+    for (let ki = 0; ki < keys.length; ki++) { const k = keys[ki];
+      let part; try { part = IL.unpackJournal(s[k].d); } catch (e) { return { bad: '記録が壊れている（かたまり ' + k + '）' }; }
+      const v = (over && over[k]) || s[k].v || '0', E = window.IL_ENGINES[v]; if (!E) return { bad: '版 ' + v + ' のルールが見つからない（engine/ に残っていない）' };
+      for (let i = 0; i < part.length; i++) { const op = part[i], before = S.journal.length; E.exec(S, op);
+        if (S.journal.length === before) { const R = S.run, bt = R && R.battle;
+          const where = R ? `${R.floor}階・体力${R.hp}${bt ? '・戦闘中（' + (bt.over || '続き') + '・手番' + bt.turn + '）' : ''}${R.prompt ? '・' + R.prompt.kind : ''}${R.over ? '・終わった冒険' : ''}` : 'タイトル（冒険の外）';
+          return { bad: (n + 1) + '番目の操作でおかしい（版 ' + v + '）', k, v, ki, i, op, prev: part[i - 1] || null, where, t: s[k].t, pt: ki ? s[keys[ki - 1]].t : 0, pv: ki ? s[keys[ki - 1]].v : '' }; }
+        n++; }
+      ops = ops.concat(part); }
+    return { S, ops, n }; };
+  let res = play(null); const first = res;
+  if (res.bad) {
+    const fmt = x => { try { const j = JSON.stringify(x); return j.length > 160 ? j.slice(0, 160) + '…' : j; } catch (e) { return String(x); } };
+    const detail = res.k != null ? `かたまり ${res.k}（${res.ki + 1}/${keys.length}・版 ${res.v}・${new Date(res.t || 0).toLocaleString()}）の ${res.i + 1}番目／ひとつ前のかたまりは版 ${res.pv}・${new Date(res.pt || 0).toLocaleString()}\nそのときの状態：${res.where}\nおかしい操作：${fmt(res.op)}\nひとつ前の操作：${fmt(res.prev)}` : '';
+    // 端末の更新の途中で、版の名前がずれて記録された可能性：合わないかたまりだけ、ほかの版で試す（5か所まで）
+    const vs = Object.keys(window.IL_ENGINES).sort((a, b) => a - b), over = {};
+    for (let tries = 0; tries < 5 && res.bad && res.k != null; tries++) { let moved = false;
+      for (const alt of vs) { if (alt === res.v) continue; const r2 = play(Object.assign({}, over, { [res.k]: alt })); if (!r2.bad || r2.k !== res.k || r2.i > res.i) { over[res.k] = alt; res = r2; moved = true; break; } }
+      if (!moved) break; }
+    if (!res.bad) { res.note = 'かたまり ' + Object.keys(over).map(k => k + '（版' + first.v + '→' + over[k] + '）').join('・') + ' を別の版で再生すると正しく通った。端末の更新の途中で、版の名前がずれて記録されたもの（ずるではない）'; res.detail = detail; }
+    else return (jcache[pid] = { ok: false, why: first.bad + (Object.keys(over).length ? '（版を変えると先へ進むが、あとで合わない）' : '（ほかの版で試しても合わない）'), detail });
   }
+  const S = res.S, ops = res.ops, n = res.n;
   const r = { ok: true, S };
   // 外から入ってくる値（みんなの初撃破・地図の売り上げ）が本当にあったかも確かめる
   // みんなの初撃破（gclr）は本人のゲームが自動で書き写すだけ。取り消された初撃破を見ていた人もいるので、ここでは「注意」にとどめる
@@ -170,13 +189,13 @@ async function replayOf(pid) {
     const key = q => JSON.stringify([q.sp, q.rar, q.floor, (q.stats || []).map(x => x.k + x.r).join(''), (q.edges || []).join('')]); const pool = (b.p || []).map(key);
     for (const q of op[2] || []) { const i = pool.indexOf(key(q)); if (i < 0) return (jcache[pid] = { ok: false, why: 'バッグ（' + id + '）に入っていない欠片を拾ったことになっている' }); pool.splice(i, 1); } }
   const warn = gone.size ? 'いまは無い初撃破（' + [...gone].sort((a, b) => a - b).join('・') + '階）を見ていた時期がある。取り消された記録を、本人のゲームが書き写しただけ' : '';
-  return (jcache[pid] = { ok: true, why: '', warn, pr: r.S.pr, n: ops.length });
+  return (jcache[pid] = { ok: true, why: '', warn: [warn, res.note].filter(Boolean).join('／'), detail: res.detail || '', pr: r.S.pr, n: ops.length });
 }
 async function verify(f) {
   const v = firsts[f]; const cell = $('#fv-' + f); if (!v || !cell) return; cell.textContent = '確認中…'; cell.className = 'mute';
   for (const cp of Object.keys(v.co || {})) { const rc = await replayOf(cp); if (!rc.ok || !(rc.pr.cleared && rc.pr.cleared[f])) { cell.textContent = '✖ 同時撃破の ' + ((v.co[cp] || {}).n || cp) + '：' + (rc.ok ? '記録にまだ無い' : rc.why); cell.className = 'ng'; return false; } }
   const r = await replayOf(v.pid);
-  if (!r.ok) { cell.textContent = '✖ ' + r.why; cell.className = 'ng'; return false; }
+  if (!r.ok) { cell.textContent = '✖ ' + r.why; cell.className = 'ng'; if (r.detail) { const d = document.createElement('div'); d.className = 'mute'; d.style.cssText = 'white-space:pre-wrap;font-size:11px;margin-top:4px;word-break:break-all'; d.textContent = r.detail; cell.appendChild(d); } return false; }
   if (r.pr.cleared && r.pr.cleared[f]) { cell.textContent = `✔ 正しい（操作 ${r.n}回）` + (r.warn ? `　※注意：${r.warn}` : ''); cell.className = 'ok'; return true; }
   cell.textContent = '△ 記録にまだ無い（送信待ちかも／不正かも）'; cell.className = 'ng'; return false;
 }
