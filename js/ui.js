@@ -1503,10 +1503,15 @@ function tabLost() {
 const tabCheck = () => { if (TAB.lost) return; const o = tabOwner(); if (o && o.id !== TAB.id && (o.b || 0) > (TAB.at || 0)) { tabLost(); return; } tabClaim(); };
 setInterval(tabCheck, 1500); addEventListener('storage', e => { if (e.key === 'il_tab') tabCheck(); });
 async function boot() {
+  // なすびのお庭から ?lang=xx で来たら、その言葉で始める（保存した言葉より優先して、保存もする）
+  let qLang = null; try { qLang = new URLSearchParams(location.search).get('lang'); } catch (e) {}
+  if (!L10N.LANGS[qLang]) qLang = null;
+  if (qLang) { try { const o = JSON.parse(localStorage.getItem(SAVE_O) || '{}'); o.lang = qLang; localStorage.setItem(SAVE_O, JSON.stringify(o)); } catch (e) {} }
   TAB.at = Date.now(); tabClaim();
   if (await checkUpdate()) return;
   if (/[?&]reset=1/.test(location.search)) { try { ['il_state_v1', 'il_salesgot', 'il_jn'].forEach(k => localStorage.removeItem(k)); } catch (e) {} history.replaceState(null, '', location.pathname); } // この端末のデータだけ消す
   try { opt = Object.assign(opt, JSON.parse(localStorage.getItem(SAVE_O) || '{}')); } catch (e) {}
+  if (qLang) opt.lang = qLang;
   opt.visits = (opt.visits || 0) + 1; saveOpt();
   if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {}); // 2回目から速く開く
   L10N.lang = opt.lang || L10N.pick(); document.documentElement.lang = L10N.lang; L10N.observe(); L10N.apply(); applyOpt();
