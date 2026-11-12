@@ -166,7 +166,7 @@ function gachaReady() { return !pr.gacha || pr.gacha.day !== todayKey() || !pr.g
 
 /* ---------- タイトル ---------- */
 const SHARE = {
-  ja: { boss: f => `インテグラ・レイヤー ${f}階のボスを倒した！`, first: f => `インテグラ・レイヤー ${f}階のボスを、世界で最初に倒した！`, god: (f, n) => `インテグラ・レイヤー ${f}階で神技「${n}」が出た！`, tags: 'インテグラレイヤー' },
+  ja: { boss: f => `インテグラ・レイヤー ${f}階のボスを倒した！`, first: f => `インテグラ・レイヤー ${f}階のボスを、世界で最初に倒した！`, god: (f, n) => `インテグラ・レイヤー ${f}階で神技「${n}」が出た！`, tags: 'インテグラレイヤー,ブラウザゲーム' },
   en: { boss: f => `Beat the floor ${f} boss in Integra Layer!`, first: f => `I was the FIRST in the world to beat the floor ${f} boss in Integra Layer!`, god: (f, n) => `Unleashed the divine skill "${n}" on floor ${f} in Integra Layer!`, tags: 'IntegraLayer' },
   zh: { boss: f => `在整合層擊敗了第${f}層的頭目！`, first: f => `在整合層全世界第一個擊敗了第${f}層的頭目！`, god: (f, n) => `在整合層第${f}層使出了神技「${n}」！`, tags: 'IntegraLayer' },
   ko: { boss: f => `인테그라 레이어 ${f}층 보스를 쓰러뜨렸다!`, first: f => `인테그라 레이어 ${f}층 보스를 세계 최초로 쓰러뜨렸다!`, god: (f, n) => `인테그라 레이어 ${f}층에서 신기술 「${n}」 발동!`, tags: 'IntegraLayer' },
